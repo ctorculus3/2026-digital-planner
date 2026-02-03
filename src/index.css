@@ -8,113 +8,113 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Main backgrounds */
-    --background: 90 20% 92%;
-    --foreground: 150 10% 25%;
+    /* Main backgrounds - warm cream */
+    --background: 40 35% 94%;
+    --foreground: 220 20% 20%;
 
-    /* Cards - cream paper look */
-    --card: 45 30% 96%;
-    --card-foreground: 150 10% 25%;
+    /* Cards - soft white */
+    --card: 40 40% 98%;
+    --card-foreground: 220 20% 20%;
 
     /* Popover */
-    --popover: 45 30% 96%;
-    --popover-foreground: 150 10% 25%;
+    --popover: 40 40% 98%;
+    --popover-foreground: 220 20% 20%;
 
-    /* Primary - sage green */
-    --primary: 140 25% 45%;
-    --primary-foreground: 45 30% 96%;
+    /* Primary - vibrant teal */
+    --primary: 168 65% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - lighter sage */
-    --secondary: 140 20% 85%;
-    --secondary-foreground: 150 10% 25%;
+    /* Secondary - soft mint */
+    --secondary: 168 40% 90%;
+    --secondary-foreground: 168 65% 25%;
 
     /* Muted */
-    --muted: 90 15% 88%;
-    --muted-foreground: 150 8% 45%;
+    --muted: 40 25% 90%;
+    --muted-foreground: 220 10% 45%;
 
-    /* Accent */
-    --accent: 140 25% 75%;
-    --accent-foreground: 150 10% 25%;
+    /* Accent - coral pop */
+    --accent: 12 85% 60%;
+    --accent-foreground: 0 0% 100%;
 
     /* Destructive */
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 45 30% 96%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 0 0% 100%;
 
     /* Border & inputs */
-    --border: 140 15% 80%;
-    --input: 45 25% 92%;
-    --ring: 140 25% 45%;
+    --border: 40 30% 82%;
+    --input: 40 35% 95%;
+    --ring: 168 65% 40%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Weekday tab colors */
-    --tab-sunday: 35 85% 60%;
-    --tab-monday: 145 50% 55%;
-    --tab-tuesday: 340 60% 75%;
-    --tab-wednesday: 50 75% 60%;
-    --tab-thursday: 180 55% 55%;
-    --tab-friday: 280 45% 65%;
-    --tab-saturday: 320 55% 60%;
+    /* Weekday tab colors - vibrant rainbow */
+    --tab-sunday: 25 95% 55%;
+    --tab-monday: 160 70% 45%;
+    --tab-tuesday: 340 80% 60%;
+    --tab-wednesday: 45 95% 50%;
+    --tab-thursday: 195 85% 50%;
+    --tab-friday: 270 70% 60%;
+    --tab-saturday: 310 75% 55%;
 
     /* Staff paper gold */
-    --tab-staff: 40 80% 55%;
+    --tab-staff: 38 95% 50%;
 
-    /* Header scallop */
-    --header-bg: 140 30% 60%;
-    --header-dark: 140 30% 50%;
+    /* Header scallop - rich teal */
+    --header-bg: 168 60% 45%;
+    --header-dark: 168 60% 35%;
 
-    /* Notebook rings */
-    --ring-color: 45 40% 50%;
+    /* Notebook rings - bronze */
+    --ring-color: 30 60% 45%;
 
-    --sidebar-background: 90 20% 95%;
-    --sidebar-foreground: 150 10% 30%;
-    --sidebar-primary: 140 25% 45%;
-    --sidebar-primary-foreground: 45 30% 96%;
-    --sidebar-accent: 140 20% 85%;
-    --sidebar-accent-foreground: 150 10% 25%;
-    --sidebar-border: 140 15% 80%;
-    --sidebar-ring: 140 25% 45%;
+    --sidebar-background: 40 30% 96%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 168 65% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 168 40% 88%;
+    --sidebar-accent-foreground: 168 65% 25%;
+    --sidebar-border: 40 30% 82%;
+    --sidebar-ring: 168 65% 40%;
   }
 
   .dark {
-    --background: 150 15% 12%;
-    --foreground: 45 20% 90%;
-    --card: 150 12% 18%;
-    --card-foreground: 45 20% 90%;
-    --popover: 150 12% 18%;
-    --popover-foreground: 45 20% 90%;
-    --primary: 140 30% 50%;
-    --primary-foreground: 150 15% 10%;
-    --secondary: 150 15% 25%;
-    --secondary-foreground: 45 20% 90%;
-    --muted: 150 12% 22%;
-    --muted-foreground: 45 15% 65%;
-    --accent: 140 25% 35%;
-    --accent-foreground: 45 20% 90%;
-    --destructive: 0 60% 45%;
-    --destructive-foreground: 45 20% 90%;
-    --border: 150 12% 25%;
-    --input: 150 12% 22%;
-    --ring: 140 30% 50%;
-    --tab-sunday: 35 75% 50%;
-    --tab-monday: 145 45% 45%;
-    --tab-tuesday: 340 50% 60%;
-    --tab-wednesday: 50 65% 50%;
-    --tab-thursday: 180 45% 45%;
-    --tab-friday: 280 40% 55%;
-    --tab-saturday: 320 45% 50%;
-    --tab-staff: 40 70% 45%;
-    --header-bg: 140 25% 35%;
-    --header-dark: 140 25% 28%;
-    --ring-color: 45 35% 40%;
-    --sidebar-background: 150 15% 10%;
-    --sidebar-foreground: 45 20% 90%;
-    --sidebar-primary: 140 30% 50%;
-    --sidebar-primary-foreground: 150 15% 10%;
-    --sidebar-accent: 140 25% 30%;
-    --sidebar-accent-foreground: 45 20% 90%;
-    --sidebar-border: 150 12% 25%;
-    --sidebar-ring: 140 30% 50%;
+    --background: 220 20% 10%;
+    --foreground: 40 30% 92%;
+    --card: 220 18% 14%;
+    --card-foreground: 40 30% 92%;
+    --popover: 220 18% 14%;
+    --popover-foreground: 40 30% 92%;
+    --primary: 168 70% 50%;
+    --primary-foreground: 220 20% 8%;
+    --secondary: 220 15% 22%;
+    --secondary-foreground: 40 30% 92%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 40 20% 60%;
+    --accent: 12 80% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 22%;
+    --input: 220 15% 18%;
+    --ring: 168 70% 50%;
+    --tab-sunday: 25 90% 50%;
+    --tab-monday: 160 65% 40%;
+    --tab-tuesday: 340 75% 55%;
+    --tab-wednesday: 45 90% 45%;
+    --tab-thursday: 195 80% 45%;
+    --tab-friday: 270 65% 55%;
+    --tab-saturday: 310 70% 50%;
+    --tab-staff: 38 90% 45%;
+    --header-bg: 168 55% 35%;
+    --header-dark: 168 55% 28%;
+    --ring-color: 30 50% 35%;
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 40 30% 92%;
+    --sidebar-primary: 168 70% 50%;
+    --sidebar-primary-foreground: 220 20% 8%;
+    --sidebar-accent: 168 50% 25%;
+    --sidebar-accent-foreground: 40 30% 92%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 168 70% 50%;
   }
 }
 
