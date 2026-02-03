@@ -57,6 +57,23 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Weekday tabs
+        "tab-sunday": "hsl(var(--tab-sunday))",
+        "tab-monday": "hsl(var(--tab-monday))",
+        "tab-tuesday": "hsl(var(--tab-tuesday))",
+        "tab-wednesday": "hsl(var(--tab-wednesday))",
+        "tab-thursday": "hsl(var(--tab-thursday))",
+        "tab-friday": "hsl(var(--tab-friday))",
+        "tab-saturday": "hsl(var(--tab-saturday))",
+        "tab-staff": "hsl(var(--tab-staff))",
+        // Header
+        "header-bg": "hsl(var(--header-bg))",
+        "header-dark": "hsl(var(--header-dark))",
+        "ring-color": "hsl(var(--ring-color))",
+      },
+      fontFamily: {
+        serif: ["Georgia", "Cambria", "serif"],
+        display: ["Palatino Linotype", "Book Antiqua", "Palatino", "serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
