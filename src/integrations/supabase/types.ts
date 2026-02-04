@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      practice_logs: {
+        Row: {
+          created_at: string
+          goals: string | null
+          id: string
+          log_date: string
+          metronome_used: boolean | null
+          musicianship: string | null
+          notes: string | null
+          repertoire: string[] | null
+          scales: string[] | null
+          start_time: string | null
+          stop_time: string | null
+          subgoals: string | null
+          technique: string | null
+          updated_at: string
+          user_id: string
+          warmups: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          goals?: string | null
+          id?: string
+          log_date: string
+          metronome_used?: boolean | null
+          musicianship?: string | null
+          notes?: string | null
+          repertoire?: string[] | null
+          scales?: string[] | null
+          start_time?: string | null
+          stop_time?: string | null
+          subgoals?: string | null
+          technique?: string | null
+          updated_at?: string
+          user_id: string
+          warmups?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          goals?: string | null
+          id?: string
+          log_date?: string
+          metronome_used?: boolean | null
+          musicianship?: string | null
+          notes?: string | null
+          repertoire?: string[] | null
+          scales?: string[] | null
+          start_time?: string | null
+          stop_time?: string | null
+          subgoals?: string | null
+          technique?: string | null
+          updated_at?: string
+          user_id?: string
+          warmups?: string[] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

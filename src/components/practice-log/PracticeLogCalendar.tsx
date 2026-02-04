@@ -5,31 +5,25 @@ import { NotebookRings } from "./NotebookRings";
 import { ScallopHeader } from "./ScallopHeader";
 import { PracticeLogForm } from "./PracticeLogForm";
 import { DateNavigator } from "./DateNavigator";
+import { UserMenu } from "./UserMenu";
 import {
-  getDaysInMonth,
-  setMonth,
-  setYear,
-  startOfMonth,
   addDays,
   getDay,
-  addMonths,
   subDays,
 } from "date-fns";
 
 export function PracticeLogCalendar() {
-  // Start on Jan 1, 2026
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const selectedMonth = currentDate.getMonth();
   const selectedDayOfWeek = getDay(currentDate);
 
   const handleSelectMonth = useCallback((month: number) => {
-    // Jump to the 1st of the selected month in 2026
-    setCurrentDate(new Date(2026, month, 1));
-  }, []);
+    const year = currentDate.getFullYear();
+    setCurrentDate(new Date(year, month, 1));
+  }, [currentDate]);
 
   const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
-    // Find the next occurrence of that weekday within the current month
     const currentDayOfWeek = getDay(currentDate);
     let daysToAdd = targetDayOfWeek - currentDayOfWeek;
     
@@ -38,37 +32,19 @@ export function PracticeLogCalendar() {
     }
     
     const newDate = addDays(currentDate, daysToAdd);
-    
-    // Stay within 2026
-    if (newDate.getFullYear() === 2026) {
-      setCurrentDate(newDate);
-    }
+    setCurrentDate(newDate);
   }, [currentDate]);
 
   const handlePrevDay = useCallback(() => {
-    const newDate = subDays(currentDate, 1);
-    // Don't go before Jan 1, 2026
-    if (newDate >= new Date(2026, 0, 1)) {
-      setCurrentDate(newDate);
-    }
+    setCurrentDate(subDays(currentDate, 1));
   }, [currentDate]);
 
   const handleNextDay = useCallback(() => {
-    const newDate = addDays(currentDate, 1);
-    // Don't go after Dec 31, 2026
-    if (newDate <= new Date(2026, 11, 31)) {
-      setCurrentDate(newDate);
-    }
+    setCurrentDate(addDays(currentDate, 1));
   }, [currentDate]);
 
   const handleToday = useCallback(() => {
-    const today = new Date();
-    // If we're in 2026, go to current date equivalent, otherwise start of 2026
-    if (today.getFullYear() === 2026) {
-      setCurrentDate(today);
-    } else {
-      setCurrentDate(new Date(2026, 0, 1));
-    }
+    setCurrentDate(new Date());
   }, []);
 
   return (
@@ -78,7 +54,10 @@ export function PracticeLogCalendar() {
       
       {/* Month Tabs */}
       <div className="bg-muted border-b border-border">
-        <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
+        <div className="flex items-center justify-between px-4">
+          <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
+          <UserMenu />
+        </div>
       </div>
 
       {/* Main Content */}
@@ -99,7 +78,7 @@ export function PracticeLogCalendar() {
               onToday={handleToday}
             />
             <span className="text-sm text-muted-foreground font-display">
-              2026 Practice Journal
+              {currentDate.getFullYear()} Practice Journal
             </span>
           </div>
 
