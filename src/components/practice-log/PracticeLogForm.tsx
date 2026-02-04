@@ -1,17 +1,69 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { usePracticeLog } from "@/hooks/usePracticeLog";
+import { useAuth } from "@/contexts/AuthContext";
+import { Save, Loader2 } from "lucide-react";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface PracticeLogFormProps {
   date: Date;
 }
 
 export function PracticeLogForm({ date }: PracticeLogFormProps) {
+  const { user } = useAuth();
+  const { practiceLog, isLoading, save, isSaving } = usePracticeLog(date);
+
   const [mainGoals, setMainGoals] = useState("");
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
   const [stopTime, setStopTime] = useState("");
+  const [warmups, setWarmups] = useState(["", "", "", ""]);
+  const [scales, setScales] = useState(["", "", "", ""]);
+  const [repertoire, setRepertoire] = useState<string[]>(Array(10).fill(""));
+  const [notes, setNotes] = useState("");
+  const [metronomeUsed, setMetronomeUsed] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load data when practice log is fetched
+  useEffect(() => {
+    if (practiceLog) {
+      setMainGoals(practiceLog.goals || "");
+      setSubgoals(practiceLog.subgoals || "");
+      setStartTime(practiceLog.start_time || "");
+      setStopTime(practiceLog.stop_time || "");
+      
+      const loadedWarmups = [...(practiceLog.warmups || [])];
+      while (loadedWarmups.length < 4) loadedWarmups.push("");
+      setWarmups(loadedWarmups.slice(0, 4));
+      
+      const loadedScales = [...(practiceLog.scales || [])];
+      while (loadedScales.length < 4) loadedScales.push("");
+      setScales(loadedScales.slice(0, 4));
+      
+      const loadedRepertoire = [...(practiceLog.repertoire || [])];
+      while (loadedRepertoire.length < 10) loadedRepertoire.push("");
+      setRepertoire(loadedRepertoire.slice(0, 10));
+      
+      setNotes(practiceLog.notes || "");
+      setMetronomeUsed(practiceLog.metronome_used || false);
+      setHasUnsavedChanges(false);
+    } else if (!isLoading) {
+      // Reset form for new day
+      setMainGoals("");
+      setSubgoals("");
+      setStartTime("");
+      setStopTime("");
+      setWarmups(["", "", "", ""]);
+      setScales(["", "", "", ""]);
+      setRepertoire(Array(10).fill(""));
+      setNotes("");
+      setMetronomeUsed(false);
+      setHasUnsavedChanges(false);
+    }
+  }, [practiceLog, isLoading]);
 
   const totalTime = useMemo(() => {
     if (!startTime || !stopTime) return "";
@@ -21,7 +73,6 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     
     let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
     
-    // Handle overnight practice (stop time is next day)
     if (totalMinutes < 0) {
       totalMinutes += 24 * 60;
     }
@@ -31,21 +82,33 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   }, [startTime, stopTime]);
-  const [warmups, setWarmups] = useState(["", "", "", ""]);
-  const [scales, setScales] = useState(["", "", "", ""]);
-  const [repertoire, setRepertoire] = useState<string[]>(Array(10).fill(""));
-  const [notes, setNotes] = useState("");
-  const [additionalTasks, setAdditionalTasks] = useState([
-    { text: "", checked: false },
-    { text: "", checked: false },
-    { text: "", checked: false },
-    { text: "", checked: false },
-  ]);
-  const [musicListening, setMusicListening] = useState([
-    { text: "", checked: false },
-    { text: "", checked: false },
-    { text: "", checked: false },
-  ]);
+
+  const handleSave = useCallback(() => {
+    save({
+      goals: mainGoals,
+      subgoals,
+      start_time: startTime || null,
+      stop_time: stopTime || null,
+      warmups,
+      scales,
+      repertoire,
+      technique: "",
+      musicianship: "",
+      notes,
+      metronome_used: metronomeUsed,
+    });
+    setHasUnsavedChanges(false);
+  }, [mainGoals, subgoals, startTime, stopTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
+
+  // Auto-save with debounce
+  const debouncedSave = useDebouncedCallback(handleSave, 2000);
+
+  const markChanged = useCallback(() => {
+    if (user) {
+      setHasUnsavedChanges(true);
+      debouncedSave();
+    }
+  }, [user, debouncedSave]);
 
   const dayName = date.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
   const formattedDate = date.toLocaleDateString("en-US", {
@@ -58,38 +121,60 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     const newWarmups = [...warmups];
     newWarmups[index] = value;
     setWarmups(newWarmups);
+    markChanged();
   };
 
   const updateScale = (index: number, value: string) => {
     const newScales = [...scales];
     newScales[index] = value;
     setScales(newScales);
+    markChanged();
   };
 
   const updateRepertoire = (index: number, value: string) => {
     const newRepertoire = [...repertoire];
     newRepertoire[index] = value;
     setRepertoire(newRepertoire);
+    markChanged();
   };
 
-  const updateTask = (index: number, field: "text" | "checked", value: string | boolean) => {
-    const newTasks = [...additionalTasks];
-    newTasks[index] = { ...newTasks[index], [field]: value };
-    setAdditionalTasks(newTasks);
-  };
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-muted-foreground">Please sign in to view your practice log.</p>
+      </div>
+    );
+  }
 
-  const updateListening = (index: number, field: "text" | "checked", value: string | boolean) => {
-    const newListening = [...musicListening];
-    newListening[index] = { ...newListening[index], [field]: value };
-    setMusicListening(newListening);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 overflow-auto">
-      {/* Date Header */}
-      <h2 className="font-display text-xl md:text-2xl text-foreground">
-        {dayName} – {formattedDate}
-      </h2>
+      {/* Date Header with Save Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl md:text-2xl text-foreground">
+          {dayName} – {formattedDate}
+        </h2>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving || !hasUnsavedChanges}
+          size="sm"
+          variant={hasUnsavedChanges ? "default" : "outline"}
+        >
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          {isSaving ? "Saving..." : hasUnsavedChanges ? "Save" : "Saved"}
+        </Button>
+      </div>
 
       {/* Goals Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -97,7 +182,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           <label className="font-display text-sm text-muted-foreground mb-2 block">Main Goals</label>
           <Textarea
             value={mainGoals}
-            onChange={(e) => setMainGoals(e.target.value)}
+            onChange={(e) => { setMainGoals(e.target.value); markChanged(); }}
             className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
             placeholder="What do you want to accomplish today?"
           />
@@ -106,7 +191,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           <label className="font-display text-sm text-muted-foreground mb-2 block">Subgoals</label>
           <Textarea
             value={subgoals}
-            onChange={(e) => setSubgoals(e.target.value)}
+            onChange={(e) => { setSubgoals(e.target.value); markChanged(); }}
             className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
             placeholder="Break down your goals..."
           />
@@ -121,7 +206,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
             <Input
               type="time"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => { setStartTime(e.target.value); markChanged(); }}
               className="bg-transparent border-b border-border rounded-none px-0"
             />
           </div>
@@ -130,7 +215,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
             <Input
               type="time"
               value={stopTime}
-              onChange={(e) => setStopTime(e.target.value)}
+              onChange={(e) => { setStopTime(e.target.value); markChanged(); }}
               className="bg-transparent border-b border-border rounded-none px-0"
             />
           </div>
@@ -177,9 +262,8 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
         </div>
       </div>
 
-      {/* Repertoire and Notes/Tasks */}
+      {/* Repertoire and Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Repertoire */}
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Repertoire & Exercises</label>
           <div className="space-y-1">
@@ -196,55 +280,27 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           </div>
         </div>
 
-        {/* Notes, Tasks, Listening */}
         <div className="space-y-4">
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Notes & Focus</label>
             <Textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => { setNotes(e.target.value); markChanged(); }}
               className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
               placeholder="Observations, breakthroughs, challenges..."
             />
           </div>
 
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-            <label className="font-display text-sm text-muted-foreground mb-2 block">Additional Tasks</label>
-            <div className="space-y-2">
-              {additionalTasks.map((task, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={task.checked}
-                    onCheckedChange={(checked) => updateTask(index, "checked", !!checked)}
-                    className="border-muted-foreground/50"
-                  />
-                  <Input
-                    value={task.text}
-                    onChange={(e) => updateTask(index, "text", e.target.value)}
-                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-            <label className="font-display text-sm text-muted-foreground mb-2 block">Music Listening</label>
-            <div className="space-y-2">
-              {musicListening.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={item.checked}
-                    onCheckedChange={(checked) => updateListening(index, "checked", !!checked)}
-                    className="border-muted-foreground/50"
-                  />
-                  <Input
-                    value={item.text}
-                    onChange={(e) => updateListening(index, "text", e.target.value)}
-                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7"
-                  />
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="metronome"
+                checked={metronomeUsed}
+                onCheckedChange={(checked) => { setMetronomeUsed(!!checked); markChanged(); }}
+              />
+              <label htmlFor="metronome" className="font-display text-sm text-foreground cursor-pointer">
+                Used Metronome Today
+              </label>
             </div>
           </div>
         </div>
