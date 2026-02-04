@@ -78,7 +78,7 @@ export function PracticeLogCalendar() {
               onToday={handleToday}
             />
             <span className="text-sm text-muted-foreground font-display">
-              {currentDate.getFullYear()} Practice Journal
+              {currentDate.getFullYear()} Music Practice Daily Record Journal
             </span>
           </div>
 

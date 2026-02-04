@@ -52,7 +52,7 @@ export default function Auth() {
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
             <Music2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="font-display text-2xl">Practice Journal</CardTitle>
+          <CardTitle className="font-display text-2xl">Music Practice Daily Record Journal</CardTitle>
           <CardDescription>
             {isLogin ? "Sign in to access your practice logs" : "Create an account to start tracking"}
           </CardDescription>
