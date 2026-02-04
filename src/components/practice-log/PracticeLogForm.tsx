@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,7 +12,25 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
   const [stopTime, setStopTime] = useState("");
-  const [totalTime, setTotalTime] = useState("");
+
+  const totalTime = useMemo(() => {
+    if (!startTime || !stopTime) return "";
+    
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [stopHour, stopMin] = stopTime.split(":").map(Number);
+    
+    let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
+    
+    // Handle overnight practice (stop time is next day)
+    if (totalMinutes < 0) {
+      totalMinutes += 24 * 60;
+    }
+    
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+  }, [startTime, stopTime]);
   const [warmups, setWarmups] = useState(["", "", "", ""]);
   const [scales, setScales] = useState(["", "", "", ""]);
   const [repertoire, setRepertoire] = useState<string[]>(Array(10).fill(""));
@@ -118,12 +136,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           </div>
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Total Time:</label>
-            <Input
-              value={totalTime}
-              onChange={(e) => setTotalTime(e.target.value)}
-              className="bg-transparent border-b border-border rounded-none px-0"
-              placeholder="0:00"
-            />
+            <div className="h-10 flex items-center border-b border-border text-foreground font-medium">
+              {totalTime || "0:00"}
+            </div>
           </div>
         </div>
       </div>
