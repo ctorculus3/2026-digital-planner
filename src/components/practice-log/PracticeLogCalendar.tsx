@@ -6,6 +6,7 @@ import { ScallopHeader } from "./ScallopHeader";
 import { PracticeLogForm } from "./PracticeLogForm";
 import { DateNavigator } from "./DateNavigator";
 import { UserMenu } from "./UserMenu";
+import { ManageSubscription } from "@/components/subscription/ManageSubscription";
 import {
   addDays,
   getDay,
@@ -56,7 +57,10 @@ export function PracticeLogCalendar() {
       <div className="bg-muted border-b border-border">
         <div className="flex items-center justify-between px-4">
           <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
-          <UserMenu />
+          <div className="flex items-center gap-2">
+            <ManageSubscription />
+            <UserMenu />
+          </div>
         </div>
       </div>
 
