@@ -1,1 +1,5 @@
 project_id = "cbuebvuqpippyiifatkn"
+
+# Use signing-keys compatible auth validation inside the function.
+[functions.check-subscription]
+verify_jwt = false
