@@ -71,6 +71,33 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_paper_drawings: {
+        Row: {
+          created_at: string
+          drawing_data: string | null
+          drawing_date: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drawing_data?: string | null
+          drawing_date: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drawing_data?: string | null
+          drawing_date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
