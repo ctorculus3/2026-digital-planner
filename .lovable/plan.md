@@ -1,120 +1,102 @@
 
-# Plan: Scheduled Data Purge After 90 Days of Inactivity
+# Fix: Subscription-Aware Login Flow
 
-## Overview
+## Problem Summary
+After signing in, users land on the paywall because navigation happens before the subscription check completes. The current code navigates when the user session is detected, but the Stripe API call to verify subscription status takes longer.
 
-This plan implements an automated system that deletes practice log data for users who have been inactive (no active subscription) for more than 90 days. The system will run daily and check each user's subscription status before purging their data.
-
-## How It Works
-
-1. A scheduled job runs once daily at 3:00 AM UTC
-2. The job identifies all users who have practice logs in the database
-3. For each user, it checks their Stripe subscription status
-4. If a user has no active subscription AND their subscription ended more than 90 days ago, their practice logs are deleted
-5. Users who never had a subscription (never completed checkout) will also have their data purged after 90 days of account creation
-
----
+## Solution Overview
+Restructure the login flow to explicitly wait for the subscription check to complete before navigating. This eliminates the race condition entirely.
 
 ## Implementation Steps
 
-### Step 1: Create the Purge Edge Function
+### 1. Modify Auth.tsx Login Flow
+Change the login handler to:
+- Call `signIn()` as before
+- Instead of waiting for auth state via `useEffect`, explicitly wait for `checkSubscription()` to complete
+- Only then trigger navigation
 
-Create a new backend function `purge-inactive-data` that:
-- Uses the service role key to access all user data (bypasses RLS)
-- Queries all unique user IDs from `practice_logs`
-- For each user, checks their Stripe subscription status
-- Deletes practice logs for users inactive for 90+ days
-- Logs all actions for auditing purposes
+This makes the flow synchronous from the user's perspective: they click Sign In, see a loading state, and only navigate once we know their subscription status.
 
-### Step 2: Enable Required Database Extensions
+### 2. Remove the `justSignedIn` State Machine
+The current `justSignedIn` + `useEffect` pattern is fragile because it depends on timing. Replace it with a direct, awaitable flow.
 
-Enable the `pg_cron` and `pg_net` extensions which are required for scheduling automated tasks.
+### 3. Update Navigation Logic
+After the subscription check completes:
+- If subscribed: navigate to `/` (journal)
+- If not subscribed: navigate to `/?sub=pending` so SubscriptionGate shows the paywall immediately without another check
 
-### Step 3: Create the Scheduled Cron Job
-
-Set up a daily cron job that calls the purge function at 3:00 AM UTC using SQL:
-
-```text
-Schedule: 0 3 * * *  (runs daily at 3:00 AM UTC)
-Action: HTTP POST to the purge-inactive-data function
-```
-
-### Step 4: Add Logging Table (Optional but Recommended)
-
-Create a `purge_logs` table to track:
-- When purges occurred
-- How many users were affected
-- How many practice logs were deleted
-
-This provides an audit trail and helps with debugging.
-
----
+### 4. Simplify SubscriptionGate
+Remove the redundant subscription check on mount since we've already verified status before navigation.
 
 ## Technical Details
 
-### Edge Function Logic
+### Changes to `src/pages/Auth.tsx`
 
-```text
-1. Query distinct user_ids from practice_logs
-2. For each user_id:
-   a. Look up user email from auth.users
-   b. Check Stripe for customer by email
-   c. If no customer found:
-      - Check user created_at date
-      - If created > 90 days ago, mark for deletion
-   d. If customer found:
-      - Get all subscriptions
-      - Find the most recent subscription end date
-      - If ended > 90 days ago, mark for deletion
-3. Delete all practice_logs for marked users
-4. Log results
+```typescript
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    if (isLogin) {
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+
+      toast({
+        title: "Signed in",
+        description: "Checking your subscription...",
+      });
+
+      // Wait a moment for session to propagate, then check subscription
+      await new Promise(r => setTimeout(r, 500));
+      
+      // Explicitly check subscription and wait for result
+      const isSubscribed = await checkSubscription();
+      
+      // Navigate based on actual subscription status
+      if (isSubscribed) {
+        window.location.href = "/";
+      } else {
+        window.location.href = "/?show_paywall=1";
+      }
+      return;
+    } else {
+      // ... signup logic unchanged
+    }
+  } catch (error) {
+    // ... error handling unchanged
+  } finally {
+    setLoading(false);
+  }
+};
 ```
 
-### Security Considerations
+### Changes to `src/contexts/AuthContext.tsx`
 
-- The function uses the service role key (already configured as a secret)
-- JWT verification is disabled for this function since it's called by the cron job, not by users
-- Authorization is handled via a secret token passed in the request header
+Export `checkSubscription` so it can be called directly from Auth.tsx (already done).
 
-### Data Flow Diagram
+Ensure `checkSubscription` returns reliably by:
+- Removing the early `initialCheckDone` bailout during the actual check
+- Making sure concurrent calls are properly deduplicated (already fixed)
 
-```text
-+------------------+     +----------------------+     +--------+
-|  pg_cron         | --> | purge-inactive-data  | --> | Stripe |
-|  (daily 3AM UTC) |     | (Edge Function)      |     | API    |
-+------------------+     +----------------------+     +--------+
-                                   |
-                                   v
-                         +------------------+
-                         | practice_logs    |
-                         | (DELETE inactive)|
-                         +------------------+
-```
+### Changes to `src/components/subscription/SubscriptionGate.tsx`
 
----
+Add handling for `?show_paywall=1` query param to skip the initial loading state when we already know the user isn't subscribed.
 
-## Files to Create/Modify
+## Why This Approach Works
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/purge-inactive-data/index.ts` | Create | Main purge logic with Stripe integration |
-| `supabase/config.toml` | Update | Add function configuration |
-| Database migration | Create | Enable pg_cron, pg_net extensions |
-| SQL insert | Execute | Schedule the cron job |
+1. **No race condition**: We explicitly await the subscription check before navigating
+2. **Predictable UX**: User sees "Checking your subscription..." then lands in the right place
+3. **Safari compatible**: Hard navigation (`window.location.href`) works reliably
+4. **Simpler code**: Removes the `justSignedIn` state machine and timing-dependent logic
 
----
+## Files to Modify
+- `src/pages/Auth.tsx` - Restructure login flow
+- `src/components/subscription/SubscriptionGate.tsx` - Handle query param for immediate paywall
+- `src/contexts/AuthContext.tsx` - Minor cleanup (optional)
 
-## Testing Strategy
-
-1. **Manual Testing**: Call the purge function directly via curl to verify logic works
-2. **Dry Run Mode**: Add a `dry_run` parameter that logs what would be deleted without actually deleting
-3. **Monitor Logs**: Check backend function logs after deployment to verify scheduled execution
-
----
-
-## Important Notes
-
-- The cron job setup requires running a SQL command with your project's specific URL and anon key
-- Users will NOT be notified before their data is deleted (you may want to add email notifications as a future enhancement)
-- The purge is permanent - deleted data cannot be recovered
-- The 90-day threshold can be adjusted in the edge function code if needed
+## Testing Steps
+1. Sign in on iPad Safari with a subscribed account - should go to journal
+2. Sign in on iPad Safari with a non-subscribed account - should go to paywall
+3. Refresh the page after login - should stay on correct page
+4. Test "Already subscribed? Refresh status" button on paywall
