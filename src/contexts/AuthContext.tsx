@@ -1,33 +1,24 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-interface SubscriptionStatus {
-  subscribed: boolean;
-  productId: string | null;
-  subscriptionEnd: string | null;
+type SubscriptionStatus = 'loading' | 'active' | 'inactive';
+
+interface Subscription {
+  status: SubscriptionStatus;
   isTrialing: boolean;
-  loading: boolean;
-  initialCheckDone: boolean;
-}
-
-
-interface SubscriptionDebugInfo {
-  lastCheckedAt: string | null;
-  lastHttpStatus: number | null;
-  lastErrorMessage: string | null;
+  endDate: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  subscription: SubscriptionStatus;
-  subscriptionDebug: SubscriptionDebugInfo;
+  subscription: Subscription;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  checkSubscription: () => Promise<boolean>;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,334 +27,110 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscriptionDebug, setSubscriptionDebug] = useState<SubscriptionDebugInfo>({
-    lastCheckedAt: null,
-    lastHttpStatus: null,
-    lastErrorMessage: null,
-  });
-  const [subscriptionInternal, setSubscriptionInternal] = useState<SubscriptionStatus>({
-    subscribed: false,
-    productId: null,
-    subscriptionEnd: null,
+  const [subscription, setSubscription] = useState<Subscription>({
+    status: 'loading',
     isTrialing: false,
-    loading: true,
-    initialCheckDone: false,
+    endDate: null,
   });
-  
-  // Use refs to track the current session + in-flight subscription check
-  // This avoids stale closure issues and prevents "false" results when a check is already running.
-  const sessionRef = useRef<Session | null>(null);
-  const checkPromiseRef = useRef<Promise<boolean> | null>(null);
 
-  // Expose only the public interface
-  const subscription: SubscriptionStatus = {
-    subscribed: subscriptionInternal.subscribed,
-    productId: subscriptionInternal.productId,
-    subscriptionEnd: subscriptionInternal.subscriptionEnd,
-    isTrialing: subscriptionInternal.isTrialing,
-    // Only show loading on initial check, not periodic refreshes
-    loading: subscriptionInternal.loading && !subscriptionInternal.initialCheckDone,
-    initialCheckDone: subscriptionInternal.initialCheckDone,
-  };
-
-  const checkSubscription = useCallback(async (forceSession?: Session | null): Promise<boolean> => {
-    // Use provided session or current ref
-    const currentSession = forceSession !== undefined ? forceSession : sessionRef.current;
-
+  const fetchSubscription = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
-      setSubscriptionDebug({
-        lastCheckedAt: new Date().toISOString(),
-        lastHttpStatus: null,
-        lastErrorMessage: "No session (signed out)",
-      });
-      setSubscriptionInternal({
-        subscribed: false,
-        productId: null,
-        subscriptionEnd: null,
-        isTrialing: false,
-        loading: false,
-        initialCheckDone: true,
-      });
-      return false;
+      setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+      return;
     }
 
-    // If a check is already running, reuse it instead of returning false.
-    if (checkPromiseRef.current) {
-      return await checkPromiseRef.current;
-    }
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: { Authorization: `Bearer ${currentSession.access_token}` },
+      });
 
-
-    const run = (async (): Promise<boolean> => {
-      try {
-        setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
-
-        // Safari/iOS can produce AbortError for fetches (especially when the page is backgrounded
-        // or during rapid navigation). We'll:
-        // 1) Ensure the access token is fresh when near expiry
-        // 2) Retry the function call once if it fails with an AbortError
-
-        const getFreshAccessToken = async () => {
-          let accessToken = currentSession.access_token;
-
-          try {
-            const payloadPart = accessToken.split(".")[1];
-            if (payloadPart) {
-              const tokenPayload = JSON.parse(atob(payloadPart));
-              const expiresAt = Number(tokenPayload?.exp) * 1000;
-              if (Number.isFinite(expiresAt)) {
-                const msUntilExpiry = expiresAt - Date.now();
-                if (msUntilExpiry < 60_000) {
-                  console.log("[AuthContext] Token near expiry, refreshing...");
-                  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-                  if (refreshError) throw refreshError;
-                  if (refreshData.session?.access_token) {
-                    accessToken = refreshData.session.access_token;
-                    sessionRef.current = refreshData.session;
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            // If decoding fails, fall back to using the current token and let the backend validate.
-            console.warn("[AuthContext] Unable to decode token payload; continuing", e);
-          }
-
-          return accessToken;
-        };
-
-        const invokeCheck = async () => {
-          const accessToken = await getFreshAccessToken();
-          return await supabase.functions.invoke("check-subscription", {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
-        };
-
-        let result = await invokeCheck();
-
-        // One retry for Safari AbortError
-        if (result.error && (result.error as any)?.name === "FunctionsFetchError") {
-          const ctxName = (result.error as any)?.context?.name;
-          const ctxMsg = (result.error as any)?.context?.message;
-          const isAbort = ctxName === "AbortError" || ctxMsg === "The operation was aborted.";
-          if (isAbort) {
-            console.warn("[AuthContext] check-subscription aborted; retrying once...");
-            await new Promise((r) => setTimeout(r, 350));
-            result = await invokeCheck();
-          }
+      if (error) {
+        console.error("Subscription check error:", error);
+        // On 401, sign out
+        if ((error as any)?.status === 401) {
+          await supabase.auth.signOut();
         }
-
-        const { data, error } = result;
-        console.log("[AuthContext] check-subscription response:", { data, error });
-
-        if (error) {
-          const httpStatus = (error as any)?.status ?? null;
-          setSubscriptionDebug({
-            lastCheckedAt: new Date().toISOString(),
-            lastHttpStatus: typeof httpStatus === "number" ? httpStatus : null,
-            lastErrorMessage: error.message ?? "Unknown error",
-          });
-
-          console.error("Error checking subscription:", error);
-
-          // If we get a 401 (unauthorized), the session is stale - sign out
-          if (httpStatus === 401 || error.message?.includes("Unauthorized")) {
-            console.warn("[AuthContext] Stale session detected, signing out...");
-            await supabase.auth.signOut();
-          }
-
-          setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
-          return false;
-        }
-
-        setSubscriptionDebug({
-          lastCheckedAt: new Date().toISOString(),
-          lastHttpStatus: 200,
-          lastErrorMessage: null,
-        });
-
-        const isSubscribed = data.subscribed || false;
-
-        setSubscriptionInternal({
-          subscribed: isSubscribed,
-          productId: data.product_id || null,
-          subscriptionEnd: data.subscription_end || null,
-          isTrialing: data.is_trialing || false,
-          loading: false,
-          initialCheckDone: true,
-        });
-
-        return isSubscribed;
-      } catch (error) {
-        setSubscriptionDebug({
-          lastCheckedAt: new Date().toISOString(),
-          lastHttpStatus: null,
-          lastErrorMessage: error instanceof Error ? error.message : String(error),
-        });
-        console.error("Error checking subscription:", error);
-        setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
-        return false;
-      } finally {
-        checkPromiseRef.current = null;
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        return;
       }
-    })();
 
-    checkPromiseRef.current = run;
-    return await run;
+      setSubscription({
+        status: data?.subscribed ? 'active' : 'inactive',
+        isTrialing: data?.is_trialing || false,
+        endDate: data?.subscription_end || null,
+      });
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+      setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+    }
   }, []);
 
   useEffect(() => {
     let mounted = true;
-    
-    // Set up auth state listener BEFORE checking session
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+
+    // Set up auth state listener
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         if (!mounted) return;
-        
-        sessionRef.current = newSession;
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        
-        // Check subscription immediately with the new session
-        if (newSession) {
-          await checkSubscription(newSession);
-        } else {
-          setSubscriptionInternal({
-            subscribed: false,
-            productId: null,
-            subscriptionEnd: null,
-            isTrialing: false,
-            loading: false,
-            initialCheckDone: true,
-          });
-        }
-        
         setLoading(false);
+
+        // Fetch subscription when auth state changes
+        if (newSession) {
+          setSubscription(prev => ({ ...prev, status: 'loading' }));
+          await fetchSubscription(newSession);
+        } else {
+          setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        }
       }
     );
 
-    // Check for existing session (Safari can AbortError sporadically; retry once)
-    const getSessionWithRetry = async () => {
-      try {
-        return await supabase.auth.getSession();
-      } catch (e: any) {
-        const isAbort = e?.name === "AbortError" || e?.message === "The operation was aborted.";
-        if (!isAbort) throw e;
-        console.warn("[AuthContext] getSession aborted; retrying once...");
-        await new Promise((r) => setTimeout(r, 200));
-        return await supabase.auth.getSession();
-      }
-    };
-
-    getSessionWithRetry().then(async ({ data: { session: existingSession } }) => {
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
       if (!mounted) return;
-
-      // Only process if we haven't already gotten a session from onAuthStateChange
-      if (sessionRef.current === null) {
-        sessionRef.current = existingSession;
-        setSession(existingSession);
-        setUser(existingSession?.user ?? null);
-
-        if (existingSession) {
-          await checkSubscription(existingSession);
-        } else {
-          setSubscriptionInternal({
-            subscribed: false,
-            productId: null,
-            subscriptionEnd: null,
-            isTrialing: false,
-            loading: false,
-            initialCheckDone: true,
-          });
-        }
-
-        setLoading(false);
-      }
-    }).catch((error) => {
-      if (!mounted) return;
-      console.error("Error getting session:", error);
+      
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       setLoading(false);
-      setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
+
+      if (existingSession) {
+        await fetchSubscription(existingSession);
+      } else {
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+      }
     });
 
-    // Fallback timeout to prevent infinite loading on iOS/Safari
+    // Fallback timeout
     const timeout = setTimeout(() => {
-      if (!mounted) return;
-      setLoading(false);
-      // Also mark subscription check as done to prevent stuck loading
-      setSubscriptionInternal(prev => {
-        if (!prev.initialCheckDone) {
-          return { ...prev, loading: false, initialCheckDone: true };
-        }
-        return prev;
-      });
+      if (mounted && loading) {
+        setLoading(false);
+        setSubscription(prev => prev.status === 'loading' 
+          ? { ...prev, status: 'inactive' } 
+          : prev
+        );
+      }
     }, 5000);
 
     return () => {
       mounted = false;
-      authSubscription.unsubscribe();
+      authSub.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [checkSubscription]);
-
-  // Update ref when session changes externally
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
-
-  // Periodically refresh subscription status (every 60 seconds)
-  // Pause when the page is hidden (Safari may abort background fetches).
-  useEffect(() => {
-    if (!session) return;
-
-    let interval: number | undefined;
-
-    const start = () => {
-      if (interval) return;
-      interval = window.setInterval(() => {
-        if (!document.hidden) {
-          checkSubscription();
-        }
-      }, 60000);
-    };
-
-    const stop = () => {
-      if (!interval) return;
-      window.clearInterval(interval);
-      interval = undefined;
-    };
-
-    const onVisibility = () => {
-      if (document.hidden) stop();
-      else start();
-    };
-
-    start();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [session, checkSubscription]);
+  }, [fetchSubscription]);
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
+      options: { emailRedirectTo: window.location.origin },
     });
     return { error: error as Error | null };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
   };
 
@@ -371,17 +138,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshSubscription = useCallback(async () => {
+    if (session) {
+      setSubscription(prev => ({ ...prev, status: 'loading' }));
+      await fetchSubscription(session);
+    }
+  }, [session, fetchSubscription]);
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
       loading,
       subscription,
-      subscriptionDebug,
       signUp,
       signIn,
       signOut,
-      checkSubscription,
+      refreshSubscription,
     }}>
       {children}
     </AuthContext.Provider>

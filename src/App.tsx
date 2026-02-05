@@ -8,7 +8,7 @@ import { SubscriptionGate } from "@/components/subscription/SubscriptionGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
- import StaffPaper from "./pages/StaffPaper";
+import StaffPaper from "./pages/StaffPaper";
 
 const queryClient = new QueryClient();
 
@@ -74,16 +74,16 @@ const App = () => (
                 </PublicRoute>
               }
             />
-             <Route
-               path="/staff-paper"
-               element={
-                 <ProtectedRoute>
-                   <SubscriptionGate>
-                     <StaffPaper />
-                   </SubscriptionGate>
-                 </ProtectedRoute>
-               }
-             />
+            <Route
+              path="/staff-paper"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionGate>
+                    <StaffPaper />
+                  </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

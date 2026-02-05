@@ -10,41 +10,41 @@ import {
 } from "@/components/ui/card";
 import { Music2, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation, useNavigate } from "react-router-dom";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
 }
 
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
-  const { subscription, checkSubscription, user, session, subscriptionDebug } = useAuth();
+  const { subscription, refreshSubscription, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
-  const location = useLocation();
-  const navigate = useNavigate();
 
-  const debugEnabled = useMemo(() => new URLSearchParams(location.search).get("debug") === "1", [location.search]);
-  const showPaywallParam = useMemo(() => new URLSearchParams(location.search).get("show_paywall") === "1", [location.search]);
+  // Show loading spinner while checking subscription
+  if (subscription.status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
+  // User has active subscription - show the app
+  if (subscription.status === 'active') {
+    return <>{children}</>;
+  }
+
+  // Show paywall for inactive subscription
   const handleSubscribe = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout");
-      
       if (error) throw error;
-      
       if (data?.url) {
-        // Try redirect first, fallback to window.open
-        console.log("Redirecting to Stripe checkout:", data.url);
-        try {
-          window.location.href = data.url;
-        } catch (e) {
-          // Fallback: open in new tab
-          window.open(data.url, "_blank", "noopener,noreferrer");
-        }
+        window.location.href = data.url;
       } else {
         throw new Error("No checkout URL received");
       }
@@ -59,84 +59,32 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
-  const handleRefreshSubscription = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const isSubscribed = await checkSubscription();
-      if (isSubscribed) {
-        toast({
-          title: "Subscription verified!",
-          description: "Redirecting to your journal...",
-        });
-        // Simple hard navigation for Safari compatibility
-        window.location.href = "/";
-      } else {
+      await refreshSubscription();
+      if (subscription.status !== 'active') {
         toast({
           title: "No active subscription found",
-          description: "Please start your free trial or check that you're signed in with the correct account.",
+          description: "Please start your free trial or check your account.",
           variant: "destructive",
         });
-        setRefreshing(false);
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to check subscription status. Please try again.",
+        description: "Failed to check subscription status.",
         variant: "destructive",
       });
+    } finally {
       setRefreshing(false);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Sign out error:", e);
-    }
-    // Force hard navigation to /auth
-    window.location.replace("/auth");
+    await signOut();
   };
 
-  // Failsafe: if no user/session after initial check, redirect to auth
-  // This handles Safari edge cases where ProtectedRoute may not have redirected
-  useEffect(() => {
-    if (subscription.initialCheckDone && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [subscription.initialCheckDone, user, navigate]);
-
-  // Auto-navigate away from paywall when subscription becomes active
-  useEffect(() => {
-    if (subscription.subscribed && subscription.initialCheckDone && user) {
-      // If we're showing the paywall but user is subscribed, redirect to clean URL
-      if (showPaywallParam) {
-        window.location.href = "/";
-      }
-    }
-  }, [subscription.subscribed, subscription.initialCheckDone, user, showPaywallParam]);
-
-  // Show loading only until initial subscription check completes
-  // Skip loading if we came from login with show_paywall=1 (we already checked)
-  if (!subscription.initialCheckDone && !showPaywallParam) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // No user - should redirect via effect above, but show nothing while redirecting
-  if (!user) {
-    return null;
-  }
-
-  // User has active subscription - show the app
-  if (subscription.subscribed) {
-    return <>{children}</>;
-  }
-
-  // Show paywall
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-elegant border-primary/20">
@@ -161,23 +109,6 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               7 days free, cancel anytime
             </p>
           </div>
-
-          {debugEnabled && (
-            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
-              <div className="font-medium">Diagnostics (debug=1)</div>
-              <div className="mt-2 grid gap-1">
-                <div>route: {location.pathname}</div>
-                <div>user: {user ? "present" : "null"}</div>
-                <div>session: {session ? "present" : "null"}</div>
-                <div>initialCheckDone: {String(subscription.initialCheckDone)}</div>
-                <div>subscribed: {String(subscription.subscribed)}</div>
-                <div>trialing: {String(subscription.isTrialing)}</div>
-                <div>last check: {subscriptionDebug.lastCheckedAt ?? "(never)"}</div>
-                <div>last http: {subscriptionDebug.lastHttpStatus ?? "(unknown)"}</div>
-                <div>last error: {subscriptionDebug.lastErrorMessage ?? "(none)"}</div>
-              </div>
-            </div>
-          )}
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -218,7 +149,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleRefreshSubscription}
+            onClick={handleRefresh}
             disabled={refreshing}
             className="text-muted-foreground"
           >
