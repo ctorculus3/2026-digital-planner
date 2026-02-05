@@ -18,32 +18,39 @@
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const [isDrawing, setIsDrawing] = useState(false);
    const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
-   const [hasLoaded, setHasLoaded] = useState(false);
+  const lastDrawingDataRef = useRef<string | null>(null);
+  const hasInitializedRef = useRef(false);
  
-   // Load existing drawing data
+  // Load existing drawing data or redraw when dimensions change
    useEffect(() => {
-     if (isLoading || hasLoaded) return;
-     
+    if (isLoading) return;
+
      const canvas = canvasRef.current;
      if (!canvas) return;
-     
+
      const ctx = canvas.getContext("2d");
      if (!ctx) return;
  
-     // Clear canvas first
-     ctx.clearRect(0, 0, width, height);
+    // Determine what data to draw
+    const dataToLoad = hasInitializedRef.current ? lastDrawingDataRef.current : drawingData;
  
-     if (drawingData) {
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    if (dataToLoad) {
        const img = new Image();
        img.onload = () => {
          ctx.drawImage(img, 0, 0);
-         setHasLoaded(true);
        };
-       img.src = drawingData;
-     } else {
-       setHasLoaded(true);
+      img.src = dataToLoad;
      }
-   }, [drawingData, width, height, isLoading, hasLoaded]);
+
+    // Mark as initialized after first load
+    if (!hasInitializedRef.current && !isLoading) {
+      hasInitializedRef.current = true;
+      lastDrawingDataRef.current = drawingData;
+    }
+  }, [drawingData, width, height, isLoading]);
  
    const getPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
      const canvas = canvasRef.current;
@@ -105,11 +112,12 @@
      if (isDrawing) {
        setIsDrawing(false);
        setLastPoint(null);
-       
+
        // Save the canvas data
        const canvas = canvasRef.current;
        if (canvas) {
          const data = canvas.toDataURL("image/png");
+        lastDrawingDataRef.current = data;
          onDrawingChange(data);
        }
      }
