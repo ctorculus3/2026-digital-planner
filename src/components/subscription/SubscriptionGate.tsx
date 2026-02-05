@@ -67,8 +67,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
-  // Show loading while checking subscription
-  if (subscription.loading) {
+  // Show loading only on initial subscription check, not periodic refreshes
+  if (subscription.loading && !subscription.subscribed) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

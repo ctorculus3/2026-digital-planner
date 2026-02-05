@@ -10,6 +10,10 @@ interface SubscriptionStatus {
   loading: boolean;
 }
 
+interface InternalSubscriptionStatus extends SubscriptionStatus {
+  initialCheckDone: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -27,49 +31,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<SubscriptionStatus>({
+  const [subscriptionInternal, setSubscriptionInternal] = useState<InternalSubscriptionStatus>({
     subscribed: false,
     productId: null,
     subscriptionEnd: null,
     isTrialing: false,
     loading: true,
+    initialCheckDone: false,
   });
+
+  // Expose only the public interface
+  const subscription: SubscriptionStatus = {
+    subscribed: subscriptionInternal.subscribed,
+    productId: subscriptionInternal.productId,
+    subscriptionEnd: subscriptionInternal.subscriptionEnd,
+    isTrialing: subscriptionInternal.isTrialing,
+    // Only show loading on initial check, not periodic refreshes
+    loading: subscriptionInternal.loading && !subscriptionInternal.initialCheckDone,
+  };
 
   const checkSubscription = useCallback(async () => {
     if (!session) {
-      setSubscription({
+      setSubscriptionInternal({
         subscribed: false,
         productId: null,
         subscriptionEnd: null,
         isTrialing: false,
         loading: false,
+        initialCheckDone: true,
       });
       return;
     }
 
     try {
-      setSubscription(prev => ({ ...prev, loading: true }));
-      console.log("[AUTH] Checking subscription...");
+      setSubscriptionInternal(prev => ({ ...prev, loading: true }));
       const { data, error } = await supabase.functions.invoke("check-subscription");
       
       if (error) {
         console.error("Error checking subscription:", error);
-        setSubscription(prev => ({ ...prev, loading: false }));
+        setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
         return;
       }
 
-      console.log("[AUTH] Subscription response:", data);
-      setSubscription({
+      setSubscriptionInternal({
         subscribed: data.subscribed || false,
         productId: data.product_id || null,
         subscriptionEnd: data.subscription_end || null,
         isTrialing: data.is_trialing || false,
         loading: false,
+        initialCheckDone: true,
       });
-      console.log("[AUTH] Subscription state updated, subscribed:", data.subscribed);
     } catch (error) {
       console.error("Error checking subscription:", error);
-      setSubscription(prev => ({ ...prev, loading: false }));
+      setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
     }
   }, [session]);
 
@@ -109,12 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session) {
       checkSubscription();
     } else {
-      setSubscription({
+      setSubscriptionInternal({
         subscribed: false,
         productId: null,
         subscriptionEnd: null,
         isTrialing: false,
         loading: false,
+        initialCheckDone: true,
       });
     }
   }, [session, checkSubscription]);
