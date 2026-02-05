@@ -78,14 +78,19 @@ serve(async (req) => {
     let isTrialing = false;
 
     if (hasActiveSub && activeOrTrialingSub) {
-      subscriptionEnd = new Date(activeOrTrialingSub.current_period_end * 1000).toISOString();
+      // Handle subscription end date safely
+      if (activeOrTrialingSub.current_period_end) {
+        subscriptionEnd = new Date(activeOrTrialingSub.current_period_end * 1000).toISOString();
+      } else if (activeOrTrialingSub.trial_end) {
+        subscriptionEnd = new Date(activeOrTrialingSub.trial_end * 1000).toISOString();
+      }
       isTrialing = activeOrTrialingSub.status === "trialing";
       logStep("Active/trialing subscription found", { 
         subscriptionId: activeOrTrialingSub.id, 
         endDate: subscriptionEnd,
         isTrialing 
       });
-      productId = activeOrTrialingSub.items.data[0].price.product;
+      productId = activeOrTrialingSub.items?.data?.[0]?.price?.product || null;
       logStep("Determined subscription product", { productId });
     } else {
       logStep("No active subscription found");
