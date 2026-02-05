@@ -73,7 +73,7 @@ export default function StaffPaper() {
        <ScallopHeader />
        
        {/* Header Bar */}
-       <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-[#cddbbd]">
+       <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-[#f7f3f3]">
          <Button variant="ghost" onClick={handleBackToJournal} className="flex items-center gap-2">
            <ArrowLeft className="h-4 w-4" />
            Back to Journal
