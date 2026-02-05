@@ -23,7 +23,16 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       if (error) throw error;
       
       if (data?.url) {
-        window.location.href = data.url;
+        // Try redirect first, fallback to window.open
+        console.log("Redirecting to Stripe checkout:", data.url);
+        try {
+          window.location.href = data.url;
+        } catch (e) {
+          // Fallback: open in new tab
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (error: any) {
       toast({
