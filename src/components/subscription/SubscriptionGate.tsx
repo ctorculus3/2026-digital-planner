@@ -106,6 +106,16 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   }, [subscription.initialCheckDone, user, navigate]);
 
+  // Auto-navigate away from paywall when subscription becomes active
+  useEffect(() => {
+    if (subscription.subscribed && subscription.initialCheckDone && user) {
+      // If we're showing the paywall but user is subscribed, redirect to clean URL
+      if (showPaywallParam) {
+        window.location.href = "/";
+      }
+    }
+  }, [subscription.subscribed, subscription.initialCheckDone, user, showPaywallParam]);
+
   // Show loading only until initial subscription check completes
   // Skip loading if we came from login with show_paywall=1 (we already checked)
   if (!subscription.initialCheckDone && !showPaywallParam) {
