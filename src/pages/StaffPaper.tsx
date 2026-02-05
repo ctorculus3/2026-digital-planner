@@ -1,6 +1,6 @@
  import { useNavigate, useSearchParams } from "react-router-dom";
  import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Trash2, Loader2, Save } from "lucide-react";
  import { format, parseISO } from "date-fns";
  import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DrawingCanvas } from "@/components/staff-paper/DrawingCanvas";
@@ -28,8 +28,8 @@ import { useRef, useState, useEffect } from "react";
    const containerRef = useRef<HTMLDivElement>(null);
    const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1200 });
    
-   const { drawingData, isLoading, isSaving, updateDrawing, clearDrawing } = 
-     useStaffPaperDrawing(currentDate);
+  const { drawingData, isLoading, isSaving, hasUnsavedChanges, updateDrawing, clearDrawing, saveDrawing } = 
+      useStaffPaperDrawing(currentDate);
  
    const handleBackToJournal = () => {
      navigate(`/?date=${format(currentDate, "yyyy-MM-dd")}`);
@@ -72,14 +72,28 @@ import { useRef, useState, useEffect } from "react";
           <h1 className="font-display text-lg font-semibold text-foreground">
             Staff Paper
           </h1>
-          {isSaving && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          {hasUnsavedChanges && (
+            <span className="text-xs text-muted-foreground">(unsaved)</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground font-display">
             {formattedDate}
           </span>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={saveDrawing}
+            disabled={isSaving || !hasUnsavedChanges}
+            className="flex items-center gap-1"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save
+          </Button>
           <Button
             variant="ghost"
             size="icon"
