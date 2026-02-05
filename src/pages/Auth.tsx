@@ -39,7 +39,11 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate("/");
+
+        // Hard navigation is the most reliable on iPad/Safari and avoids
+        // a timing race where the router redirects before auth state settles.
+        window.location.href = "/";
+        return;
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
