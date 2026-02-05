@@ -28,6 +28,7 @@ interface Point {
   const [lastPoint, setLastPoint] = useState<Point | null>(null);
   const lastDrawingDataRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
+  const snapshotTimerRef = useRef<number | null>(null);
  
   // Load existing drawing data or redraw when dimensions change
    useEffect(() => {
@@ -157,12 +158,32 @@ interface Point {
     }
 
     setLastPoint(currentPoint);
+
+    // Keep a recent snapshot so any resize/redraw can restore in-progress work
+    // (throttled to avoid excessive toDataURL calls)
+    if (snapshotTimerRef.current == null) {
+      snapshotTimerRef.current = window.setTimeout(() => {
+        snapshotTimerRef.current = null;
+        const c = canvasRef.current;
+        if (!c) return;
+        try {
+          lastDrawingDataRef.current = c.toDataURL("image/png");
+        } catch {
+          // ignore
+        }
+      }, 400);
+    }
    }, [isDrawing, lastPoint, getPoint]);
  
   const stopDrawing = useCallback((e?: PointerEvent<HTMLCanvasElement>) => {
      if (isDrawing) {
        setIsDrawing(false);
        setLastPoint(null);
+
+      if (snapshotTimerRef.current != null) {
+        window.clearTimeout(snapshotTimerRef.current);
+        snapshotTimerRef.current = null;
+      }
 
       // Release pointer capture
       if (e) {

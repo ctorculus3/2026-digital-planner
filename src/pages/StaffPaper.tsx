@@ -39,19 +39,34 @@ import { useRef, useState, useEffect } from "react";
    useEffect(() => {
      const container = containerRef.current;
      if (!container) return;
- 
-     const updateSize = () => {
-       const rect = container.getBoundingClientRect();
-       // Use higher resolution for sharper drawing
-       setCanvasSize({
-         width: rect.width * 2,
-         height: rect.height * 2,
-       });
-     };
- 
-     updateSize();
-     window.addEventListener("resize", updateSize);
-     return () => window.removeEventListener("resize", updateSize);
+
+      const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+      const last = { width: 0, height: 0 };
+
+      const updateSize = (rect: DOMRectReadOnly | DOMRect) => {
+        // Ignore tiny viewport changes (iPad address bar / elastic scrolling)
+        const w = Math.round(rect.width);
+        const h = Math.round(rect.height);
+        if (Math.abs(w - last.width) < 6 && Math.abs(h - last.height) < 6) return;
+        last.width = w;
+        last.height = h;
+
+        setCanvasSize({
+          width: Math.round(w * dpr),
+          height: Math.round(h * dpr),
+        });
+      };
+
+      updateSize(container.getBoundingClientRect());
+
+      const ro = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        updateSize(entry.contentRect);
+      });
+
+      ro.observe(container);
+      return () => ro.disconnect();
    }, []);
  
    return (
