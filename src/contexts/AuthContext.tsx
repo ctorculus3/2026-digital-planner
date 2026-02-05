@@ -50,10 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialCheckDone: false,
   });
   
-  // Use ref to track the current session for subscription checks
-  // This avoids stale closure issues
+  // Use refs to track the current session + in-flight subscription check
+  // This avoids stale closure issues and prevents "false" results when a check is already running.
   const sessionRef = useRef<Session | null>(null);
-  const checkInProgressRef = useRef(false);
+  const checkPromiseRef = useRef<Promise<boolean> | null>(null);
 
   // Expose only the public interface
   const subscription: SubscriptionStatus = {
@@ -87,125 +87,130 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // Prevent concurrent checks
-    if (checkInProgressRef.current) {
-      return false;
+    // If a check is already running, reuse it instead of returning false.
+    if (checkPromiseRef.current) {
+      return await checkPromiseRef.current;
     }
-    checkInProgressRef.current = true;
 
-    try {
-      setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
 
-      // Safari/iOS can produce AbortError for fetches (especially when the page is backgrounded
-      // or during rapid navigation). We'll:
-      // 1) Ensure the access token is fresh when near expiry
-      // 2) Retry the function call once if it fails with an AbortError
+    const run = (async (): Promise<boolean> => {
+      try {
+        setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
 
-      const getFreshAccessToken = async () => {
-        let accessToken = currentSession.access_token;
+        // Safari/iOS can produce AbortError for fetches (especially when the page is backgrounded
+        // or during rapid navigation). We'll:
+        // 1) Ensure the access token is fresh when near expiry
+        // 2) Retry the function call once if it fails with an AbortError
 
-        try {
-          const payloadPart = accessToken.split(".")[1];
-          if (payloadPart) {
-            const tokenPayload = JSON.parse(atob(payloadPart));
-            const expiresAt = Number(tokenPayload?.exp) * 1000;
-            if (Number.isFinite(expiresAt)) {
-              const msUntilExpiry = expiresAt - Date.now();
-              if (msUntilExpiry < 60_000) {
-                console.log("[AuthContext] Token near expiry, refreshing...");
-                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError) throw refreshError;
-                if (refreshData.session?.access_token) {
-                  accessToken = refreshData.session.access_token;
-                  sessionRef.current = refreshData.session;
+        const getFreshAccessToken = async () => {
+          let accessToken = currentSession.access_token;
+
+          try {
+            const payloadPart = accessToken.split(".")[1];
+            if (payloadPart) {
+              const tokenPayload = JSON.parse(atob(payloadPart));
+              const expiresAt = Number(tokenPayload?.exp) * 1000;
+              if (Number.isFinite(expiresAt)) {
+                const msUntilExpiry = expiresAt - Date.now();
+                if (msUntilExpiry < 60_000) {
+                  console.log("[AuthContext] Token near expiry, refreshing...");
+                  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                  if (refreshError) throw refreshError;
+                  if (refreshData.session?.access_token) {
+                    accessToken = refreshData.session.access_token;
+                    sessionRef.current = refreshData.session;
+                  }
                 }
               }
             }
+          } catch (e) {
+            // If decoding fails, fall back to using the current token and let the backend validate.
+            console.warn("[AuthContext] Unable to decode token payload; continuing", e);
           }
-        } catch (e) {
-          // If decoding fails, fall back to using the current token and let the backend validate.
-          console.warn("[AuthContext] Unable to decode token payload; continuing", e);
+
+          return accessToken;
+        };
+
+        const invokeCheck = async () => {
+          const accessToken = await getFreshAccessToken();
+          return await supabase.functions.invoke("check-subscription", {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+        };
+
+        let result = await invokeCheck();
+
+        // One retry for Safari AbortError
+        if (result.error && (result.error as any)?.name === "FunctionsFetchError") {
+          const ctxName = (result.error as any)?.context?.name;
+          const ctxMsg = (result.error as any)?.context?.message;
+          const isAbort = ctxName === "AbortError" || ctxMsg === "The operation was aborted.";
+          if (isAbort) {
+            console.warn("[AuthContext] check-subscription aborted; retrying once...");
+            await new Promise((r) => setTimeout(r, 350));
+            result = await invokeCheck();
+          }
         }
 
-        return accessToken;
-      };
+        const { data, error } = result;
+        console.log("[AuthContext] check-subscription response:", { data, error });
 
-      const invokeCheck = async () => {
-        const accessToken = await getFreshAccessToken();
-        return await supabase.functions.invoke("check-subscription", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-      };
+        if (error) {
+          const httpStatus = (error as any)?.status ?? null;
+          setSubscriptionDebug({
+            lastCheckedAt: new Date().toISOString(),
+            lastHttpStatus: typeof httpStatus === "number" ? httpStatus : null,
+            lastErrorMessage: error.message ?? "Unknown error",
+          });
 
-      let result = await invokeCheck();
+          console.error("Error checking subscription:", error);
 
-      // One retry for Safari AbortError
-      if (result.error && (result.error as any)?.name === "FunctionsFetchError") {
-        const ctxName = (result.error as any)?.context?.name;
-        const ctxMsg = (result.error as any)?.context?.message;
-        const isAbort = ctxName === "AbortError" || ctxMsg === "The operation was aborted.";
-        if (isAbort) {
-          console.warn("[AuthContext] check-subscription aborted; retrying once...");
-          await new Promise((r) => setTimeout(r, 350));
-          result = await invokeCheck();
+          // If we get a 401 (unauthorized), the session is stale - sign out
+          if (httpStatus === 401 || error.message?.includes("Unauthorized")) {
+            console.warn("[AuthContext] Stale session detected, signing out...");
+            await supabase.auth.signOut();
+          }
+
+          setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
+          return false;
         }
-      }
 
-      const { data, error } = result;
-      console.log("[AuthContext] check-subscription response:", { data, error });
-
-      if (error) {
-        const httpStatus = (error as any)?.status ?? null;
         setSubscriptionDebug({
           lastCheckedAt: new Date().toISOString(),
-          lastHttpStatus: typeof httpStatus === "number" ? httpStatus : null,
-          lastErrorMessage: error.message ?? "Unknown error",
+          lastHttpStatus: 200,
+          lastErrorMessage: null,
         });
 
+        const isSubscribed = data.subscribed || false;
+
+        setSubscriptionInternal({
+          subscribed: isSubscribed,
+          productId: data.product_id || null,
+          subscriptionEnd: data.subscription_end || null,
+          isTrialing: data.is_trialing || false,
+          loading: false,
+          initialCheckDone: true,
+        });
+
+        return isSubscribed;
+      } catch (error) {
+        setSubscriptionDebug({
+          lastCheckedAt: new Date().toISOString(),
+          lastHttpStatus: null,
+          lastErrorMessage: error instanceof Error ? error.message : String(error),
+        });
         console.error("Error checking subscription:", error);
-        
-        // If we get a 401 (unauthorized), the session is stale - sign out
-        if (httpStatus === 401 || error.message?.includes("Unauthorized")) {
-          console.warn("[AuthContext] Stale session detected, signing out...");
-          await supabase.auth.signOut();
-        }
-        
         setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
         return false;
+      } finally {
+        checkPromiseRef.current = null;
       }
+    })();
 
-      setSubscriptionDebug({
-        lastCheckedAt: new Date().toISOString(),
-        lastHttpStatus: 200,
-        lastErrorMessage: null,
-      });
-
-      const isSubscribed = data.subscribed || false;
-      
-      setSubscriptionInternal({
-        subscribed: isSubscribed,
-        productId: data.product_id || null,
-        subscriptionEnd: data.subscription_end || null,
-        isTrialing: data.is_trialing || false,
-        loading: false,
-        initialCheckDone: true,
-      });
-      
-      return isSubscribed;
-    } catch (error) {
-      setSubscriptionDebug({
-        lastCheckedAt: new Date().toISOString(),
-        lastHttpStatus: null,
-        lastErrorMessage: error instanceof Error ? error.message : String(error),
-      });
-      console.error("Error checking subscription:", error);
-      setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
-      return false;
-    } finally {
-      checkInProgressRef.current = false;
-    }
+    checkPromiseRef.current = run;
+    return await run;
   }, []);
 
   useEffect(() => {
