@@ -50,11 +50,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     setRefreshing(true);
     try {
       await checkSubscription();
+      // Note: State will update and component will re-render if subscription is found
+      // Show a brief message that we're checking
       toast({
-        title: "Status checked",
-        description: subscription.subscribed 
-          ? "Your subscription is active!" 
-          : "No active subscription found. Please subscribe to continue.",
+        title: "Checking subscription...",
+        description: "Please wait while we verify your subscription status.",
       });
     } catch (error: any) {
       toast({
