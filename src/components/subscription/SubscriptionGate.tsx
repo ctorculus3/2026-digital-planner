@@ -62,19 +62,29 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     setRefreshing(true);
     try {
       await checkSubscription();
-      // Note: State will update and component will re-render if subscription is found
-      // Show a brief message that we're checking
-      toast({
-        title: "Checking subscription...",
-        description: "Please wait while we verify your subscription status.",
-      });
+      // Check if subscription was found after the check
+      // Note: We need to wait a tick for state to update
+      setTimeout(() => {
+        if (!subscription.subscribed) {
+          toast({
+            title: "No active subscription found",
+            description: "Please start your free trial or check that you're signed in with the correct account.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Subscription verified!",
+            description: "Redirecting to your journal...",
+          });
+        }
+        setRefreshing(false);
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to check subscription status",
+        description: "Failed to check subscription status. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setRefreshing(false);
     }
   };
