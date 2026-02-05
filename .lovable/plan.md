@@ -1,113 +1,127 @@
 
 
-# Fix Total Time Calculation - Input Format Issue
+# Persist Total Practice Time to Database
 
-## Problem Identified
+## Overview
 
-The issue is that you're typing times in **AM/PM format** (like "12:30 p.m.") into the time input fields. HTML `<input type="time">` fields:
-
-- Only accept 24-hour format internally (e.g., "14:30" for 2:30 PM)
-- Display a native time picker on most browsers
-- Do **not** accept typed AM/PM text like "12:30 p.m." - the browser ignores this
-
-When the browser can't parse what you type, the input's value stays empty, so `startTime` and `stopTime` remain `""`, and the calculation returns `"0:00"`.
-
-## Solution
-
-Replace the native `<input type="time">` with simple text inputs that accept user-friendly time formats (like "12:30 PM" or "2:30pm"), then parse and calculate the duration using simple clock math.
+This plan adds the ability to save the Total Practice Time to the database, along with fixing the start/stop time format conversion so all time values are properly stored.
 
 ## Changes Required
 
-### File: `src/components/practice-log/PracticeLogForm.tsx`
+### 1. Database Migration
 
-1. **Add a time parsing helper** that understands formats like:
-   - "12:30 PM", "12:30pm", "12:30 p.m."
-   - "2:30 PM", "2:30pm"
-   - "14:30" (24-hour format)
+Add a new `total_time` column to store the calculated practice duration.
 
-2. **Change the inputs from `type="time"` to `type="text"`** with a placeholder showing the expected format
+**SQL Migration:**
+```sql
+ALTER TABLE practice_logs 
+ADD COLUMN total_time interval;
+```
 
-3. **Update the `totalTime` calculation** to use the new parser
+Using `interval` type allows storing durations like "2 hours 30 minutes" natively in the database.
+
+---
+
+### 2. Update Hook Interface
+
+**File:** `src/hooks/usePracticeLog.ts`
+
+Add `total_time` to the `PracticeLogData` interface and include it in the save payload.
+
+---
+
+### 3. Update Form Component
+
+**File:** `src/components/practice-log/PracticeLogForm.tsx`
+
+1. **Add a helper function** to convert AM/PM time strings to database-compatible `HH:MM` format
+2. **Update `handleSave`** to:
+   - Convert start_time and stop_time to proper format before saving
+   - Include total_time in the save data
+
+---
 
 ## Technical Details
 
-**New helper function to parse time strings:**
+### New Helper Function
 
 ```typescript
-const parseTimeString = (timeStr: string): { hours: number; minutes: number } | null => {
-  if (!timeStr || !timeStr.trim()) return null;
+// Convert user input (e.g., "12:30 PM") to database format "HH:MM"
+const formatTimeForDb = (timeStr: string): string | null => {
+  const parsed = parseTimeString(timeStr);
+  if (!parsed) return null;
   
-  const cleaned = timeStr.trim().toLowerCase().replace(/\s+/g, '');
-  
-  // Check for AM/PM
-  const isPM = cleaned.includes('pm') || cleaned.includes('p.m');
-  const isAM = cleaned.includes('am') || cleaned.includes('a.m');
-  
-  // Remove AM/PM markers
-  const timeOnly = cleaned.replace(/[ap]\.?m\.?/g, '').trim();
-  
-  // Parse hours and minutes
-  const parts = timeOnly.split(':');
-  if (parts.length < 2) return null;
-  
-  let hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  
-  if (isNaN(hours) || isNaN(minutes)) return null;
-  
-  // Convert to 24-hour format
-  if (isPM && hours < 12) hours += 12;
-  if (isAM && hours === 12) hours = 0;
-  
-  return { hours, minutes };
+  const hours = parsed.hours.toString().padStart(2, '0');
+  const minutes = parsed.minutes.toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 };
 ```
 
-**Updated totalTime calculation:**
+### Updated handleSave
 
 ```typescript
-const totalTime = useMemo(() => {
-  const start = parseTimeString(startTime);
-  const stop = parseTimeString(stopTime);
-  
-  if (!start || !stop) return "";
-  
-  let totalMinutes = (stop.hours * 60 + stop.minutes) - (start.hours * 60 + start.minutes);
-  
-  if (totalMinutes < 0) {
-    totalMinutes += 24 * 60; // Handle overnight sessions
-  }
-  
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  return `${hours}:${minutes.toString().padStart(2, "0")}`;
-}, [startTime, stopTime]);
+const handleSave = useCallback(() => {
+  save({
+    goals: mainGoals,
+    subgoals,
+    start_time: formatTimeForDb(startTime),
+    stop_time: formatTimeForDb(stopTime),
+    total_time: totalTime || null,  // Add total time
+    warmups,
+    scales,
+    repertoire,
+    technique: "",
+    musicianship: "",
+    notes,
+    metronome_used: metronomeUsed,
+  });
+  setHasUnsavedChanges(false);
+}, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
 ```
 
-**Updated inputs (change from type="time" to type="text"):**
+### Updated PracticeLogData Interface
 
-```tsx
-<Input
-  type="text"
-  value={startTime}
-  onChange={(e) => { setStartTime(e.target.value); markChanged(); }}
-  placeholder="e.g. 12:30 PM"
-  className="bg-transparent border-b border-border rounded-none px-0"
-/>
+```typescript
+export interface PracticeLogData {
+  goals: string;
+  subgoals: string;
+  start_time: string | null;
+  stop_time: string | null;
+  total_time: string | null;  // Add this
+  warmups: string[];
+  scales: string[];
+  repertoire: string[];
+  technique: string;
+  musicianship: string;
+  notes: string;
+  metronome_used: boolean;
+}
 ```
+
+### Updated Save Payload in Hook
+
+```typescript
+const payload = {
+  // ... existing fields
+  total_time: logData.total_time || null,
+};
+```
+
+---
 
 ## Summary of Changes
 
-| File | Change |
-|------|--------|
-| `src/components/practice-log/PracticeLogForm.tsx` | Add `parseTimeString` helper, change time inputs to text type with placeholder, update `totalTime` to use the parser |
+| Location | Change |
+|----------|--------|
+| Database | Add `total_time` column (interval type) to `practice_logs` table |
+| `src/hooks/usePracticeLog.ts` | Add `total_time` to interface and save payload |
+| `src/components/practice-log/PracticeLogForm.tsx` | Add `formatTimeForDb` helper, update `handleSave` to convert times and include total_time |
 
-## Why This Fixes the Issue
+---
 
-- Text inputs accept any format you type (12:30 PM, 2:30pm, 14:30)
-- The parser converts all formats to hours/minutes for calculation
-- Simple subtraction gives you the practice duration
-- Works on all browsers and devices consistently
-- No reliance on browser's native time picker behavior
+## What This Fixes
+
+1. **Start/Stop times now save correctly** - AM/PM input like "12:30 PM" gets converted to "12:30" before saving
+2. **Total Practice Time persists** - The calculated duration is stored in the database
+3. **Data loads correctly** - When you return to a saved log, all time values display properly
 
