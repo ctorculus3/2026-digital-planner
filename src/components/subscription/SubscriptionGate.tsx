@@ -61,30 +61,26 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
     try {
-      await checkSubscription();
-      // Check if subscription was found after the check
-      // Note: We need to wait a tick for state to update
-      setTimeout(() => {
-        if (!subscription.subscribed) {
-          toast({
-            title: "No active subscription found",
-            description: "Please start your free trial or check that you're signed in with the correct account.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Subscription verified!",
-            description: "Redirecting to your journal...",
-          });
-        }
-        setRefreshing(false);
-      }, 500);
+      const isSubscribed = await checkSubscription();
+      if (isSubscribed) {
+        toast({
+          title: "Subscription verified!",
+          description: "Redirecting to your journal...",
+        });
+      } else {
+        toast({
+          title: "No active subscription found",
+          description: "Please start your free trial or check that you're signed in with the correct account.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to check subscription status. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setRefreshing(false);
     }
   };

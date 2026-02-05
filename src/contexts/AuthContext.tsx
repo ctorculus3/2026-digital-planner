@@ -27,7 +27,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialCheckDone: subscriptionInternal.initialCheckDone,
   };
 
-  const checkSubscription = useCallback(async (forceSession?: Session | null) => {
+  const checkSubscription = useCallback(async (forceSession?: Session | null): Promise<boolean> => {
     // Use provided session or current ref
     const currentSession = forceSession !== undefined ? forceSession : sessionRef.current;
 
@@ -84,12 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
         initialCheckDone: true,
       });
-      return;
+      return false;
     }
 
     // Prevent concurrent checks
     if (checkInProgressRef.current) {
-      return;
+      return false;
     }
     checkInProgressRef.current = true;
 
@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         console.error("Error checking subscription:", error);
         setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
-        return;
+        return false;
       }
 
       setSubscriptionDebug({
@@ -174,14 +174,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastErrorMessage: null,
       });
 
+      const isSubscribed = data.subscribed || false;
+      
       setSubscriptionInternal({
-        subscribed: data.subscribed || false,
+        subscribed: isSubscribed,
         productId: data.product_id || null,
         subscriptionEnd: data.subscription_end || null,
         isTrialing: data.is_trialing || false,
         loading: false,
         initialCheckDone: true,
       });
+      
+      return isSubscribed;
     } catch (error) {
       setSubscriptionDebug({
         lastCheckedAt: new Date().toISOString(),
@@ -190,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       console.error("Error checking subscription:", error);
       setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
+      return false;
     } finally {
       checkInProgressRef.current = false;
     }
