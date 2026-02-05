@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,15 +19,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, session, subscription, subscriptionDebug, signIn, signUp, checkSubscription } = useAuth();
-  const [searchParams] = useSearchParams();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
-
-  const debugEnabled = searchParams.get("debug") === "1";
-  const sessionEmail = useMemo(() => {
-    const maybeEmail = (user as any)?.email ?? session?.user?.email;
-    return typeof maybeEmail === "string" ? maybeEmail : null;
-  }, [session?.user?.email, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,25 +30,7 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) throw error;
-
-        toast({
-          title: "Signed in",
-          description: "Checking your subscription...",
-        });
-
-        // Wait for session to propagate, then explicitly check subscription
-        await new Promise(r => setTimeout(r, 500));
-        
-        // Await the subscription check - this is the key fix
-        const isSubscribed = await checkSubscription();
-        
-        // Navigate based on actual subscription status (hard navigation for Safari)
-        if (isSubscribed) {
-          window.location.href = "/";
-        } else {
-          window.location.href = "/?show_paywall=1";
-        }
-        return;
+        // Navigation handled by ProtectedRoute/PublicRoute
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
@@ -88,26 +62,6 @@ export default function Auth() {
             {isLogin ? "Sign in to access your practice logs" : "Create an account to start tracking"}
           </CardDescription>
         </CardHeader>
-
-        {debugEnabled && (
-          <CardContent className="pt-0">
-            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
-              <div className="font-medium">Diagnostics (debug=1)</div>
-              <div className="mt-2 grid gap-1">
-                <div>route: /auth</div>
-                <div>user: {user ? "present" : "null"}</div>
-                <div>session: {session ? "present" : "null"}</div>
-                <div>email: {sessionEmail ?? "(none)"}</div>
-                <div>initialCheckDone: {String(subscription.initialCheckDone)}</div>
-                <div>subscribed: {String(subscription.subscribed)}</div>
-                <div>trialing: {String(subscription.isTrialing)}</div>
-                <div>last check: {subscriptionDebug.lastCheckedAt ?? "(never)"}</div>
-                <div>last http: {subscriptionDebug.lastHttpStatus ?? "(unknown)"}</div>
-                <div>last error: {subscriptionDebug.lastErrorMessage ?? "(none)"}</div>
-              </div>
-            </div>
-          </CardContent>
-        )}
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">

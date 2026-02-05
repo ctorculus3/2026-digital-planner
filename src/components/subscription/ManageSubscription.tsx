@@ -33,7 +33,7 @@ export function ManageSubscription() {
     }
   };
 
-  if (!subscription.subscribed) return null;
+  if (subscription.status !== 'active') return null;
 
   return (
     <div className="flex items-center gap-2">
@@ -43,9 +43,9 @@ export function ManageSubscription() {
           Trial
         </Badge>
       )}
-      {subscription.subscriptionEnd && (
+      {subscription.endDate && (
         <span className="text-xs text-muted-foreground hidden sm:inline">
-          {subscription.isTrialing ? "Trial ends" : "Renews"}: {format(new Date(subscription.subscriptionEnd), "MMM d")}
+          {subscription.isTrialing ? "Trial ends" : "Renews"}: {format(new Date(subscription.endDate), "MMM d")}
         </span>
       )}
       <Button
