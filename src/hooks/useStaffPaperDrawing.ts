@@ -36,7 +36,7 @@
      }
  
      loadDrawing();
-   }, [user, dateString]);
+  }, [user?.id, dateString]);
  
   // Manual save drawing data
   const saveDrawing = useCallback(async () => {
