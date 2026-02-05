@@ -1,20 +1,31 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Music2, Sparkles, Check, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
 }
 
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
-  const { subscription, checkSubscription } = useAuth();
+  const { subscription, checkSubscription, user, session, subscriptionDebug } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
+  const location = useLocation();
+
+  const debugEnabled = useMemo(() => new URLSearchParams(location.search).get("debug") === "1", [location.search]);
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -106,6 +117,23 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               7 days free, cancel anytime
             </p>
           </div>
+
+          {debugEnabled && (
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
+              <div className="font-medium">Diagnostics (debug=1)</div>
+              <div className="mt-2 grid gap-1">
+                <div>route: {location.pathname}</div>
+                <div>user: {user ? "present" : "null"}</div>
+                <div>session: {session ? "present" : "null"}</div>
+                <div>initialCheckDone: {String(subscription.initialCheckDone)}</div>
+                <div>subscribed: {String(subscription.subscribed)}</div>
+                <div>trialing: {String(subscription.isTrialing)}</div>
+                <div>last check: {subscriptionDebug.lastCheckedAt ?? "(never)"}</div>
+                <div>last http: {subscriptionDebug.lastHttpStatus ?? "(unknown)"}</div>
+                <div>last error: {subscriptionDebug.lastErrorMessage ?? "(none)"}</div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
