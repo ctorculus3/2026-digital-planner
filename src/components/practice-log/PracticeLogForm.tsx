@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +32,17 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [scaleCount, setScaleCount] = useState(4);
   const [repertoireCount, setRepertoireCount] = useState(10);
 
+  // Refs for auto-expanding textareas
+  const mainGoalsRef = useRef<HTMLTextAreaElement>(null);
+  const subgoalsRef = useRef<HTMLTextAreaElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
+  };
+
   // Load data when practice log is fetched
   useEffect(() => {
     if (practiceLog) {
@@ -58,6 +69,13 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
       setHasUnsavedChanges(false);
+      
+      // Adjust textarea heights after data loads
+      setTimeout(() => {
+        adjustTextareaHeight(mainGoalsRef.current);
+        adjustTextareaHeight(subgoalsRef.current);
+        adjustTextareaHeight(notesRef.current);
+      }, 0);
     } else if (!isLoading) {
       // Reset form for new day
       setMainGoals("");
@@ -210,8 +228,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Main Goals</label>
           <Textarea
+            ref={mainGoalsRef}
             value={mainGoals}
-            onChange={(e) => { setMainGoals(e.target.value); markChanged(); }}
+            onChange={(e) => { setMainGoals(e.target.value); markChanged(); adjustTextareaHeight(e.target); }}
             className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
             placeholder="What do you want to accomplish today?"
           />
@@ -219,8 +238,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Subgoals</label>
           <Textarea
+            ref={subgoalsRef}
             value={subgoals}
-            onChange={(e) => { setSubgoals(e.target.value); markChanged(); }}
+            onChange={(e) => { setSubgoals(e.target.value); markChanged(); adjustTextareaHeight(e.target); }}
             className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
             placeholder="Break down your goals..."
           />
@@ -349,8 +369,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Notes & Focus</label>
             <Textarea
+              ref={notesRef}
               value={notes}
-              onChange={(e) => { setNotes(e.target.value); markChanged(); }}
+              onChange={(e) => { setNotes(e.target.value); markChanged(); adjustTextareaHeight(e.target); }}
               className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0"
               placeholder="Observations, breakthroughs, challenges..."
             />
