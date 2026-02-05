@@ -12,7 +12,7 @@ import { Music2, Sparkles, Check, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -24,6 +24,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const debugEnabled = useMemo(() => new URLSearchParams(location.search).get("debug") === "1", [location.search]);
 
@@ -180,6 +181,17 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           >
             {refreshing ? "Checking..." : "Already subscribed? Refresh status"}
           </Button>
+
+          {(!user || !session) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => navigate("/auth")}
+            >
+              Go to sign-in
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>
