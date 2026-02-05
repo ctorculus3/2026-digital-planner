@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Music2, Sparkles, Check, CreditCard } from "lucide-react";
+import { Music2, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +87,12 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       });
       setRefreshing(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    // Force reload to clear all state
+    window.location.href = "/auth";
   };
 
   // Failsafe: if no user/session after initial check, redirect to auth
@@ -203,6 +209,15 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
             className="text-muted-foreground"
           >
             {refreshing ? "Checking..." : "Already subscribed? Refresh status"}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleSignOut}
+            className="text-muted-foreground"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out / switch account
           </Button>
         </CardFooter>
       </Card>
