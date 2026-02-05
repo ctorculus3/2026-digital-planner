@@ -40,9 +40,13 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) throw error;
 
-        // Hard navigation is the most reliable on iPad/Safari and avoids
-        // a timing race where the router redirects before auth state settles.
-        window.location.href = "/";
+        // Important for iPad/Safari: don't hard-navigate immediately.
+        // Let the auth state listener + PublicRoute redirect take over once the
+        // session is fully persisted.
+        toast({
+          title: "Signed in",
+          description: "Opening your journal…",
+        });
         return;
       } else {
         const { error } = await signUp(email, password);
