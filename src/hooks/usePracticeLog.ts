@@ -9,6 +9,7 @@ export interface PracticeLogData {
   subgoals: string;
   start_time: string | null;
   stop_time: string | null;
+  total_time: string | null;
   warmups: string[];
   scales: string[];
   repertoire: string[];
@@ -53,6 +54,7 @@ export function usePracticeLog(date: Date) {
         subgoals: logData.subgoals || null,
         start_time: logData.start_time || null,
         stop_time: logData.stop_time || null,
+        total_time: logData.total_time || null,
         warmups: logData.warmups.filter(w => w.trim()),
         scales: logData.scales.filter(s => s.trim()),
         repertoire: logData.repertoire.filter(r => r.trim()),
