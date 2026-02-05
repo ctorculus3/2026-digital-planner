@@ -1,81 +1,113 @@
 
 
-# Fix Time Calculation - Race Condition Issue
+# Fix Total Time Calculation - Input Format Issue
 
 ## Problem Identified
-After investigation, the issue is NOT with the time format normalization (that fix was correct). The real problem is a **race condition** in the form state management.
 
-## Root Cause
-The `useEffect` that loads data from the database (lines 57-106) has `[practiceLog, isLoading]` as dependencies. This causes it to run multiple times:
+The issue is that you're typing times in **AM/PM format** (like "12:30 p.m.") into the time input fields. HTML `<input type="time">` fields:
 
-1. When you enter a start time like "12:30", the `startTime` state updates correctly
-2. The `totalTime` calculation should work at this point
-3. However, the `practiceLog` object from the database query may trigger re-renders (even with the same data)
-4. Each time `practiceLog` reference changes, the `useEffect` runs again
-5. Since `practiceLog.start_time` is still `null` in the database (hasn't been saved yet), the form resets `startTime` back to `""`
-6. With `startTime` as `""`, the `totalTime` calculation returns early with `""`
+- Only accept 24-hour format internally (e.g., "14:30" for 2:30 PM)
+- Display a native time picker on most browsers
+- Do **not** accept typed AM/PM text like "12:30 p.m." - the browser ignores this
 
-Essentially, your typed values are being immediately overwritten by the stale database values.
+When the browser can't parse what you type, the input's value stays empty, so `startTime` and `stopTime` remain `""`, and the calculation returns `"0:00"`.
 
 ## Solution
-Add a flag to track whether the form has been initialized from database data. Only load from the database on initial mount or when navigating to a different date, NOT on every `practiceLog` change.
+
+Replace the native `<input type="time">` with simple text inputs that accept user-friendly time formats (like "12:30 PM" or "2:30pm"), then parse and calculate the duration using simple clock math.
 
 ## Changes Required
 
 ### File: `src/components/practice-log/PracticeLogForm.tsx`
 
-1. Add a ref to track if form has been initialized for current date
-2. Update the useEffect to only populate form data when the date changes or on first load
-3. Reset the initialization flag when the date prop changes
+1. **Add a time parsing helper** that understands formats like:
+   - "12:30 PM", "12:30pm", "12:30 p.m."
+   - "2:30 PM", "2:30pm"
+   - "14:30" (24-hour format)
 
-```text
-Changes:
-- Add: const isInitializedRef = useRef(false);
-- Add: const currentDateRef = useRef(date.toISOString());
-- Modify useEffect to check if already initialized for current date
-- Reset initialization when date changes
-```
+2. **Change the inputs from `type="time"` to `type="text"`** with a placeholder showing the expected format
+
+3. **Update the `totalTime` calculation** to use the new parser
 
 ## Technical Details
 
-**Add initialization tracking ref:**
+**New helper function to parse time strings:**
+
 ```typescript
-const isInitializedRef = useRef(false);
-const currentDateRef = useRef(date.toISOString());
+const parseTimeString = (timeStr: string): { hours: number; minutes: number } | null => {
+  if (!timeStr || !timeStr.trim()) return null;
+  
+  const cleaned = timeStr.trim().toLowerCase().replace(/\s+/g, '');
+  
+  // Check for AM/PM
+  const isPM = cleaned.includes('pm') || cleaned.includes('p.m');
+  const isAM = cleaned.includes('am') || cleaned.includes('a.m');
+  
+  // Remove AM/PM markers
+  const timeOnly = cleaned.replace(/[ap]\.?m\.?/g, '').trim();
+  
+  // Parse hours and minutes
+  const parts = timeOnly.split(':');
+  if (parts.length < 2) return null;
+  
+  let hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  
+  if (isNaN(hours) || isNaN(minutes)) return null;
+  
+  // Convert to 24-hour format
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  
+  return { hours, minutes };
+};
 ```
 
-**Modify the useEffect:**
+**Updated totalTime calculation:**
+
 ```typescript
-useEffect(() => {
-  // Reset initialization when date changes
-  if (currentDateRef.current !== date.toISOString()) {
-    isInitializedRef.current = false;
-    currentDateRef.current = date.toISOString();
+const totalTime = useMemo(() => {
+  const start = parseTimeString(startTime);
+  const stop = parseTimeString(stopTime);
+  
+  if (!start || !stop) return "";
+  
+  let totalMinutes = (stop.hours * 60 + stop.minutes) - (start.hours * 60 + start.minutes);
+  
+  if (totalMinutes < 0) {
+    totalMinutes += 24 * 60; // Handle overnight sessions
   }
   
-  // Only initialize once per date
-  if (isInitializedRef.current) return;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   
-  if (practiceLog) {
-    // ... existing population code ...
-    isInitializedRef.current = true;
-  } else if (!isLoading) {
-    // ... existing reset code ...
-    isInitializedRef.current = true;
-  }
-}, [practiceLog, isLoading, date]);
+  return `${hours}:${minutes.toString().padStart(2, "0")}`;
+}, [startTime, stopTime]);
+```
+
+**Updated inputs (change from type="time" to type="text"):**
+
+```tsx
+<Input
+  type="text"
+  value={startTime}
+  onChange={(e) => { setStartTime(e.target.value); markChanged(); }}
+  placeholder="e.g. 12:30 PM"
+  className="bg-transparent border-b border-border rounded-none px-0"
+/>
 ```
 
 ## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `src/components/practice-log/PracticeLogForm.tsx` | Add initialization tracking to prevent form state from being overwritten by stale database data |
+| `src/components/practice-log/PracticeLogForm.tsx` | Add `parseTimeString` helper, change time inputs to text type with placeholder, update `totalTime` to use the parser |
 
 ## Why This Fixes the Issue
-- The form will only be populated from the database once when first loading a date
-- User edits to time fields will persist in state and not be overwritten
-- The `totalTime` calculation will work correctly because `startTime` and `stopTime` won't be reset
-- When navigating to a different date, the form properly resets and loads that date's data
-- The auto-save functionality will still work and save changes to the database
+
+- Text inputs accept any format you type (12:30 PM, 2:30pm, 14:30)
+- The parser converts all formats to hours/minutes for calculation
+- Simple subtraction gives you the practice duration
+- Works on all browsers and devices consistently
+- No reliance on browser's native time picker behavior
 
