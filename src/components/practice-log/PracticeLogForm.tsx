@@ -48,14 +48,27 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const subgoalsRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
+  // Refs for initialization tracking to prevent race condition
+  const isInitializedRef = useRef(false);
+  const currentDateRef = useRef(date.toISOString());
+
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
     if (!textarea) return;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
   };
 
-  // Load data when practice log is fetched
+  // Load data when practice log is fetched - only initialize once per date
   useEffect(() => {
+    // Reset initialization when date changes
+    if (currentDateRef.current !== date.toISOString()) {
+      isInitializedRef.current = false;
+      currentDateRef.current = date.toISOString();
+    }
+    
+    // Only initialize once per date to prevent overwriting user edits
+    if (isInitializedRef.current) return;
+
     if (practiceLog) {
       setMainGoals(practiceLog.goals || "");
       setSubgoals(practiceLog.subgoals || "");
@@ -80,6 +93,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
       setHasUnsavedChanges(false);
+      isInitializedRef.current = true;
       
       // Adjust textarea heights after data loads
       setTimeout(() => {
@@ -102,8 +116,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setNotes("");
       setMetronomeUsed(false);
       setHasUnsavedChanges(false);
+      isInitializedRef.current = true;
     }
-  }, [practiceLog, isLoading]);
+  }, [practiceLog, isLoading, date]);
 
   const totalTime = useMemo(() => {
     if (!startTime || !stopTime) return "";
