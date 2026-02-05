@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { usePracticeLog } from "@/hooks/usePracticeLog";
 import { useAuth } from "@/contexts/AuthContext";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus } from "lucide-react";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface PracticeLogFormProps {
@@ -20,12 +20,17 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
   const [stopTime, setStopTime] = useState("");
-  const [warmups, setWarmups] = useState(["", "", "", ""]);
-  const [scales, setScales] = useState(["", "", "", ""]);
-  const [repertoire, setRepertoire] = useState<string[]>(Array(10).fill(""));
+  const [warmups, setWarmups] = useState<string[]>(Array(10).fill(""));
+  const [scales, setScales] = useState<string[]>(Array(10).fill(""));
+  const [repertoire, setRepertoire] = useState<string[]>(Array(15).fill(""));
   const [notes, setNotes] = useState("");
   const [metronomeUsed, setMetronomeUsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Track visible row counts
+  const [warmupCount, setWarmupCount] = useState(4);
+  const [scaleCount, setScaleCount] = useState(4);
+  const [repertoireCount, setRepertoireCount] = useState(10);
 
   // Load data when practice log is fetched
   useEffect(() => {
@@ -36,16 +41,19 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setStopTime(practiceLog.stop_time || "");
       
       const loadedWarmups = [...(practiceLog.warmups || [])];
-      while (loadedWarmups.length < 4) loadedWarmups.push("");
-      setWarmups(loadedWarmups.slice(0, 4));
+      while (loadedWarmups.length < 10) loadedWarmups.push("");
+      setWarmups(loadedWarmups.slice(0, 10));
+      setWarmupCount(Math.max(4, practiceLog.warmups?.length || 0));
       
       const loadedScales = [...(practiceLog.scales || [])];
-      while (loadedScales.length < 4) loadedScales.push("");
-      setScales(loadedScales.slice(0, 4));
+      while (loadedScales.length < 10) loadedScales.push("");
+      setScales(loadedScales.slice(0, 10));
+      setScaleCount(Math.max(4, practiceLog.scales?.length || 0));
       
       const loadedRepertoire = [...(practiceLog.repertoire || [])];
-      while (loadedRepertoire.length < 10) loadedRepertoire.push("");
-      setRepertoire(loadedRepertoire.slice(0, 10));
+      while (loadedRepertoire.length < 15) loadedRepertoire.push("");
+      setRepertoire(loadedRepertoire.slice(0, 15));
+      setRepertoireCount(Math.max(10, practiceLog.repertoire?.length || 0));
       
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
@@ -56,9 +64,12 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setSubgoals("");
       setStartTime("");
       setStopTime("");
-      setWarmups(["", "", "", ""]);
-      setScales(["", "", "", ""]);
-      setRepertoire(Array(10).fill(""));
+      setWarmups(Array(10).fill(""));
+      setScales(Array(10).fill(""));
+      setRepertoire(Array(15).fill(""));
+      setWarmupCount(4);
+      setScaleCount(4);
+      setRepertoireCount(10);
       setNotes("");
       setMetronomeUsed(false);
       setHasUnsavedChanges(false);
@@ -136,6 +147,24 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     newRepertoire[index] = value;
     setRepertoire(newRepertoire);
     markChanged();
+  };
+
+  const addWarmup = () => {
+    if (warmupCount < 10) {
+      setWarmupCount(prev => prev + 1);
+    }
+  };
+
+  const addScale = () => {
+    if (scaleCount < 10) {
+      setScaleCount(prev => prev + 1);
+    }
+  };
+
+  const addRepertoire = () => {
+    if (repertoireCount < 15) {
+      setRepertoireCount(prev => prev + 1);
+    }
   };
 
   if (!user) {
@@ -233,7 +262,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Warm-ups</label>
           <div className="space-y-2">
-            {warmups.map((warmup, index) => (
+            {warmups.slice(0, warmupCount).map((warmup, index) => (
               <div key={index} className="flex items-center gap-2">
                 <span className="text-muted-foreground text-sm w-4">{index + 1}</span>
                 <Input
@@ -244,11 +273,23 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
               </div>
             ))}
           </div>
+          {warmupCount < 10 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addWarmup}
+              className="mt-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          )}
         </div>
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Scales</label>
           <div className="space-y-2">
-            {scales.map((scale, index) => (
+            {scales.slice(0, scaleCount).map((scale, index) => (
               <div key={index} className="flex items-center gap-2">
                 <span className="text-muted-foreground text-sm w-4">{index + 1}</span>
                 <Input
@@ -259,6 +300,18 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
               </div>
             ))}
           </div>
+          {scaleCount < 10 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addScale}
+              className="mt-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          )}
         </div>
       </div>
 
@@ -267,7 +320,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Repertoire & Exercises</label>
           <div className="space-y-1">
-            {repertoire.map((item, index) => (
+            {repertoire.slice(0, repertoireCount).map((item, index) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border border-muted-foreground/30" />
                 <Input
@@ -278,6 +331,18 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
               </div>
             ))}
           </div>
+          {repertoireCount < 15 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addRepertoire}
+              className="mt-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">
