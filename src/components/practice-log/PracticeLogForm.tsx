@@ -329,7 +329,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
             />
           </div>
           <div>
-            <label className="font-display text-sm text-muted-foreground block mb-1">Total Time:</label>
+            <label className="font-display text-sm text-muted-foreground block mb-1">Total Practice Time:</label>
             <div className="h-10 flex items-center border-b border-border text-foreground font-medium">
               {totalTime || "0:00"}
             </div>
