@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Music2, Sparkles, Check, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -79,6 +79,14 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
+  // Failsafe: if no user/session after initial check, redirect to auth
+  // This handles Safari edge cases where ProtectedRoute may not have redirected
+  useEffect(() => {
+    if (subscription.initialCheckDone && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [subscription.initialCheckDone, user, navigate]);
+
   // Show loading only until initial subscription check completes
   if (!subscription.initialCheckDone) {
     return (
@@ -86,6 +94,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // No user - should redirect via effect above, but show nothing while redirecting
+  if (!user) {
+    return null;
   }
 
   // User has active subscription - show the app
@@ -181,17 +194,6 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           >
             {refreshing ? "Checking..." : "Already subscribed? Refresh status"}
           </Button>
-
-          {(!user || !session) && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => navigate("/auth")}
-            >
-              Go to sign-in
-            </Button>
-          )}
         </CardFooter>
       </Card>
     </div>
