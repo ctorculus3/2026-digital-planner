@@ -67,10 +67,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           title: "Subscription verified!",
           description: "Redirecting to your journal...",
         });
-        // Use navigate instead of reload for Safari compatibility
-        navigate("/", { replace: true });
-        // Force a small state change to trigger re-render
-        window.location.replace(window.location.pathname);
+        // Simple hard navigation for Safari compatibility
+        window.location.href = "/";
       } else {
         toast({
           title: "No active subscription found",
