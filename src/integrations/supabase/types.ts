@@ -71,6 +71,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_practice_logs: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          practice_log_id: string
+          share_token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          practice_log_id: string
+          share_token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          practice_log_id?: string
+          share_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_practice_logs_practice_log_id_fkey"
+            columns: ["practice_log_id"]
+            isOneToOne: false
+            referencedRelation: "practice_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_paper_drawings: {
         Row: {
           created_at: string

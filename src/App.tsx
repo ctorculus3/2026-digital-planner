@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import StaffPaper from "./pages/StaffPaper";
+import SharedPracticeLog from "./pages/SharedPracticeLog";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/shared/:token" element={<SharedPracticeLog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
