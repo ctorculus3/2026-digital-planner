@@ -8,10 +8,10 @@ interface SubscriptionStatus {
   subscriptionEnd: string | null;
   isTrialing: boolean;
   loading: boolean;
+  initialCheckDone: boolean;
 }
 
 interface InternalSubscriptionStatus extends SubscriptionStatus {
-  initialCheckDone: boolean;
 }
 
 interface AuthContextType {
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isTrialing: subscriptionInternal.isTrialing,
     // Only show loading on initial check, not periodic refreshes
     loading: subscriptionInternal.loading && !subscriptionInternal.initialCheckDone,
+    initialCheckDone: subscriptionInternal.initialCheckDone,
   };
 
   const checkSubscription = useCallback(async () => {
