@@ -96,35 +96,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
 
-      // Safari/iOS can have stale tokens in memory. Always refresh the session first
-      // to ensure we have a valid, fresh access token.
-      let accessToken = currentSession.access_token;
-      
-      // Check if token might be stale (within 60 seconds of expiry or already expired)
-      const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));
-      const expiresAt = tokenPayload.exp * 1000;
-      const now = Date.now();
-      const tokenAge = expiresAt - now;
-      
-      if (tokenAge < 60000) {
-        // Token is about to expire or already expired - force refresh
-        console.log("[AuthContext] Token near expiry, refreshing...");
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error("[AuthContext] Failed to refresh session:", refreshError);
-          throw new Error(`Session refresh failed: ${refreshError.message}`);
+      // Safari/iOS can produce AbortError for fetches (especially when the page is backgrounded
+      // or during rapid navigation). We'll:
+      // 1) Ensure the access token is fresh when near expiry
+      // 2) Retry the function call once if it fails with an AbortError
+
+      const getFreshAccessToken = async () => {
+        let accessToken = currentSession.access_token;
+
+        try {
+          const payloadPart = accessToken.split(".")[1];
+          if (payloadPart) {
+            const tokenPayload = JSON.parse(atob(payloadPart));
+            const expiresAt = Number(tokenPayload?.exp) * 1000;
+            if (Number.isFinite(expiresAt)) {
+              const msUntilExpiry = expiresAt - Date.now();
+              if (msUntilExpiry < 60_000) {
+                console.log("[AuthContext] Token near expiry, refreshing...");
+                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                if (refreshError) throw refreshError;
+                if (refreshData.session?.access_token) {
+                  accessToken = refreshData.session.access_token;
+                  sessionRef.current = refreshData.session;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // If decoding fails, fall back to using the current token and let the backend validate.
+          console.warn("[AuthContext] Unable to decode token payload; continuing", e);
         }
-        if (refreshData.session) {
-          accessToken = refreshData.session.access_token;
-          sessionRef.current = refreshData.session;
+
+        return accessToken;
+      };
+
+      const invokeCheck = async () => {
+        const accessToken = await getFreshAccessToken();
+        return await supabase.functions.invoke("check-subscription", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+      };
+
+      let result = await invokeCheck();
+
+      // One retry for Safari AbortError
+      if (result.error && (result.error as any)?.name === "FunctionsFetchError") {
+        const ctxName = (result.error as any)?.context?.name;
+        const ctxMsg = (result.error as any)?.context?.message;
+        const isAbort = ctxName === "AbortError" || ctxMsg === "The operation was aborted.";
+        if (isAbort) {
+          console.warn("[AuthContext] check-subscription aborted; retrying once...");
+          await new Promise((r) => setTimeout(r, 350));
+          result = await invokeCheck();
         }
       }
 
-      const { data, error } = await supabase.functions.invoke("check-subscription", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const { data, error } = result;
 
       if (error) {
         const httpStatus = (error as any)?.status ?? null;
@@ -196,16 +225,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+    // Check for existing session (Safari can AbortError sporadically; retry once)
+    const getSessionWithRetry = async () => {
+      try {
+        return await supabase.auth.getSession();
+      } catch (e: any) {
+        const isAbort = e?.name === "AbortError" || e?.message === "The operation was aborted.";
+        if (!isAbort) throw e;
+        console.warn("[AuthContext] getSession aborted; retrying once...");
+        await new Promise((r) => setTimeout(r, 200));
+        return await supabase.auth.getSession();
+      }
+    };
+
+    getSessionWithRetry().then(async ({ data: { session: existingSession } }) => {
       if (!mounted) return;
-      
+
       // Only process if we haven't already gotten a session from onAuthStateChange
       if (sessionRef.current === null) {
         sessionRef.current = existingSession;
         setSession(existingSession);
         setUser(existingSession?.user ?? null);
-        
+
         if (existingSession) {
           await checkSubscription(existingSession);
         } else {
@@ -218,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             initialCheckDone: true,
           });
         }
-        
+
         setLoading(false);
       }
     }).catch((error) => {
@@ -254,14 +295,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   // Periodically refresh subscription status (every 60 seconds)
+  // Pause when the page is hidden (Safari may abort background fetches).
   useEffect(() => {
     if (!session) return;
 
-    const interval = setInterval(() => {
-      checkSubscription();
-    }, 60000);
+    let interval: number | undefined;
 
-    return () => clearInterval(interval);
+    const start = () => {
+      if (interval) return;
+      interval = window.setInterval(() => {
+        if (!document.hidden) {
+          checkSubscription();
+        }
+      }, 60000);
+    };
+
+    const stop = () => {
+      if (!interval) return;
+      window.clearInterval(interval);
+      interval = undefined;
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [session, checkSubscription]);
 
   const signUp = async (email: string, password: string) => {
