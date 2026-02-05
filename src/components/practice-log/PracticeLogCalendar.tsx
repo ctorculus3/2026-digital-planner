@@ -79,7 +79,7 @@ export function PracticeLogCalendar() {
         </div>
 
         {/* Day Tabs (Right Side) */}
-        <div className="flex items-start pt-4 pr-1">
+        <div className="flex items-start pt-16 pr-0">
           <DayTabs selectedDayOfWeek={selectedDayOfWeek} onSelectDayOfWeek={handleSelectDayOfWeek} onStaffPaperClick={handleStaffPaperClick} />
         </div>
       </div>
