@@ -1,7 +1,6 @@
  import { useState, useEffect, useCallback } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
- import { useDebounce } from "./useDebounce";
  import { format } from "date-fns";
  
  export function useStaffPaperDrawing(date: Date) {
@@ -9,8 +8,8 @@
    const [drawingData, setDrawingData] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
-   
-   const debouncedDrawingData = useDebounce(drawingData, 1000);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
    const dateString = format(date, "yyyy-MM-dd");
  
    // Load drawing data
@@ -39,50 +38,51 @@
      loadDrawing();
    }, [user, dateString]);
  
-   // Auto-save drawing data
-   useEffect(() => {
-     async function saveDrawing() {
-       if (!user || debouncedDrawingData === null || isLoading) return;
-       
-       setIsSaving(true);
-       try {
-         const { error } = await supabase
-           .from("staff_paper_drawings")
-           .upsert(
-             {
-               user_id: user.id,
-               drawing_date: dateString,
-               drawing_data: debouncedDrawingData,
-             },
-             {
-               onConflict: "user_id,drawing_date",
-             }
-           );
- 
-         if (error) throw error;
-       } catch (error) {
-         console.error("Error saving drawing:", error);
-       } finally {
-         setIsSaving(false);
-       }
+  // Manual save drawing data
+  const saveDrawing = useCallback(async () => {
+    if (!user || drawingData === null || isLoading) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("staff_paper_drawings")
+        .upsert(
+          {
+            user_id: user.id,
+            drawing_date: dateString,
+            drawing_data: drawingData,
+          },
+          {
+            onConflict: "user_id,drawing_date",
+          }
+        );
+
+      if (error) throw error;
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error("Error saving drawing:", error);
+    } finally {
+      setIsSaving(false);
      }
- 
-     saveDrawing();
-   }, [user, debouncedDrawingData, dateString, isLoading]);
+  }, [user, drawingData, dateString, isLoading]);
  
    const updateDrawing = useCallback((data: string) => {
      setDrawingData(data);
+    setHasUnsavedChanges(true);
    }, []);
  
-   const clearDrawing = useCallback(() => {
+  const clearDrawing = useCallback(async () => {
      setDrawingData("");
+    setHasUnsavedChanges(true);
    }, []);
  
    return {
      drawingData,
      isLoading,
      isSaving,
+    hasUnsavedChanges,
      updateDrawing,
      clearDrawing,
+    saveDrawing,
    };
  }
