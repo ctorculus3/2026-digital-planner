@@ -1,102 +1,65 @@
 
-# Fix: Subscription-Aware Login Flow
+# Fix: Auto-Navigate When Subscription Becomes True
 
-## Problem Summary
-After signing in, users land on the paywall because navigation happens before the subscription check completes. The current code navigates when the user session is detected, but the Stripe API call to verify subscription status takes longer.
+## Root Cause
 
-## Solution Overview
-Restructure the login flow to explicitly wait for the subscription check to complete before navigating. This eliminates the race condition entirely.
+After the hard navigation to `/`, the page reloads and AuthContext reinitializes. During this initialization:
 
-## Implementation Steps
+1. `subscription.subscribed` starts as `false`
+2. The async subscription check runs in the background
+3. If SubscriptionGate renders before the check completes, it shows the paywall
+4. When the check completes and sets `subscribed: true`, SubscriptionGate re-renders and shows children
+5. **However**, if the user lands on the paywall first, there's no automatic navigation away when subscription becomes true
 
-### 1. Modify Auth.tsx Login Flow
-Change the login handler to:
-- Call `signIn()` as before
-- Instead of waiting for auth state via `useEffect`, explicitly wait for `checkSubscription()` to complete
-- Only then trigger navigation
+Looking at the network logs, the subscription check IS returning `subscribed: true` - the state just isn't being reflected in the UI properly due to render timing.
 
-This makes the flow synchronous from the user's perspective: they click Sign In, see a loading state, and only navigate once we know their subscription status.
+## Solution
 
-### 2. Remove the `justSignedIn` State Machine
-The current `justSignedIn` + `useEffect` pattern is fragile because it depends on timing. Replace it with a direct, awaitable flow.
+Add a `useEffect` in SubscriptionGate that watches for the subscription status to become `true` and automatically navigates to a clean URL (removing the `show_paywall=1` param). This ensures that even if the paywall briefly flashes, it will redirect to the journal once the subscription is verified.
 
-### 3. Update Navigation Logic
-After the subscription check completes:
-- If subscribed: navigate to `/` (journal)
-- If not subscribed: navigate to `/?sub=pending` so SubscriptionGate shows the paywall immediately without another check
-
-### 4. Simplify SubscriptionGate
-Remove the redundant subscription check on mount since we've already verified status before navigation.
-
-## Technical Details
-
-### Changes to `src/pages/Auth.tsx`
-
-```typescript
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    if (isLogin) {
-      const { error } = await signIn(email, password);
-      if (error) throw error;
-
-      toast({
-        title: "Signed in",
-        description: "Checking your subscription...",
-      });
-
-      // Wait a moment for session to propagate, then check subscription
-      await new Promise(r => setTimeout(r, 500));
-      
-      // Explicitly check subscription and wait for result
-      const isSubscribed = await checkSubscription();
-      
-      // Navigate based on actual subscription status
-      if (isSubscribed) {
-        window.location.href = "/";
-      } else {
-        window.location.href = "/?show_paywall=1";
-      }
-      return;
-    } else {
-      // ... signup logic unchanged
-    }
-  } catch (error) {
-    // ... error handling unchanged
-  } finally {
-    setLoading(false);
-  }
-};
-```
-
-### Changes to `src/contexts/AuthContext.tsx`
-
-Export `checkSubscription` so it can be called directly from Auth.tsx (already done).
-
-Ensure `checkSubscription` returns reliably by:
-- Removing the early `initialCheckDone` bailout during the actual check
-- Making sure concurrent calls are properly deduplicated (already fixed)
+## Implementation
 
 ### Changes to `src/components/subscription/SubscriptionGate.tsx`
 
-Add handling for `?show_paywall=1` query param to skip the initial loading state when we already know the user isn't subscribed.
+Add a new effect after the existing effects:
 
-## Why This Approach Works
+```typescript
+// Auto-navigate away from paywall when subscription becomes active
+useEffect(() => {
+  if (subscription.subscribed && subscription.initialCheckDone && user) {
+    // If we're showing the paywall but user is subscribed, redirect to clean URL
+    if (showPaywallParam) {
+      // Remove the show_paywall param and go to journal
+      window.location.href = "/";
+    }
+  }
+}, [subscription.subscribed, subscription.initialCheckDone, user, showPaywallParam]);
+```
 
-1. **No race condition**: We explicitly await the subscription check before navigating
-2. **Predictable UX**: User sees "Checking your subscription..." then lands in the right place
-3. **Safari compatible**: Hard navigation (`window.location.href`) works reliably
-4. **Simpler code**: Removes the `justSignedIn` state machine and timing-dependent logic
+This effect:
+- Only runs when `subscribed` becomes true
+- Only navigates if we have the `show_paywall=1` param (meaning we came from login thinking user wasn't subscribed)
+- Uses hard navigation for Safari compatibility
+
+### Why This Works
+
+1. User signs in
+2. Auth.tsx calls `checkSubscription()` which might return `true` or `false` depending on timing
+3. Navigation happens to `/` or `/?show_paywall=1`
+4. Page reloads, AuthContext runs its own subscription check
+5. If user IS subscribed, `subscription.subscribed` becomes `true`
+6. The new effect detects this and navigates to clean `/` URL
+7. User lands on journal
+
+This creates a "self-correcting" flow - even if we incorrectly land on the paywall, we automatically redirect to the journal once we know the user is subscribed.
 
 ## Files to Modify
-- `src/pages/Auth.tsx` - Restructure login flow
-- `src/components/subscription/SubscriptionGate.tsx` - Handle query param for immediate paywall
-- `src/contexts/AuthContext.tsx` - Minor cleanup (optional)
+
+- `src/components/subscription/SubscriptionGate.tsx` - Add auto-navigation effect
 
 ## Testing Steps
-1. Sign in on iPad Safari with a subscribed account - should go to journal
-2. Sign in on iPad Safari with a non-subscribed account - should go to paywall
-3. Refresh the page after login - should stay on correct page
-4. Test "Already subscribed? Refresh status" button on paywall
+
+1. Sign in with a subscribed account
+2. You should land on the journal (possibly with a brief flash of paywall/loading)
+3. If you see the paywall, it should automatically redirect to journal within 1-2 seconds
+4. Sign in with a non-subscribed account - should stay on paywall
