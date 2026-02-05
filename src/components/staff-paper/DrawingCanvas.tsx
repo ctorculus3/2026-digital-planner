@@ -45,13 +45,18 @@ interface Point {
      const ctx = canvas.getContext("2d");
      if (!ctx) return;
  
-    // Determine what data to draw
-    const dataToLoad = hasInitializedRef.current ? lastDrawingDataRef.current : drawingData;
- 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    if (dataToLoad) {
+    // If drawingData is explicitly empty (cleared), reset our local ref too
+    if (drawingData === "" || drawingData === null) {
+      lastDrawingDataRef.current = null;
+    }
+
+    // Determine what data to draw - use local ref after init to preserve in-progress work
+    const dataToLoad = hasInitializedRef.current ? lastDrawingDataRef.current : drawingData;
+
+    if (dataToLoad && dataToLoad !== "") {
        const img = new Image();
        img.onload = () => {
          ctx.drawImage(img, 0, 0);
