@@ -1,11 +1,11 @@
  import { useNavigate, useSearchParams } from "react-router-dom";
  import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Trash2, Loader2, Save, Pencil, Eraser } from "lucide-react";
  import { format, parseISO } from "date-fns";
  import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DrawingCanvas } from "@/components/staff-paper/DrawingCanvas";
 import { useStaffPaperDrawing } from "@/hooks/useStaffPaperDrawing";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
  
  function StaffLines() {
    return (
@@ -27,10 +27,15 @@ import { useRef, useState, useEffect } from "react";
    
    const containerRef = useRef<HTMLDivElement>(null);
    const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1200 });
+  const [isErasing, setIsErasing] = useState(false);
    
   const { drawingData, isLoading, isSaving, hasUnsavedChanges, updateDrawing, clearDrawing, saveDrawing } = 
       useStaffPaperDrawing(currentDate);
  
+  const toggleEraser = useCallback(() => {
+    setIsErasing(prev => !prev);
+  }, []);
+
    const handleBackToJournal = () => {
      navigate(`/?date=${format(currentDate, "yyyy-MM-dd")}`);
    };
@@ -96,6 +101,19 @@ import { useRef, useState, useEffect } from "react";
             {formattedDate}
           </span>
           <Button
+            variant={isErasing ? "default" : "outline"}
+            size="sm"
+            onClick={toggleEraser}
+            title={isErasing ? "Switch to pen (double-tap pencil)" : "Switch to eraser (double-tap pencil)"}
+            className="flex items-center gap-1"
+          >
+            {isErasing ? (
+              <Eraser className="h-4 w-4" />
+            ) : (
+              <Pencil className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
             variant="default"
             size="sm"
             onClick={saveDrawing}
@@ -141,6 +159,8 @@ import { useRef, useState, useEffect } from "react";
               drawingData={drawingData}
               onDrawingChange={updateDrawing}
               isLoading={isLoading}
+              isErasing={isErasing}
+              onToggleEraser={toggleEraser}
             />
            </div>
          </div>
