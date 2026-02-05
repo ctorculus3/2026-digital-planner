@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePracticeLog } from "@/hooks/usePracticeLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Save, Loader2, Plus } from "lucide-react";
+import { ShareButton } from "./ShareButton";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface PracticeLogFormProps {
@@ -203,24 +204,27 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
 
   return (
     <div className="flex-1 space-y-4 overflow-auto">
-      {/* Date Header with Save Button */}
+      {/* Date Header with Share and Save Buttons */}
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl md:text-2xl text-foreground">
           {dayName} – {formattedDate}
         </h2>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || !hasUnsavedChanges}
-          size="sm"
-          variant={hasUnsavedChanges ? "default" : "outline"}
-        >
-          {isSaving ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          {isSaving ? "Saving..." : hasUnsavedChanges ? "Save" : "Saved"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ShareButton practiceLogId={practiceLog?.id} disabled={!practiceLog} />
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+            size="sm"
+            variant={hasUnsavedChanges ? "default" : "outline"}
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? "Saving..." : hasUnsavedChanges ? "Save" : "Saved"}
+          </Button>
+        </div>
       </div>
 
       {/* Goals Row */}
