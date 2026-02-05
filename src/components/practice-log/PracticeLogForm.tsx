@@ -13,7 +13,36 @@ interface PracticeLogFormProps {
   date: Date;
 }
 
-// Normalize time to HH:MM format (strip seconds if present)
+// Parse time string in various formats (12:30 PM, 2:30pm, 14:30, etc.)
+const parseTimeString = (timeStr: string): { hours: number; minutes: number } | null => {
+  if (!timeStr || !timeStr.trim()) return null;
+  
+  const cleaned = timeStr.trim().toLowerCase().replace(/\s+/g, '');
+  
+  // Check for AM/PM
+  const isPM = cleaned.includes('pm') || cleaned.includes('p.m');
+  const isAM = cleaned.includes('am') || cleaned.includes('a.m');
+  
+  // Remove AM/PM markers
+  const timeOnly = cleaned.replace(/[ap]\.?m\.?/g, '').trim();
+  
+  // Parse hours and minutes
+  const parts = timeOnly.split(':');
+  if (parts.length < 2) return null;
+  
+  let hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  
+  if (isNaN(hours) || isNaN(minutes)) return null;
+  
+  // Convert to 24-hour format
+  if (isPM && hours < 12) hours += 12;
+  if (isAM && hours === 12) hours = 0;
+  
+  return { hours, minutes };
+};
+
+// Normalize time from database (HH:MM:SS to HH:MM)
 const normalizeTime = (time: string | null): string => {
   if (!time) return "";
   const parts = time.split(":");
@@ -121,15 +150,15 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   }, [practiceLog, isLoading, date]);
 
   const totalTime = useMemo(() => {
-    if (!startTime || !stopTime) return "";
+    const start = parseTimeString(startTime);
+    const stop = parseTimeString(stopTime);
     
-    const [startHour, startMin] = startTime.split(":").map(Number);
-    const [stopHour, stopMin] = stopTime.split(":").map(Number);
+    if (!start || !stop) return "";
     
-    let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
+    let totalMinutes = (stop.hours * 60 + stop.minutes) - (start.hours * 60 + start.minutes);
     
     if (totalMinutes < 0) {
-      totalMinutes += 24 * 60;
+      totalMinutes += 24 * 60; // Handle overnight sessions
     }
     
     const hours = Math.floor(totalMinutes / 60);
@@ -282,18 +311,20 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
             <Input
-              type="time"
+              type="text"
               value={startTime}
               onChange={(e) => { setStartTime(e.target.value); markChanged(); }}
+              placeholder="e.g. 12:30 PM"
               className="bg-transparent border-b border-border rounded-none px-0"
             />
           </div>
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Stop:</label>
             <Input
-              type="time"
+              type="text"
               value={stopTime}
               onChange={(e) => { setStopTime(e.target.value); markChanged(); }}
+              placeholder="e.g. 2:30 PM"
               className="bg-transparent border-b border-border rounded-none px-0"
             />
           </div>
