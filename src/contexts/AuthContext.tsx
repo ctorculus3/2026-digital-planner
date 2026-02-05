@@ -96,10 +96,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
 
-      // Explicitly send the current access token.
-      // On some Safari/iOS setups, the functions client can fall back to using the anon key
-      // as the Authorization header when the session isn't available at call time.
-      const accessToken = currentSession.access_token;
+      // Safari/iOS can have stale tokens in memory. Always refresh the session first
+      // to ensure we have a valid, fresh access token.
+      let accessToken = currentSession.access_token;
+      
+      // Check if token might be stale (within 60 seconds of expiry or already expired)
+      const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));
+      const expiresAt = tokenPayload.exp * 1000;
+      const now = Date.now();
+      const tokenAge = expiresAt - now;
+      
+      if (tokenAge < 60000) {
+        // Token is about to expire or already expired - force refresh
+        console.log("[AuthContext] Token near expiry, refreshing...");
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error("[AuthContext] Failed to refresh session:", refreshError);
+          throw new Error(`Session refresh failed: ${refreshError.message}`);
+        }
+        if (refreshData.session) {
+          accessToken = refreshData.session.access_token;
+          sessionRef.current = refreshData.session;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
