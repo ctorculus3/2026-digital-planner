@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       setSubscription(prev => ({ ...prev, loading: true }));
+      console.log("[AUTH] Checking subscription...");
       const { data, error } = await supabase.functions.invoke("check-subscription");
       
       if (error) {
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      console.log("[AUTH] Subscription response:", data);
       setSubscription({
         subscribed: data.subscribed || false,
         productId: data.product_id || null,
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isTrialing: data.is_trialing || false,
         loading: false,
       });
+      console.log("[AUTH] Subscription state updated, subscribed:", data.subscribed);
     } catch (error) {
       console.error("Error checking subscription:", error);
       setSubscription(prev => ({ ...prev, loading: false }));
