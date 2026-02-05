@@ -1,112 +1,83 @@
 
-# Share Practice Log Feature
+
+# Add Sharer's Name to Shared Practice Log
 
 ## Summary
-Add the ability for users to share their practice log entries with teachers, friends, or others via a shareable link. Recipients can view the practice log without needing an account. Links can optionally have an expiration date.
+Update the shared practice log page to display "Music Practice Daily Record Journal Shared by [User Name]" and collect the user's name during signup.
 
-## Features
+## Current State
+- Signup only collects email and password
+- No user profile/name storage exists
+- Shared page shows generic "Shared via Practice Log App" footer
 
-| Feature | Description |
-|---------|-------------|
-| Share Button | "Share" button next to the Save button |
-| Unique Link | Generate a unique token for each shared log |
-| Read-Only View | Shared link opens a public, read-only view |
-| Expiration Option | User can set link to expire (1 day, 7 days, 30 days, or never) |
-| Revoke Access | User can revoke a shared link at any time |
+## Changes Required
 
-## Database Changes
+### 1. Database Changes
 
-### New Table: `shared_practice_logs`
+**Create `profiles` table:**
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | uuid | Primary key |
-| practice_log_id | uuid | References practice_logs.id |
-| share_token | text | Unique token for the URL |
-| created_at | timestamptz | When share was created |
-| expires_at | timestamptz | When link expires (null = never) |
-| created_by | uuid | User who created the share |
+| id | uuid | Primary key, references auth.users |
+| display_name | text | User's display name |
+| created_at | timestamptz | When profile was created |
+| updated_at | timestamptz | Last update time |
 
-### RLS Policies
-- Users can create/delete share tokens for their own practice logs
-- Anyone can read practice logs via valid, non-expired share token
+**Create trigger** to auto-create a profile row when a user signs up.
 
-## New Files to Create
+**RLS Policies:**
+- Users can read/update their own profile
+- Anyone can read profiles (needed for shared page to show name)
 
-| File | Purpose |
-|------|---------|
-| `src/components/practice-log/ShareButton.tsx` | Share button with dialog UI |
-| `src/pages/SharedPracticeLog.tsx` | Public read-only view page |
-| `src/hooks/useSharePracticeLog.ts` | Hook for share CRUD operations |
+### 2. Update Signup Form
+Add a "Display Name" field to the Auth page that collects the user's name during registration.
+
+### 3. Update Shared Practice Log Page
+Modify the query to also fetch the sharer's display name from the profiles table and display it in the header:
+
+```text
+Music Practice Daily Record Journal
+Shared by John Smith
+```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add `/shared/:token` public route |
-| `src/components/practice-log/PracticeLogForm.tsx` | Add ShareButton to header |
+| Database migration | Create profiles table, trigger, and RLS |
+| `src/pages/Auth.tsx` | Add display name input field |
+| `src/contexts/AuthContext.tsx` | Update signUp to accept name parameter |
+| `src/pages/SharedPracticeLog.tsx` | Fetch and display sharer's name |
 
-## User Flow
-
-```text
-1. User clicks "Share" button in practice log header
-2. Dialog opens with expiration options (Never, 1 day, 7 days, 30 days)
-3. User clicks "Generate Link"
-4. System creates token and displays copyable URL
-5. User copies link and sends to teacher/friend
-6. Teacher opens link (no login required)
-7. Teacher sees read-only practice log
-```
-
-## Share Dialog UI
+## Updated Shared Page Header
 
 ```text
-+----------------------------------------+
-|  Share Practice Log                    |
-|                                        |
-|  Link expires:                         |
-|  [Never] [1 day] [7 days] [30 days]    |
-|                                        |
-|  [Generate Link]                       |
-|                                        |
-|  --- After generating ---              |
-|                                        |
-|  Anyone with this link can view:       |
-|  [https://app.../shared/abc123   ] [Copy]
-|                                        |
-|  [Revoke Access]              [Done]   |
-+----------------------------------------+
++------------------------------------------+
+|    Music Practice Daily Record Journal   |
+|          Shared by John Smith            |
+|                                          |
+|        MONDAY - FEB 05 2025              |
++------------------------------------------+
 ```
 
-## Shared View Page Layout
+## Technical Details
 
-The `/shared/:token` page will display:
-- Header: "Shared Practice Log" with date
-- All fields rendered as read-only (no inputs)
-- Goals, Subgoals, Time tracking, Warm-ups, Scales, Repertoire, Notes
-- Footer: "Shared via Practice Log App"
-
-## Technical Implementation
-
-### Token Generation
-Use `crypto.randomUUID()` for secure unique tokens
-
-### Database Query for Shared View
+### Query for Shared Page
 ```sql
-SELECT pl.* FROM practice_logs pl
+SELECT 
+  pl.*,
+  p.display_name as sharer_name
+FROM practice_logs pl
 JOIN shared_practice_logs spl ON pl.id = spl.practice_log_id
+JOIN profiles p ON spl.created_by = p.id
 WHERE spl.share_token = $token
-  AND (spl.expires_at IS NULL OR spl.expires_at > now())
 ```
 
-### Checking Existing Share
-When opening share dialog, check if a valid share already exists for this log and display it instead of creating a new one.
+### Signup Flow
+1. User enters name, email, password
+2. On signup, Supabase creates auth.users row
+3. Database trigger auto-creates profiles row with display_name
 
-## Testing Checklist
-1. Click Share button - dialog opens with expiration options
-2. Generate link with "Never" expiration - link works indefinitely
-3. Generate link with "1 day" expiration - link stops working after 24 hours
-4. Copy link and open in incognito - read-only view displays correctly
-5. Click "Revoke Access" - link immediately stops working
-6. Verify shared view shows all practice log data without edit controls
-7. Test on mobile devices for responsive layout
+### Existing Users
+For users who signed up before this change (no profile), the shared page will gracefully show just the app name without "Shared by" text.
+
