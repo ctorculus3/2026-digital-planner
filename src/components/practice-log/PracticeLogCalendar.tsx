@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { MonthTabs } from "./MonthTabs";
 import { DayTabs } from "./DayTabs";
 import { ScallopHeader } from "./ScallopHeader";
@@ -10,10 +10,23 @@ import {
   addDays,
   getDay,
   subDays,
+   format,
+   parseISO,
 } from "date-fns";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function PracticeLogCalendar() {
+   const navigate = useNavigate();
+   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
+   
+   // Handle date from URL params (when returning from staff paper)
+   useEffect(() => {
+     const dateParam = searchParams.get("date");
+     if (dateParam) {
+       setCurrentDate(parseISO(dateParam));
+     }
+   }, [searchParams]);
 
   const selectedMonth = currentDate.getMonth();
   const selectedDayOfWeek = getDay(currentDate);
@@ -47,6 +60,10 @@ export function PracticeLogCalendar() {
     setCurrentDate(new Date());
   }, []);
 
+   const handleStaffPaperClick = useCallback(() => {
+     navigate(`/staff-paper?date=${format(currentDate, "yyyy-MM-dd")}`);
+   }, [currentDate, navigate]);
+ 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Scalloped Header */}
@@ -89,6 +106,7 @@ export function PracticeLogCalendar() {
           <DayTabs
             selectedDayOfWeek={selectedDayOfWeek}
             onSelectDayOfWeek={handleSelectDayOfWeek}
+             onStaffPaperClick={handleStaffPaperClick}
           />
         </div>
       </div>
