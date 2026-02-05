@@ -52,6 +52,16 @@ const normalizeTime = (time: string | null): string => {
   return time;
 };
 
+// Convert user input (e.g., "12:30 PM") to database format "HH:MM"
+const formatTimeForDb = (timeStr: string): string | null => {
+  const parsed = parseTimeString(timeStr);
+  if (!parsed) return null;
+  
+  const hours = parsed.hours.toString().padStart(2, '0');
+  const minutes = parsed.minutes.toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
 export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const { user } = useAuth();
   const { practiceLog, isLoading, save, isSaving } = usePracticeLog(date);
@@ -171,8 +181,9 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     save({
       goals: mainGoals,
       subgoals,
-      start_time: startTime || null,
-      stop_time: stopTime || null,
+      start_time: formatTimeForDb(startTime),
+      stop_time: formatTimeForDb(stopTime),
+      total_time: totalTime || null,
       warmups,
       scales,
       repertoire,
@@ -182,7 +193,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       metronome_used: metronomeUsed,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);

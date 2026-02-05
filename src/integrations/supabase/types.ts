@@ -29,6 +29,7 @@ export type Database = {
           stop_time: string | null
           subgoals: string | null
           technique: string | null
+          total_time: unknown
           updated_at: string
           user_id: string
           warmups: string[] | null
@@ -47,6 +48,7 @@ export type Database = {
           stop_time?: string | null
           subgoals?: string | null
           technique?: string | null
+          total_time?: unknown
           updated_at?: string
           user_id: string
           warmups?: string[] | null
@@ -65,6 +67,7 @@ export type Database = {
           stop_time?: string | null
           subgoals?: string | null
           technique?: string | null
+          total_time?: unknown
           updated_at?: string
           user_id?: string
           warmups?: string[] | null
