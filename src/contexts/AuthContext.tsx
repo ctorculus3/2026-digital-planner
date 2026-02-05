@@ -85,9 +85,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+    }).catch((error) => {
+      console.error("Error getting session:", error);
+      setLoading(false);
     });
 
-    return () => authSubscription.unsubscribe();
+    // Fallback timeout to prevent infinite loading on iOS/Safari
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
+    return () => {
+      authSubscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Check subscription when session changes
