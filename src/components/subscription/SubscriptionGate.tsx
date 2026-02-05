@@ -67,10 +67,10 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           title: "Subscription verified!",
           description: "Redirecting to your journal...",
         });
-        // Force a page reload to ensure clean state and navigation
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        // Use navigate instead of reload for Safari compatibility
+        navigate("/", { replace: true });
+        // Force a small state change to trigger re-render
+        window.location.replace(window.location.pathname);
       } else {
         toast({
           title: "No active subscription found",
@@ -90,9 +90,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    // Force reload to clear all state
-    window.location.href = "/auth";
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Sign out error:", e);
+    }
+    // Force hard navigation to /auth
+    window.location.replace("/auth");
   };
 
   // Failsafe: if no user/session after initial check, redirect to auth

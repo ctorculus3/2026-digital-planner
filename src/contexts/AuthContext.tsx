@@ -154,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const { data, error } = result;
+      console.log("[AuthContext] check-subscription response:", { data, error });
 
       if (error) {
         const httpStatus = (error as any)?.status ?? null;
