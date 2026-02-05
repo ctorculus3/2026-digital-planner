@@ -67,12 +67,17 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           title: "Subscription verified!",
           description: "Redirecting to your journal...",
         });
+        // Force a page reload to ensure clean state and navigation
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast({
           title: "No active subscription found",
           description: "Please start your free trial or check that you're signed in with the correct account.",
           variant: "destructive",
         });
+        setRefreshing(false);
       }
     } catch (error: any) {
       toast({
@@ -80,7 +85,6 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         description: "Failed to check subscription status. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setRefreshing(false);
     }
   };
