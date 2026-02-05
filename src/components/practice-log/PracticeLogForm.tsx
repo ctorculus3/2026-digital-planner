@@ -13,6 +13,16 @@ interface PracticeLogFormProps {
   date: Date;
 }
 
+// Normalize time to HH:MM format (strip seconds if present)
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`;
+  }
+  return time;
+};
+
 export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const { user } = useAuth();
   const { practiceLog, isLoading, save, isSaving } = usePracticeLog(date);
@@ -49,8 +59,8 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     if (practiceLog) {
       setMainGoals(practiceLog.goals || "");
       setSubgoals(practiceLog.subgoals || "");
-      setStartTime(practiceLog.start_time || "");
-      setStopTime(practiceLog.stop_time || "");
+      setStartTime(normalizeTime(practiceLog.start_time));
+      setStopTime(normalizeTime(practiceLog.stop_time));
       
       const loadedWarmups = [...(practiceLog.warmups || [])];
       while (loadedWarmups.length < 10) loadedWarmups.push("");
