@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [justSignedIn, setJustSignedIn] = useState(false);
-  const { user, session, subscription, subscriptionDebug, signIn, signUp, loading: authLoading } = useAuth();
+  const { user, session, subscription, subscriptionDebug, signIn, signUp, checkSubscription } = useAuth();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
@@ -30,15 +29,6 @@ export default function Auth() {
     const maybeEmail = (user as any)?.email ?? session?.user?.email;
     return typeof maybeEmail === "string" ? maybeEmail : null;
   }, [session?.user?.email, user]);
-
-  // When user becomes available after sign-in, do a hard navigation to /
-  // This is more reliable on Safari than relying on React Router
-  useEffect(() => {
-    if (justSignedIn && user && !authLoading) {
-      // Use hard navigation for Safari compatibility
-      window.location.href = "/";
-    }
-  }, [justSignedIn, user, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,13 +39,23 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) throw error;
 
-        // Mark that we just signed in - the useEffect will handle navigation
-        // once the auth state is fully updated
-        setJustSignedIn(true);
         toast({
           title: "Signed in",
-          description: "Opening your journal…",
+          description: "Checking your subscription...",
         });
+
+        // Wait for session to propagate, then explicitly check subscription
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Await the subscription check - this is the key fix
+        const isSubscribed = await checkSubscription();
+        
+        // Navigate based on actual subscription status (hard navigation for Safari)
+        if (isSubscribed) {
+          window.location.href = "/";
+        } else {
+          window.location.href = "/?show_paywall=1";
+        }
         return;
       } else {
         const { error } = await signUp(email, password);

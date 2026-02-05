@@ -27,6 +27,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const navigate = useNavigate();
 
   const debugEnabled = useMemo(() => new URLSearchParams(location.search).get("debug") === "1", [location.search]);
+  const showPaywallParam = useMemo(() => new URLSearchParams(location.search).get("show_paywall") === "1", [location.search]);
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -106,7 +107,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   }, [subscription.initialCheckDone, user, navigate]);
 
   // Show loading only until initial subscription check completes
-  if (!subscription.initialCheckDone) {
+  // Skip loading if we came from login with show_paywall=1 (we already checked)
+  if (!subscription.initialCheckDone && !showPaywallParam) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
