@@ -11,9 +11,6 @@ interface SubscriptionStatus {
   initialCheckDone: boolean;
 }
 
-interface InternalSubscriptionStatus extends SubscriptionStatus {
-}
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -31,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscriptionInternal, setSubscriptionInternal] = useState<InternalSubscriptionStatus>({
+  const [subscriptionInternal, setSubscriptionInternal] = useState<SubscriptionStatus>({
     subscribed: false,
     productId: null,
     subscriptionEnd: null,
