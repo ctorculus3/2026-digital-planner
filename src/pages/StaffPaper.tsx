@@ -1,8 +1,11 @@
  import { useNavigate, useSearchParams } from "react-router-dom";
  import { Button } from "@/components/ui/button";
- import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2, Loader2 } from "lucide-react";
  import { format, parseISO } from "date-fns";
  import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
+import { DrawingCanvas } from "@/components/staff-paper/DrawingCanvas";
+import { useStaffPaperDrawing } from "@/hooks/useStaffPaperDrawing";
+import { useRef, useState, useEffect } from "react";
  
  function StaffLines() {
    return (
@@ -21,10 +24,35 @@
    
    const currentDate = dateParam ? parseISO(dateParam) : new Date();
    const formattedDate = format(currentDate, "EEEE, MMMM d, yyyy");
+   
+   const containerRef = useRef<HTMLDivElement>(null);
+   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1200 });
+   
+   const { drawingData, isLoading, isSaving, updateDrawing, clearDrawing } = 
+     useStaffPaperDrawing(currentDate);
  
    const handleBackToJournal = () => {
      navigate(`/?date=${format(currentDate, "yyyy-MM-dd")}`);
    };
+ 
+   // Measure container size for canvas
+   useEffect(() => {
+     const container = containerRef.current;
+     if (!container) return;
+ 
+     const updateSize = () => {
+       const rect = container.getBoundingClientRect();
+       // Use higher resolution for sharper drawing
+       setCanvasSize({
+         width: rect.width * 2,
+         height: rect.height * 2,
+       });
+     };
+ 
+     updateSize();
+     window.addEventListener("resize", updateSize);
+     return () => window.removeEventListener("resize", updateSize);
+   }, []);
  
    return (
      <div className="min-h-screen bg-background flex flex-col">
@@ -40,22 +68,51 @@
            <ArrowLeft className="h-4 w-4" />
            Back to Journal
          </Button>
-         <h1 className="font-display text-lg font-semibold text-foreground">
-           Staff Paper
-         </h1>
-         <span className="text-sm text-muted-foreground font-display">
-           {formattedDate}
-         </span>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-lg font-semibold text-foreground">
+            Staff Paper
+          </h1>
+          {isSaving && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground font-display">
+            {formattedDate}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={clearDrawing}
+            title="Clear drawing"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
        </div>
  
        {/* Staff Paper Content */}
        <div className="flex-1 p-6 md:p-8 overflow-auto">
-         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-md p-6 md:p-8">
-           {/* Staves - 10 sets of 5 lines each */}
-          <div className="flex flex-col gap-16">
-             {[...Array(10)].map((_, staveIndex) => (
-               <StaffLines key={staveIndex} />
-             ))}
+        <div 
+          ref={containerRef}
+          className="max-w-4xl mx-auto bg-card rounded-lg shadow-md p-6 md:p-8 relative"
+        >
+          {/* Staves - 8 sets of 5 lines each */}
+          <div className="flex flex-col gap-16 relative z-0">
+            {[...Array(8)].map((_, staveIndex) => (
+              <StaffLines key={staveIndex} />
+            ))}
+          </div>
+          
+          {/* Drawing Canvas Overlay */}
+          <div className="absolute inset-0 z-10">
+            <DrawingCanvas
+              width={canvasSize.width}
+              height={canvasSize.height}
+              drawingData={drawingData}
+              onDrawingChange={updateDrawing}
+              isLoading={isLoading}
+            />
            </div>
          </div>
        </div>
