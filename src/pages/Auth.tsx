@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, session, subscription, subscriptionDebug, signIn, signUp } = useAuth();
-  const navigate = useNavigate();
+  const [justSignedIn, setJustSignedIn] = useState(false);
+  const { user, session, subscription, subscriptionDebug, signIn, signUp, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
@@ -30,6 +30,15 @@ export default function Auth() {
     const maybeEmail = (user as any)?.email ?? session?.user?.email;
     return typeof maybeEmail === "string" ? maybeEmail : null;
   }, [session?.user?.email, user]);
+
+  // When user becomes available after sign-in, do a hard navigation to /
+  // This is more reliable on Safari than relying on React Router
+  useEffect(() => {
+    if (justSignedIn && user && !authLoading) {
+      // Use hard navigation for Safari compatibility
+      window.location.href = "/";
+    }
+  }, [justSignedIn, user, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,9 +49,9 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) throw error;
 
-        // Important for iPad/Safari: don't hard-navigate immediately.
-        // Let the auth state listener + PublicRoute redirect take over once the
-        // session is fully persisted.
+        // Mark that we just signed in - the useEffect will handle navigation
+        // once the auth state is fully updated
+        setJustSignedIn(true);
         toast({
           title: "Signed in",
           description: "Opening your journal…",
