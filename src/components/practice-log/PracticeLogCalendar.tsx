@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { MonthTabs } from "./MonthTabs";
 import { DayTabs } from "./DayTabs";
-import { NotebookRings } from "./NotebookRings";
 import { ScallopHeader } from "./ScallopHeader";
 import { PracticeLogForm } from "./PracticeLogForm";
 import { DateNavigator } from "./DateNavigator";
@@ -66,11 +65,6 @@ export function PracticeLogCalendar() {
 
       {/* Main Content */}
       <div className="flex-1 flex">
-        {/* Notebook Rings */}
-        <div className="hidden md:flex items-center justify-center px-3 bg-muted/50 border-r border-border">
-          <NotebookRings />
-        </div>
-
         {/* Practice Log Content */}
         <div className="flex-1 p-4 md:p-6 overflow-auto">
           {/* Date Navigator */}
