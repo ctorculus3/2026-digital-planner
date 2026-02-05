@@ -6,6 +6,8 @@ import { useRef, useEffect, useState, useCallback, PointerEvent } from "react";
    drawingData: string | null;
    onDrawingChange: (data: string) => void;
    isLoading: boolean;
+   isErasing: boolean;
+   onToggleEraser: () => void;
  }
  
 interface Point {
@@ -22,6 +24,8 @@ interface Point {
    drawingData,
    onDrawingChange,
    isLoading,
+   isErasing,
+   onToggleEraser,
  }: DrawingCanvasProps) {
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const [isDrawing, setIsDrawing] = useState(false);
@@ -29,6 +33,7 @@ interface Point {
   const lastDrawingDataRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
   const snapshotTimerRef = useRef<number | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
  
   // Load existing drawing data or redraw when dimensions change
    useEffect(() => {
@@ -90,9 +95,17 @@ interface Point {
     // Palm rejection: only respond to pen or mouse, ignore touch (finger)
     if (e.pointerType === "touch") return;
 
+    // Detect double-tap to toggle eraser (Apple Pencil gesture)
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 300) {
+      onToggleEraser();
+      lastTapTimeRef.current = 0;
+      return; // Don't start drawing on double-tap
+    }
+    lastTapTimeRef.current = now;
+
      const point = getPoint(e);
      if (!point) return;
-     
     // Capture pointer for reliable tracking
     const canvas = canvasRef.current;
     if (canvas) {
@@ -101,7 +114,7 @@ interface Point {
     
      setIsDrawing(true);
      setLastPoint(point);
-   }, [getPoint]);
+   }, [getPoint, onToggleEraser]);
  
   const draw = useCallback((e: PointerEvent<HTMLCanvasElement>) => {
      e.preventDefault();
@@ -145,14 +158,29 @@ interface Point {
       const tiltFactor = Math.abs(point.tiltX) + Math.abs(point.tiltY);
       const tiltWidth = pressureWidth + (tiltFactor / 90) * 1.5;
 
-      ctx.beginPath();
-      ctx.moveTo(currentPoint.x, currentPoint.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.strokeStyle = "hsl(var(--foreground))";
-      ctx.lineWidth = Math.min(tiltWidth, 8); // Cap at 8px
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.stroke();
+      if (isErasing) {
+        // Eraser mode - use destination-out composite operation
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath();
+        ctx.moveTo(currentPoint.x, currentPoint.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.lineWidth = Math.min(tiltWidth * 3, 24); // Larger eraser
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      } else {
+        // Drawing mode
+        ctx.beginPath();
+        ctx.moveTo(currentPoint.x, currentPoint.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.strokeStyle = "hsl(var(--foreground))";
+        ctx.lineWidth = Math.min(tiltWidth, 8); // Cap at 8px
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+      }
 
       currentPoint = point;
     }
@@ -173,7 +201,7 @@ interface Point {
         }
       }, 400);
     }
-   }, [isDrawing, lastPoint, getPoint]);
+   }, [isDrawing, lastPoint, getPoint, isErasing]);
  
   const stopDrawing = useCallback((e?: PointerEvent<HTMLCanvasElement>) => {
      if (isDrawing) {
