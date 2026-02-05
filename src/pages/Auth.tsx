@@ -1,10 +1,17 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Music2 } from "lucide-react";
 
@@ -13,9 +20,16 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { user, session, subscription, subscriptionDebug, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const debugEnabled = searchParams.get("debug") === "1";
+  const sessionEmail = useMemo(() => {
+    const maybeEmail = (user as any)?.email ?? session?.user?.email;
+    return typeof maybeEmail === "string" ? maybeEmail : null;
+  }, [session?.user?.email, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +71,27 @@ export default function Auth() {
             {isLogin ? "Sign in to access your practice logs" : "Create an account to start tracking"}
           </CardDescription>
         </CardHeader>
+
+        {debugEnabled && (
+          <CardContent className="pt-0">
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
+              <div className="font-medium">Diagnostics (debug=1)</div>
+              <div className="mt-2 grid gap-1">
+                <div>route: /auth</div>
+                <div>user: {user ? "present" : "null"}</div>
+                <div>session: {session ? "present" : "null"}</div>
+                <div>email: {sessionEmail ?? "(none)"}</div>
+                <div>initialCheckDone: {String(subscription.initialCheckDone)}</div>
+                <div>subscribed: {String(subscription.subscribed)}</div>
+                <div>trialing: {String(subscription.isTrialing)}</div>
+                <div>last check: {subscriptionDebug.lastCheckedAt ?? "(never)"}</div>
+                <div>last http: {subscriptionDebug.lastHttpStatus ?? "(unknown)"}</div>
+                <div>last error: {subscriptionDebug.lastErrorMessage ?? "(none)"}</div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">

@@ -11,11 +11,19 @@ interface SubscriptionStatus {
   initialCheckDone: boolean;
 }
 
+
+interface SubscriptionDebugInfo {
+  lastCheckedAt: string | null;
+  lastHttpStatus: number | null;
+  lastErrorMessage: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   subscription: SubscriptionStatus;
+  subscriptionDebug: SubscriptionDebugInfo;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -28,6 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionDebug, setSubscriptionDebug] = useState<SubscriptionDebugInfo>({
+    lastCheckedAt: null,
+    lastHttpStatus: null,
+    lastErrorMessage: null,
+  });
   const [subscriptionInternal, setSubscriptionInternal] = useState<SubscriptionStatus>({
     subscribed: false,
     productId: null,
@@ -56,8 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSubscription = useCallback(async (forceSession?: Session | null) => {
     // Use provided session or current ref
     const currentSession = forceSession !== undefined ? forceSession : sessionRef.current;
-    
+
     if (!currentSession) {
+      setSubscriptionDebug({
+        lastCheckedAt: new Date().toISOString(),
+        lastHttpStatus: null,
+        lastErrorMessage: "No session (signed out)",
+      });
       setSubscriptionInternal({
         subscribed: false,
         productId: null,
@@ -76,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkInProgressRef.current = true;
 
     try {
-      setSubscriptionInternal(prev => ({ ...prev, loading: true }));
+      setSubscriptionInternal((prev) => ({ ...prev, loading: true }));
 
       // Explicitly send the current access token.
       // On some Safari/iOS setups, the functions client can fall back to using the anon key
@@ -87,12 +105,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-      
+
       if (error) {
+        const httpStatus = (error as any)?.status ?? null;
+        setSubscriptionDebug({
+          lastCheckedAt: new Date().toISOString(),
+          lastHttpStatus: typeof httpStatus === "number" ? httpStatus : null,
+          lastErrorMessage: error.message ?? "Unknown error",
+        });
+
         console.error("Error checking subscription:", error);
-        setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
+        setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
         return;
       }
+
+      setSubscriptionDebug({
+        lastCheckedAt: new Date().toISOString(),
+        lastHttpStatus: 200,
+        lastErrorMessage: null,
+      });
 
       setSubscriptionInternal({
         subscribed: data.subscribed || false,
@@ -103,8 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initialCheckDone: true,
       });
     } catch (error) {
+      setSubscriptionDebug({
+        lastCheckedAt: new Date().toISOString(),
+        lastHttpStatus: null,
+        lastErrorMessage: error instanceof Error ? error.message : String(error),
+      });
       console.error("Error checking subscription:", error);
-      setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
+      setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
     } finally {
       checkInProgressRef.current = false;
     }
@@ -232,15 +268,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      subscription, 
-      signUp, 
-      signIn, 
-      signOut, 
-      checkSubscription 
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      subscription,
+      subscriptionDebug,
+      signUp,
+      signIn,
+      signOut,
+      checkSubscription,
     }}>
       {children}
     </AuthContext.Provider>
