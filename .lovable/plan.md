@@ -1,83 +1,57 @@
 
+# Fix Time Calculation Not Working
 
-# Add Sharer's Name to Shared Practice Log
+## Problem
+The Start Time and Stop Time inputs are not properly calculating Total Time. This is caused by a format mismatch between the database time format and what the HTML time input expects.
 
-## Summary
-Update the shared practice log page to display "Music Practice Daily Record Journal Shared by [User Name]" and collect the user's name during signup.
+## Root Cause
+- The database stores times as PostgreSQL `time without time zone` type
+- Database returns times like `"14:30:00"` (with seconds)
+- HTML `<input type="time">` expects `"HH:MM"` format (without seconds)
+- Some browsers don't properly handle the seconds in the value, causing the input to appear blank or not work
 
-## Current State
-- Signup only collects email and password
-- No user profile/name storage exists
-- Shared page shows generic "Shared via Practice Log App" footer
+## Solution
+Normalize time values when loading from the database by stripping any seconds component.
 
 ## Changes Required
 
-### 1. Database Changes
+### File: `src/components/practice-log/PracticeLogForm.tsx`
 
-**Create `profiles` table:**
+Add a helper function to normalize time format and use it when loading data:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key, references auth.users |
-| display_name | text | User's display name |
-| created_at | timestamptz | When profile was created |
-| updated_at | timestamptz | Last update time |
-
-**Create trigger** to auto-create a profile row when a user signs up.
-
-**RLS Policies:**
-- Users can read/update their own profile
-- Anyone can read profiles (needed for shared page to show name)
-
-### 2. Update Signup Form
-Add a "Display Name" field to the Auth page that collects the user's name during registration.
-
-### 3. Update Shared Practice Log Page
-Modify the query to also fetch the sharer's display name from the profiles table and display it in the header:
-
-```text
-Music Practice Daily Record Journal
-Shared by John Smith
+**Add helper function (near top of component):**
+```typescript
+// Normalize time to HH:MM format (strip seconds if present)
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  // If time has seconds (HH:MM:SS), strip them
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`;
+  }
+  return time;
+};
 ```
 
-## Files to Modify
+**Update the useEffect that loads data (lines 52-53):**
+```typescript
+// Before:
+setStartTime(practiceLog.start_time || "");
+setStopTime(practiceLog.stop_time || "");
 
-| File | Changes |
-|------|---------|
-| Database migration | Create profiles table, trigger, and RLS |
-| `src/pages/Auth.tsx` | Add display name input field |
-| `src/contexts/AuthContext.tsx` | Update signUp to accept name parameter |
-| `src/pages/SharedPracticeLog.tsx` | Fetch and display sharer's name |
-
-## Updated Shared Page Header
-
-```text
-+------------------------------------------+
-|    Music Practice Daily Record Journal   |
-|          Shared by John Smith            |
-|                                          |
-|        MONDAY - FEB 05 2025              |
-+------------------------------------------+
+// After:
+setStartTime(normalizeTime(practiceLog.start_time));
+setStopTime(normalizeTime(practiceLog.stop_time));
 ```
 
-## Technical Details
+## Summary of Changes
 
-### Query for Shared Page
-```sql
-SELECT 
-  pl.*,
-  p.display_name as sharer_name
-FROM practice_logs pl
-JOIN shared_practice_logs spl ON pl.id = spl.practice_log_id
-JOIN profiles p ON spl.created_by = p.id
-WHERE spl.share_token = $token
-```
+| File | Change |
+|------|--------|
+| `src/components/practice-log/PracticeLogForm.tsx` | Add `normalizeTime` helper and use it when loading times from database |
 
-### Signup Flow
-1. User enters name, email, password
-2. On signup, Supabase creates auth.users row
-3. Database trigger auto-creates profiles row with display_name
-
-### Existing Users
-For users who signed up before this change (no profile), the shared page will gracefully show just the app name without "Shared by" text.
-
+## Why This Fixes the Issue
+- When the form loads data from the database, times like `"14:30:00"` are converted to `"14:30"`
+- The HTML time input correctly recognizes this format
+- The `totalTime` calculation works correctly since both values are in consistent format
+- No database changes needed - this is purely a display/input normalization fix
