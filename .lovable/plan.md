@@ -1,69 +1,53 @@
 
-# Expandable Input Rows for Practice Log
+# Auto-Expanding Textareas for Practice Log
 
 ## Summary
-Add "+" buttons to Warm-ups, Scales, and Repertoire sections that allow users to dynamically add more input rows.
+Make the Main Goals, Subgoals, and Notes & Focus textareas automatically expand in height as the user types content that exceeds the visible area.
 
-## Section Configurations
+## Current Behavior
+- All three textareas have a fixed minimum height of 80px
+- `resize-none` prevents manual resizing
+- Text that exceeds the box scrolls within the fixed area, making it hard to see everything
 
-| Section | Starting Rows | Maximum Rows |
-|---------|---------------|--------------|
-| Warm-ups | 4 | 10 |
-| Scales | 4 | 10 |
-| Repertoire & Exercises | 10 | 15 |
+## New Behavior
+- Textareas will automatically grow taller as content is added
+- Users will always see all their text without scrolling inside the box
+- Minimum height of 80px is preserved (boxes won't shrink below this)
+- The textarea shrinks back down when content is deleted
 
 ## Implementation
 
-### 1. Add Count State Variables
-Track how many rows are visible for each section:
-- `warmupCount` - starts at 4, max 10
-- `scaleCount` - starts at 4, max 10  
-- `repertoireCount` - starts at 10, max 15
+### Approach
+Create an `AutoExpandingTextarea` component or add auto-resize logic directly to the onChange handlers. The technique uses JavaScript to:
+1. Reset the textarea height to a minimum
+2. Set the height to match `scrollHeight` (the full content height)
 
-### 2. Expand Internal Arrays
-Change arrays to support maximum sizes:
-- Warmups: 10 slots (up from 4)
-- Scales: 10 slots (up from 4)
-- Repertoire: 15 slots (up from 10)
+### Code Change
+Add a `useRef` and resize function for each textarea:
 
-### 3. Add Row Functions
 ```typescript
-const addWarmup = () => {
-  if (warmupCount < 10) {
-    setWarmupCount(prev => prev + 1);
-    markChanged();
-  }
+const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
 };
-// Similar for scales and repertoire
 ```
 
-### 4. Update Data Loading
-When loading saved data, set visible count to match:
-- `warmupCount = max(4, savedWarmups.length)`
-- `scaleCount = max(4, savedScales.length)`
-- `repertoireCount = max(10, savedRepertoire.length)`
-
-### 5. Update UI Rendering
-For each section:
-- Render only `count` number of input rows
-- Show "+" button if below maximum
-- Button styled with Plus icon and muted text
-
-### Visual Design
-```text
-Warm-ups
-  1  [________________]
-  2  [________________]
-  3  [________________]
-  4  [________________]
-       [+ Add]          <- disappears at 10
-
-Repertoire & Exercises
-  ○  [________________]
-  ○  [________________]
-  ... (10 total)
-       [+ Add]          <- disappears at 15
+Then update each textarea's onChange:
+```typescript
+onChange={(e) => {
+  setMainGoals(e.target.value);
+  markChanged();
+  adjustTextareaHeight(e.target);
+}}
 ```
+
+### Textareas to Update
+1. **Main Goals** (line 212-217)
+2. **Subgoals** (line 221-226)
+3. **Notes & Focus** (line 351-356)
+
+### Additional Consideration
+Add a `useEffect` to adjust heights when data is loaded (so saved long content displays correctly on page load).
 
 ## Technical Details
 
@@ -71,21 +55,17 @@ Repertoire & Exercises
 - `src/components/practice-log/PracticeLogForm.tsx`
 
 ### Changes Required
-1. Import `Plus` icon from lucide-react
-2. Add 3 new state variables for counts
-3. Add 3 new functions to add rows
-4. Update `useEffect` to set counts when loading data
-5. Update initial state arrays to support max sizes
-6. Modify render loops to use counts instead of full arrays
-7. Add "+" buttons below each section
+1. Add refs for each textarea (`mainGoalsRef`, `subgoalsRef`, `notesRef`)
+2. Create `adjustTextareaHeight` helper function
+3. Update onChange handlers to call the resize function
+4. Add useEffect to resize on initial data load
+5. Remove `resize-none` class (optional - can keep it to prevent manual resize while allowing auto-resize)
 
-### Data Persistence
-No database changes needed - the save function already filters out empty entries, so only filled rows are stored regardless of how many input boxes are shown.
+### No Database Changes
+This is purely a UI enhancement.
 
 ## Testing
-1. Tap "+" under Warm-ups - adds 5th input (up to 10)
-2. Tap "+" under Scales - adds 5th input (up to 10)
-3. Tap "+" under Repertoire - adds 11th input (up to 15)
-4. "+" button disappears when max is reached
-5. Save, refresh - correct number of rows restored
-6. New day - resets to default counts (4, 4, 10)
+1. Type multiple lines in Main Goals - box should grow
+2. Delete content - box should shrink back to minimum
+3. Save a long entry, refresh page - box should load at correct height
+4. Test on mobile to ensure it works well on smaller screens
