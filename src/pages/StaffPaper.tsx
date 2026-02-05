@@ -6,7 +6,7 @@
  
  function StaffLines() {
    return (
-     <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-4">
        {[...Array(5)].map((_, i) => (
          <div key={i} className="h-px bg-foreground/80 w-full" />
        ))}
@@ -52,7 +52,7 @@
        <div className="flex-1 p-6 md:p-8 overflow-auto">
          <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-md p-6 md:p-8">
            {/* Staves - 10 sets of 5 lines each */}
-           <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-16">
              {[...Array(10)].map((_, staveIndex) => (
                <StaffLines key={staveIndex} />
              ))}
