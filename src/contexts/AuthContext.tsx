@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,6 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
     initialCheckDone: false,
   });
+  
+  // Use ref to track the current session for subscription checks
+  // This avoids stale closure issues
+  const sessionRef = useRef<Session | null>(null);
+  const checkInProgressRef = useRef(false);
 
   // Expose only the public interface
   const subscription: SubscriptionStatus = {
@@ -48,8 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialCheckDone: subscriptionInternal.initialCheckDone,
   };
 
-  const checkSubscription = useCallback(async () => {
-    if (!session) {
+  const checkSubscription = useCallback(async (forceSession?: Session | null) => {
+    // Use provided session or current ref
+    const currentSession = forceSession !== undefined ? forceSession : sessionRef.current;
+    
+    if (!currentSession) {
       setSubscriptionInternal({
         subscribed: false,
         productId: null,
@@ -60,6 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
+
+    // Prevent concurrent checks
+    if (checkInProgressRef.current) {
+      return;
+    }
+    checkInProgressRef.current = true;
 
     try {
       setSubscriptionInternal(prev => ({ ...prev, loading: true }));
@@ -82,55 +96,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error checking subscription:", error);
       setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
+    } finally {
+      checkInProgressRef.current = false;
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener BEFORE checking session
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (_event, newSession) => {
+        if (!mounted) return;
+        
+        sessionRef.current = newSession;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        // Check subscription immediately with the new session
+        if (newSession) {
+          await checkSubscription(newSession);
+        } else {
+          setSubscriptionInternal({
+            subscribed: false,
+            productId: null,
+            subscriptionEnd: null,
+            isTrialing: false,
+            loading: false,
+            initialCheckDone: true,
+          });
+        }
+        
         setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+      if (!mounted) return;
+      
+      // Only process if we haven't already gotten a session from onAuthStateChange
+      if (sessionRef.current === null) {
+        sessionRef.current = existingSession;
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        
+        if (existingSession) {
+          await checkSubscription(existingSession);
+        } else {
+          setSubscriptionInternal({
+            subscribed: false,
+            productId: null,
+            subscriptionEnd: null,
+            isTrialing: false,
+            loading: false,
+            initialCheckDone: true,
+          });
+        }
+        
+        setLoading(false);
+      }
     }).catch((error) => {
+      if (!mounted) return;
       console.error("Error getting session:", error);
       setLoading(false);
+      setSubscriptionInternal(prev => ({ ...prev, loading: false, initialCheckDone: true }));
     });
 
     // Fallback timeout to prevent infinite loading on iOS/Safari
     const timeout = setTimeout(() => {
+      if (!mounted) return;
       setLoading(false);
+      // Also mark subscription check as done to prevent stuck loading
+      setSubscriptionInternal(prev => {
+        if (!prev.initialCheckDone) {
+          return { ...prev, loading: false, initialCheckDone: true };
+        }
+        return prev;
+      });
     }, 5000);
 
     return () => {
+      mounted = false;
       authSubscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, []);
+  }, [checkSubscription]);
 
-  // Check subscription when session changes
+  // Update ref when session changes externally
   useEffect(() => {
-    if (session) {
-      checkSubscription();
-    } else {
-      setSubscriptionInternal({
-        subscribed: false,
-        productId: null,
-        subscriptionEnd: null,
-        isTrialing: false,
-        loading: false,
-        initialCheckDone: true,
-      });
-    }
-  }, [session, checkSubscription]);
+    sessionRef.current = session;
+  }, [session]);
 
   // Periodically refresh subscription status (every 60 seconds)
   useEffect(() => {
