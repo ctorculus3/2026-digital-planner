@@ -13,6 +13,7 @@ interface SubscriptionGateProps {
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { subscription, checkSubscription } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const handleSubscribe = async () => {
@@ -42,6 +43,27 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefreshSubscription = async () => {
+    setRefreshing(true);
+    try {
+      await checkSubscription();
+      toast({
+        title: "Status checked",
+        description: subscription.subscribed 
+          ? "Your subscription is active!" 
+          : "No active subscription found. Please subscribe to continue.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to check subscription status",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -124,10 +146,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={checkSubscription}
+            onClick={handleRefreshSubscription}
+            disabled={refreshing}
             className="text-muted-foreground"
           >
-            Already subscribed? Refresh status
+            {refreshing ? "Checking..." : "Already subscribed? Refresh status"}
           </Button>
         </CardFooter>
       </Card>
