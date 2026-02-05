@@ -1,71 +1,112 @@
 
-# Auto-Expanding Textareas for Practice Log
+# Share Practice Log Feature
 
 ## Summary
-Make the Main Goals, Subgoals, and Notes & Focus textareas automatically expand in height as the user types content that exceeds the visible area.
+Add the ability for users to share their practice log entries with teachers, friends, or others via a shareable link. Recipients can view the practice log without needing an account. Links can optionally have an expiration date.
 
-## Current Behavior
-- All three textareas have a fixed minimum height of 80px
-- `resize-none` prevents manual resizing
-- Text that exceeds the box scrolls within the fixed area, making it hard to see everything
+## Features
 
-## New Behavior
-- Textareas will automatically grow taller as content is added
-- Users will always see all their text without scrolling inside the box
-- Minimum height of 80px is preserved (boxes won't shrink below this)
-- The textarea shrinks back down when content is deleted
+| Feature | Description |
+|---------|-------------|
+| Share Button | "Share" button next to the Save button |
+| Unique Link | Generate a unique token for each shared log |
+| Read-Only View | Shared link opens a public, read-only view |
+| Expiration Option | User can set link to expire (1 day, 7 days, 30 days, or never) |
+| Revoke Access | User can revoke a shared link at any time |
 
-## Implementation
+## Database Changes
 
-### Approach
-Create an `AutoExpandingTextarea` component or add auto-resize logic directly to the onChange handlers. The technique uses JavaScript to:
-1. Reset the textarea height to a minimum
-2. Set the height to match `scrollHeight` (the full content height)
+### New Table: `shared_practice_logs`
 
-### Code Change
-Add a `useRef` and resize function for each textarea:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| practice_log_id | uuid | References practice_logs.id |
+| share_token | text | Unique token for the URL |
+| created_at | timestamptz | When share was created |
+| expires_at | timestamptz | When link expires (null = never) |
+| created_by | uuid | User who created the share |
 
-```typescript
-const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-  textarea.style.height = 'auto';
-  textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
-};
+### RLS Policies
+- Users can create/delete share tokens for their own practice logs
+- Anyone can read practice logs via valid, non-expired share token
+
+## New Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/practice-log/ShareButton.tsx` | Share button with dialog UI |
+| `src/pages/SharedPracticeLog.tsx` | Public read-only view page |
+| `src/hooks/useSharePracticeLog.ts` | Hook for share CRUD operations |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/App.tsx` | Add `/shared/:token` public route |
+| `src/components/practice-log/PracticeLogForm.tsx` | Add ShareButton to header |
+
+## User Flow
+
+```text
+1. User clicks "Share" button in practice log header
+2. Dialog opens with expiration options (Never, 1 day, 7 days, 30 days)
+3. User clicks "Generate Link"
+4. System creates token and displays copyable URL
+5. User copies link and sends to teacher/friend
+6. Teacher opens link (no login required)
+7. Teacher sees read-only practice log
 ```
 
-Then update each textarea's onChange:
-```typescript
-onChange={(e) => {
-  setMainGoals(e.target.value);
-  markChanged();
-  adjustTextareaHeight(e.target);
-}}
+## Share Dialog UI
+
+```text
++----------------------------------------+
+|  Share Practice Log                    |
+|                                        |
+|  Link expires:                         |
+|  [Never] [1 day] [7 days] [30 days]    |
+|                                        |
+|  [Generate Link]                       |
+|                                        |
+|  --- After generating ---              |
+|                                        |
+|  Anyone with this link can view:       |
+|  [https://app.../shared/abc123   ] [Copy]
+|                                        |
+|  [Revoke Access]              [Done]   |
++----------------------------------------+
 ```
 
-### Textareas to Update
-1. **Main Goals** (line 212-217)
-2. **Subgoals** (line 221-226)
-3. **Notes & Focus** (line 351-356)
+## Shared View Page Layout
 
-### Additional Consideration
-Add a `useEffect` to adjust heights when data is loaded (so saved long content displays correctly on page load).
+The `/shared/:token` page will display:
+- Header: "Shared Practice Log" with date
+- All fields rendered as read-only (no inputs)
+- Goals, Subgoals, Time tracking, Warm-ups, Scales, Repertoire, Notes
+- Footer: "Shared via Practice Log App"
 
-## Technical Details
+## Technical Implementation
 
-### File to Modify
-- `src/components/practice-log/PracticeLogForm.tsx`
+### Token Generation
+Use `crypto.randomUUID()` for secure unique tokens
 
-### Changes Required
-1. Add refs for each textarea (`mainGoalsRef`, `subgoalsRef`, `notesRef`)
-2. Create `adjustTextareaHeight` helper function
-3. Update onChange handlers to call the resize function
-4. Add useEffect to resize on initial data load
-5. Remove `resize-none` class (optional - can keep it to prevent manual resize while allowing auto-resize)
+### Database Query for Shared View
+```sql
+SELECT pl.* FROM practice_logs pl
+JOIN shared_practice_logs spl ON pl.id = spl.practice_log_id
+WHERE spl.share_token = $token
+  AND (spl.expires_at IS NULL OR spl.expires_at > now())
+```
 
-### No Database Changes
-This is purely a UI enhancement.
+### Checking Existing Share
+When opening share dialog, check if a valid share already exists for this log and display it instead of creating a new one.
 
-## Testing
-1. Type multiple lines in Main Goals - box should grow
-2. Delete content - box should shrink back to minimum
-3. Save a long entry, refresh page - box should load at correct height
-4. Test on mobile to ensure it works well on smaller screens
+## Testing Checklist
+1. Click Share button - dialog opens with expiration options
+2. Generate link with "Never" expiration - link works indefinitely
+3. Generate link with "1 day" expiration - link stops working after 24 hours
+4. Copy link and open in incognito - read-only view displays correctly
+5. Click "Revoke Access" - link immediately stops working
+6. Verify shared view shows all practice log data without edit controls
+7. Test on mobile devices for responsive layout
