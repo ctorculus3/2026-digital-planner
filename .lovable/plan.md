@@ -1,157 +1,91 @@
 
-# Fresh Start: Rewrite Authentication Flow
+# Expandable Input Rows for Practice Log
 
-## What Gets Replaced (5 files)
+## Summary
+Add "+" buttons to Warm-ups, Scales, and Repertoire sections that allow users to dynamically add more input rows.
 
-1. **`src/contexts/AuthContext.tsx`** - Complete rewrite with simpler, proven pattern
-2. **`src/pages/Auth.tsx`** - Clean login page without patches
-3. **`src/components/subscription/SubscriptionGate.tsx`** - Simpler paywall logic
-4. **`src/components/subscription/ManageSubscription.tsx`** - Keep as-is (already simple)
-5. **`src/App.tsx`** - Simplified route protection
+## Section Configurations
 
-## What Stays Unchanged
+| Section | Starting Rows | Maximum Rows |
+|---------|---------------|--------------|
+| Warm-ups | 4 | 10 |
+| Scales | 4 | 10 |
+| Repertoire & Exercises | 10 | 15 |
 
-- All practice log components (`src/components/practice-log/*`)
-- Staff paper page and components
-- All hooks except auth-related ones
-- UI components, styling, everything else
+## Implementation
 
-## New Architecture
+### 1. Add Count State Variables
+Track how many rows are visible for each section:
+- `warmupCount` - starts at 4, max 10
+- `scaleCount` - starts at 4, max 10  
+- `repertoireCount` - starts at 10, max 15
 
-### Simple, Battle-Tested Pattern
+### 2. Expand Internal Arrays
+Change arrays to support maximum sizes:
+- Warmups: 10 slots (up from 4)
+- Scales: 10 slots (up from 4)
+- Repertoire: 15 slots (up from 10)
 
+### 3. Add Row Functions
+```typescript
+const addWarmup = () => {
+  if (warmupCount < 10) {
+    setWarmupCount(prev => prev + 1);
+    markChanged();
+  }
+};
+// Similar for scales and repertoire
+```
+
+### 4. Update Data Loading
+When loading saved data, set visible count to match:
+- `warmupCount = max(4, savedWarmups.length)`
+- `scaleCount = max(4, savedScales.length)`
+- `repertoireCount = max(10, savedRepertoire.length)`
+
+### 5. Update UI Rendering
+For each section:
+- Render only `count` number of input rows
+- Show "+" button if below maximum
+- Button styled with Plus icon and muted text
+
+### Visual Design
 ```text
-┌─────────────────────────────────────────────────────────┐
-│                    AuthProvider                         │
-│  - Manages user/session state                           │
-│  - Single subscription check on auth state change       │
-│  - Exposes: user, loading, subscription, signIn/Out     │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                    App.tsx Routes                        │
-│  - /auth: Show if NOT logged in                         │
-│  - /: Protected, requires login                         │
-│  - SubscriptionGate wraps protected content             │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                  SubscriptionGate                        │
-│  - Wait for subscription check to complete              │
-│  - Show paywall if not subscribed                       │
-│  - Show children if subscribed                          │
-│  - No navigation, just conditional rendering            │
-└─────────────────────────────────────────────────────────┘
+Warm-ups
+  1  [________________]
+  2  [________________]
+  3  [________________]
+  4  [________________]
+       [+ Add]          <- disappears at 10
+
+Repertoire & Exercises
+  ○  [________________]
+  ○  [________________]
+  ... (10 total)
+       [+ Add]          <- disappears at 15
 ```
 
-### Key Differences from Current Code
+## Technical Details
 
-| Current (Broken) | New (Simpler) |
-|------------------|---------------|
-| Navigation after login based on subscription | Let React Router handle it, SubscriptionGate just renders paywall or content |
-| Multiple useEffects watching state | Single auth state listener |
-| `checkSubscription()` called from multiple places | Called once when auth state changes |
-| Hard navigation with `window.location.href` | React Router navigation only |
-| `show_paywall` query params | No query params needed |
-| `initialCheckDone`, `justSignedIn` flags | Just `loading` boolean |
+### File to Modify
+- `src/components/practice-log/PracticeLogForm.tsx`
 
-## Implementation Details
+### Changes Required
+1. Import `Plus` icon from lucide-react
+2. Add 3 new state variables for counts
+3. Add 3 new functions to add rows
+4. Update `useEffect` to set counts when loading data
+5. Update initial state arrays to support max sizes
+6. Modify render loops to use counts instead of full arrays
+7. Add "+" buttons below each section
 
-### 1. New AuthContext.tsx (~80 lines instead of 250)
+### Data Persistence
+No database changes needed - the save function already filters out empty entries, so only filled rows are stored regardless of how many input boxes are shown.
 
-```typescript
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  subscription: {
-    status: 'loading' | 'active' | 'inactive';
-    isTrialing: boolean;
-    endDate: string | null;
-  };
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
-  refreshSubscription: () => Promise<void>;
-}
-```
-
-Core logic:
-- Single `onAuthStateChange` listener
-- When session appears, fetch subscription status
-- When session disappears, reset subscription to inactive
-- No complex ref tracking or promise deduplication
-
-### 2. New Auth.tsx (~60 lines instead of 130)
-
-- Simple form with email/password
-- Call `signIn()`, show error if any
-- No navigation logic - let ProtectedRoute/PublicRoute handle it
-- No subscription checking here at all
-
-### 3. New SubscriptionGate.tsx (~40 lines instead of 150)
-
-```typescript
-function SubscriptionGate({ children }) {
-  const { subscription } = useAuth();
-
-  if (subscription.status === 'loading') {
-    return <LoadingSpinner />;
-  }
-
-  if (subscription.status === 'inactive') {
-    return <PaywallUI />;
-  }
-
-  return <>{children}</>;
-}
-```
-
-No useEffects, no navigation, no query params - just render based on state.
-
-### 4. Updated App.tsx
-
-```typescript
-function ProtectedRoute({ children }) {
-  const { user, loading, subscription } = useAuth();
-
-  // Wait for auth to initialize
-  if (loading) return <Spinner />;
-  
-  // Not logged in? Go to auth
-  if (!user) return <Navigate to="/auth" />;
-
-  // Logged in - render children (SubscriptionGate handles paywall)
-  return <>{children}</>;
-}
-```
-
-## Why This Will Work
-
-1. **No race conditions**: We don't navigate based on subscription status. The page renders what it should based on current state.
-
-2. **Single source of truth**: AuthContext manages everything. Components just read state.
-
-3. **Safari compatible**: No complex timing, no hard navigations needed.
-
-4. **Debuggable**: Simple state machine: loading → active/inactive. Easy to trace.
-
-## Files to Create/Replace
-
-| File | Action |
-|------|--------|
-| `src/contexts/AuthContext.tsx` | Replace completely |
-| `src/pages/Auth.tsx` | Replace completely |
-| `src/components/subscription/SubscriptionGate.tsx` | Replace completely |
-| `src/App.tsx` | Simplify route protection |
-
-## Testing Checklist
-
-1. Sign in with subscribed account → see journal
-2. Sign in with non-subscribed account → see paywall
-3. Refresh page while logged in → stay on correct page
-4. Sign out → go to auth page
-5. Try to access / without login → redirect to auth
-6. "Refresh status" on paywall → correctly updates if now subscribed
+## Testing
+1. Tap "+" under Warm-ups - adds 5th input (up to 10)
+2. Tap "+" under Scales - adds 5th input (up to 10)
+3. Tap "+" under Repertoire - adds 11th input (up to 15)
+4. "+" button disappears when max is reached
+5. Save, refresh - correct number of rows restored
+6. New day - resets to default counts (4, 4, 10)
