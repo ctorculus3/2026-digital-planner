@@ -77,7 +77,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       setSubscriptionInternal(prev => ({ ...prev, loading: true }));
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+
+      // Explicitly send the current access token.
+      // On some Safari/iOS setups, the functions client can fall back to using the anon key
+      // as the Authorization header when the session isn't available at call time.
+      const accessToken = currentSession.access_token;
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
       
       if (error) {
         console.error("Error checking subscription:", error);
