@@ -164,6 +164,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         console.error("Error checking subscription:", error);
+        
+        // If we get a 401 (unauthorized), the session is stale - sign out
+        if (httpStatus === 401 || error.message?.includes("Unauthorized")) {
+          console.warn("[AuthContext] Stale session detected, signing out...");
+          await supabase.auth.signOut();
+        }
+        
         setSubscriptionInternal((prev) => ({ ...prev, loading: false, initialCheckDone: true }));
         return false;
       }
