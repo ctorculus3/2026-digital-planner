@@ -1,101 +1,101 @@
 
-
-# Implement Recording Safeguards
+# Add Additional Task and Music Listening Sections
 
 ## Overview
 
-Add two safeguards to protect storage usage and costs:
-1. **Automatic cleanup** - Delete audio files when practice logs are purged
-2. **5-minute recording limit** - Auto-stop recordings to prevent very large files
+Add two new sections below "Notes & Focus" with checkboxes like the Repertoire section:
+1. **Additional Task** - starts with 4 items, expandable to 10
+2. **Music Listening** - starts with 4 items, expandable to 10
+
+Both sections will have the same bullet circle checkboxes as the Repertoire & Exercises section.
 
 ---
 
 ## Changes Required
 
-### 1. Add Recording Time Limit
+### 1. Database Migration
 
-**File:** `src/hooks/useAudioRecording.ts`
+Add four new columns to store the data:
 
-Add a timer that automatically stops recording after 5 minutes (300 seconds).
-
-**Changes:**
-- Add a `recordingDuration` state to track elapsed time
-- Add a timer ref to count seconds
-- Auto-stop when 5 minutes is reached
-- Return the duration for UI display (optional visual indicator)
-
-```typescript
-const MAX_RECORDING_SECONDS = 300; // 5 minutes
-
-// Add state for tracking duration
-const [recordingDuration, setRecordingDuration] = useState(0);
-const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-// In startRecording, add timer logic:
-timerRef.current = setInterval(() => {
-  setRecordingDuration(prev => {
-    if (prev >= MAX_RECORDING_SECONDS - 1) {
-      stopRecording();
-      return 0;
-    }
-    return prev + 1;
-  });
-}, 1000);
-
-// In stopRecording, clear the timer:
-if (timerRef.current) {
-  clearInterval(timerRef.current);
-  timerRef.current = null;
-}
-setRecordingDuration(0);
+```sql
+ALTER TABLE practice_logs 
+ADD COLUMN additional_tasks text[] DEFAULT '{}',
+ADD COLUMN additional_tasks_completed boolean[] DEFAULT '{}',
+ADD COLUMN music_listening text[] DEFAULT '{}',
+ADD COLUMN music_listening_completed boolean[] DEFAULT '{}';
 ```
 
 ---
 
-### 2. Add Storage Cleanup to Purge Function
+### 2. Update Practice Log Hook
 
-**File:** `supabase/functions/purge-inactive-data/index.ts`
+**File:** `src/hooks/usePracticeLog.ts`
 
-Before deleting practice logs, fetch the recording paths and delete the corresponding storage files.
-
-**Changes:**
-- Query practice logs to get all `repertoire_recordings` paths for users being deleted
-- Delete storage objects from the `practice-recordings` bucket
-- Then delete the practice log database records
+Add the new fields to the `PracticeLogData` interface:
 
 ```typescript
-// Before deleting practice logs, collect all recording paths
-const { data: logsToDelete } = await supabase
-  .from("practice_logs")
-  .select("id, user_id, repertoire_recordings")
-  .in("user_id", usersToDelete);
-
-// Collect all non-empty recording paths
-const recordingPaths: string[] = [];
-for (const log of logsToDelete || []) {
-  const recordings = log.repertoire_recordings || [];
-  for (const path of recordings) {
-    if (path && path.trim()) {
-      recordingPaths.push(path);
-    }
-  }
+export interface PracticeLogData {
+  // ... existing fields ...
+  additional_tasks: string[];
+  additional_tasks_completed: boolean[];
+  music_listening: string[];
+  music_listening_completed: boolean[];
 }
-
-// Delete storage files
-if (recordingPaths.length > 0) {
-  const { error: storageError } = await supabase.storage
-    .from("practice-recordings")
-    .remove(recordingPaths);
-  
-  if (storageError) {
-    logStep("Warning: Failed to delete some recordings", { error: storageError.message });
-  } else {
-    logStep("Deleted recordings", { count: recordingPaths.length });
-  }
-}
-
-// Then delete the practice logs (existing code)
 ```
+
+Update the save payload to include the new fields.
+
+---
+
+### 3. Update Practice Log Form
+
+**File:** `src/components/practice-log/PracticeLogForm.tsx`
+
+**Add new state variables:**
+```typescript
+const [additionalTasks, setAdditionalTasks] = useState<string[]>(Array(10).fill(""));
+const [additionalTasksCompleted, setAdditionalTasksCompleted] = useState<boolean[]>(Array(10).fill(false));
+const [additionalTaskCount, setAdditionalTaskCount] = useState(4);
+
+const [musicListening, setMusicListening] = useState<string[]>(Array(10).fill(""));
+const [musicListeningCompleted, setMusicListeningCompleted] = useState<boolean[]>(Array(10).fill(false));
+const [musicListeningCount, setMusicListeningCount] = useState(4);
+```
+
+**Add helper functions** (following existing patterns):
+```typescript
+const updateAdditionalTask = (index: number, value: string) => { ... };
+const updateAdditionalTaskCompleted = (index: number, checked: boolean) => { ... };
+const addAdditionalTask = () => { if (additionalTaskCount < 10) setAdditionalTaskCount(prev => prev + 1); };
+
+const updateMusicListening = (index: number, value: string) => { ... };
+const updateMusicListeningCompleted = (index: number, checked: boolean) => { ... };
+const addMusicListening = () => { if (musicListeningCount < 10) setMusicListeningCount(prev => prev + 1); };
+```
+
+**Add UI sections** below the Notes & Focus card, inside the right column:
+
+```text
+Current Layout:
+┌─────────────────────────────────────────────────┐
+│  Repertoire & Exercises  │  Notes & Focus       │
+│  (left column)           │  Metronome checkbox  │
+│                          │                      │
+└─────────────────────────────────────────────────┘
+
+New Layout:
+┌─────────────────────────────────────────────────┐
+│  Repertoire & Exercises  │  Notes & Focus       │
+│  (left column)           │  Metronome checkbox  │
+│                          │  Additional Task     │
+│                          │  Music Listening     │
+└─────────────────────────────────────────────────┘
+```
+
+Each new section will have:
+- A card container with the section label
+- Rows with round checkboxes + text input
+- A "+" button to add more items (up to 10)
 
 ---
 
@@ -103,21 +103,22 @@ if (recordingPaths.length > 0) {
 
 | Location | Change |
 |----------|--------|
-| `src/hooks/useAudioRecording.ts` | Add 5-minute auto-stop timer with duration tracking |
-| `supabase/functions/purge-inactive-data/index.ts` | Delete storage files before purging practice logs |
+| Database | Add 4 new columns for tasks and listening data |
+| `src/hooks/usePracticeLog.ts` | Add new fields to interface and save payload |
+| `src/components/practice-log/PracticeLogForm.tsx` | Add state, handlers, and UI for both sections |
 
 ---
 
-## Benefits
+## Visual Design
 
-| Safeguard | Benefit |
-|-----------|---------|
-| 5-minute limit | Prevents single recordings from exceeding ~5-10 MB |
-| Storage cleanup | Prevents orphaned files from accumulating when logs are purged |
+Each row in the new sections will look like the Repertoire rows:
 
----
+```
+○ [Text input field                    ]
+○ [Text input field                    ]
+○ [Text input field                    ]
+○ [Text input field                    ]
+[+ Add]
+```
 
-## Optional Enhancement
-
-The recording duration is tracked internally. If you'd like, I can also display a visual timer (e.g., "Recording: 0:45 / 5:00") next to the stop button so users know how much time remains.
-
+Where ○ is a round checkbox that can be checked to mark completion.
