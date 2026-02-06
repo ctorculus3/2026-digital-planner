@@ -28,10 +28,7 @@ export function PracticeLogCalendar() {
   }, [currentDate]);
   const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
     const currentDayOfWeek = getDay(currentDate);
-    let daysToAdd = targetDayOfWeek - currentDayOfWeek;
-    if (daysToAdd <= 0) {
-      daysToAdd += 7;
-    }
+    const daysToAdd = targetDayOfWeek - currentDayOfWeek;
     const newDate = addDays(currentDate, daysToAdd);
     setCurrentDate(newDate);
   }, [currentDate]);
