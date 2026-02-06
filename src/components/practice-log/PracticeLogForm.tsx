@@ -7,6 +7,7 @@ import { usePracticeLog } from "@/hooks/usePracticeLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Save, Loader2, Plus } from "lucide-react";
 import { ShareButton } from "./ShareButton";
+import { AudioRecorder } from "./AudioRecorder";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface PracticeLogFormProps {
@@ -88,6 +89,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [scales, setScales] = useState<string[]>(Array(10).fill(""));
   const [repertoire, setRepertoire] = useState<string[]>(Array(15).fill(""));
   const [repertoireCompleted, setRepertoireCompleted] = useState<boolean[]>(Array(15).fill(false));
+  const [repertoireRecordings, setRepertoireRecordings] = useState<string[]>(Array(15).fill(""));
   const [notes, setNotes] = useState("");
   const [metronomeUsed, setMetronomeUsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -148,6 +150,10 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       while (loadedCompleted.length < 15) loadedCompleted.push(false);
       setRepertoireCompleted(loadedCompleted.slice(0, 15));
       
+      const loadedRecordings = [...((practiceLog as { repertoire_recordings?: string[] }).repertoire_recordings || [])];
+      while (loadedRecordings.length < 15) loadedRecordings.push("");
+      setRepertoireRecordings(loadedRecordings.slice(0, 15));
+      
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
       setHasUnsavedChanges(false);
@@ -169,6 +175,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setScales(Array(10).fill(""));
       setRepertoire(Array(15).fill(""));
       setRepertoireCompleted(Array(15).fill(false));
+      setRepertoireRecordings(Array(15).fill(""));
       setWarmupCount(4);
       setScaleCount(4);
       setRepertoireCount(10);
@@ -208,13 +215,14 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       scales,
       repertoire,
       repertoire_completed: repertoireCompleted,
+      repertoire_recordings: repertoireRecordings,
       technique: "",
       musicianship: "",
       notes,
       metronome_used: metronomeUsed,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, notes, metronomeUsed, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);
@@ -258,6 +266,13 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     const newCompleted = [...repertoireCompleted];
     newCompleted[index] = checked;
     setRepertoireCompleted(newCompleted);
+    markChanged();
+  };
+
+  const updateRepertoireRecording = (index: number, path: string) => {
+    const newRecordings = [...repertoireRecordings];
+    newRecordings[index] = path;
+    setRepertoireRecordings(newRecordings);
     markChanged();
   };
 
@@ -450,6 +465,14 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
                   value={item}
                   onChange={(e) => updateRepertoire(index, e.target.value)}
                   className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7"
+                />
+                <AudioRecorder
+                  practiceLogId={practiceLog?.id}
+                  userId={user.id}
+                  index={index}
+                  existingRecordingPath={repertoireRecordings[index] || null}
+                  onRecordingComplete={(path) => updateRepertoireRecording(index, path)}
+                  onRecordingDeleted={() => updateRepertoireRecording(index, "")}
                 />
               </div>
             ))}

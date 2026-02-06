@@ -14,6 +14,7 @@ export interface PracticeLogData {
   scales: string[];
   repertoire: string[];
   repertoire_completed: boolean[];
+  repertoire_recordings: string[];
   technique: string;
   musicianship: string;
   notes: string;
@@ -60,6 +61,7 @@ export function usePracticeLog(date: Date) {
         scales: logData.scales.filter(s => s.trim()),
         repertoire: logData.repertoire.filter(r => r.trim()),
         repertoire_completed: logData.repertoire_completed,
+        repertoire_recordings: logData.repertoire_recordings,
         technique: logData.technique || null,
         musicianship: logData.musicianship || null,
         notes: logData.notes || null,

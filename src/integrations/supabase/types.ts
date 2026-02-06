@@ -25,6 +25,7 @@ export type Database = {
           notes: string | null
           repertoire: string[] | null
           repertoire_completed: boolean[] | null
+          repertoire_recordings: string[] | null
           scales: string[] | null
           start_time: string | null
           stop_time: string | null
@@ -45,6 +46,7 @@ export type Database = {
           notes?: string | null
           repertoire?: string[] | null
           repertoire_completed?: boolean[] | null
+          repertoire_recordings?: string[] | null
           scales?: string[] | null
           start_time?: string | null
           stop_time?: string | null
@@ -65,6 +67,7 @@ export type Database = {
           notes?: string | null
           repertoire?: string[] | null
           repertoire_completed?: boolean[] | null
+          repertoire_recordings?: string[] | null
           scales?: string[] | null
           start_time?: string | null
           stop_time?: string | null
