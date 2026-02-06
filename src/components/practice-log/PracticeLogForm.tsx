@@ -87,17 +87,17 @@ export function PracticeLogForm({
   const [notes, setNotes] = useState("");
   const [metronomeUsed, setMetronomeUsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   // Additional Tasks state
   const [additionalTasks, setAdditionalTasks] = useState<string[]>(Array(10).fill(""));
   const [additionalTasksCompleted, setAdditionalTasksCompleted] = useState<boolean[]>(Array(10).fill(false));
   const [additionalTaskCount, setAdditionalTaskCount] = useState(4);
-  
+
   // Ear Training state
   const [earTraining, setEarTraining] = useState<string[]>(Array(10).fill(""));
   const [earTrainingCompleted, setEarTrainingCompleted] = useState<boolean[]>(Array(10).fill(false));
   const [earTrainingCount, setEarTrainingCount] = useState(4);
-  
+
   // Music Listening state
   const [musicListening, setMusicListening] = useState<string[]>(Array(10).fill(""));
   const [musicListeningCompleted, setMusicListeningCompleted] = useState<boolean[]>(Array(10).fill(false));
@@ -157,7 +157,7 @@ export function PracticeLogForm({
       setRepertoireRecordings(loadedRecordings.slice(0, 15));
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
-      
+
       // Load Additional Tasks
       const loadedAdditionalTasks = [...(practiceLog.additional_tasks || [])];
       while (loadedAdditionalTasks.length < 10) loadedAdditionalTasks.push("");
@@ -166,7 +166,7 @@ export function PracticeLogForm({
       const loadedAdditionalTasksCompleted = [...(practiceLog.additional_tasks_completed || [])];
       while (loadedAdditionalTasksCompleted.length < 10) loadedAdditionalTasksCompleted.push(false);
       setAdditionalTasksCompleted(loadedAdditionalTasksCompleted.slice(0, 10));
-      
+
       // Load Ear Training
       const loadedEarTraining = [...((practiceLog as any).ear_training || [])];
       while (loadedEarTraining.length < 10) loadedEarTraining.push("");
@@ -175,7 +175,7 @@ export function PracticeLogForm({
       const loadedEarTrainingCompleted = [...((practiceLog as any).ear_training_completed || [])];
       while (loadedEarTrainingCompleted.length < 10) loadedEarTrainingCompleted.push(false);
       setEarTrainingCompleted(loadedEarTrainingCompleted.slice(0, 10));
-      
+
       // Load Music Listening
       const loadedMusicListening = [...(practiceLog.music_listening || [])];
       while (loadedMusicListening.length < 10) loadedMusicListening.push("");
@@ -184,7 +184,6 @@ export function PracticeLogForm({
       const loadedMusicListeningCompleted = [...(practiceLog.music_listening_completed || [])];
       while (loadedMusicListeningCompleted.length < 10) loadedMusicListeningCompleted.push(false);
       setMusicListeningCompleted(loadedMusicListeningCompleted.slice(0, 10));
-      
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
 
@@ -256,7 +255,7 @@ export function PracticeLogForm({
       ear_training: earTraining,
       ear_training_completed: earTrainingCompleted,
       music_listening: musicListening,
-      music_listening_completed: musicListeningCompleted,
+      music_listening_completed: musicListeningCompleted
     });
     setHasUnsavedChanges(false);
   }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, additionalTasks, additionalTasksCompleted, earTraining, earTrainingCompleted, musicListening, musicListeningCompleted, save]);
@@ -328,7 +327,7 @@ export function PracticeLogForm({
       setRepertoireCount(prev => prev + 1);
     }
   };
-  
+
   // Additional Tasks handlers
   const updateAdditionalTask = (index: number, value: string) => {
     const newTasks = [...additionalTasks];
@@ -347,7 +346,7 @@ export function PracticeLogForm({
       setAdditionalTaskCount(prev => prev + 1);
     }
   };
-  
+
   // Ear Training handlers
   const updateEarTraining = (index: number, value: string) => {
     const newEarTraining = [...earTraining];
@@ -366,7 +365,7 @@ export function PracticeLogForm({
       setEarTrainingCount(prev => prev + 1);
     }
   };
-  
+
   // Music Listening handlers
   const updateMusicListening = (index: number, value: string) => {
     const newListening = [...musicListening];
@@ -431,7 +430,7 @@ export function PracticeLogForm({
       </div>
 
       {/* Time Tracking */}
-      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
+      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border bg-[#cfe4c8]">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
@@ -494,14 +493,7 @@ export function PracticeLogForm({
             {repertoire.slice(0, repertoireCount).map((item, index) => <div key={index} className="flex items-center gap-2">
                 <Checkbox checked={repertoireCompleted[index] || false} onCheckedChange={checked => updateRepertoireCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
                 <Input value={item} onChange={e => updateRepertoire(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
-                <AudioRecorder
-                  practiceLogId={practiceLog?.id}
-                  userId={user.id}
-                  index={index}
-                  existingRecordingPath={repertoireRecordings[index] || null}
-                  onRecordingComplete={(path) => handleRecordingComplete(index, path)}
-                  onRecordingDeleted={() => handleRecordingDeleted(index)}
-                />
+                <AudioRecorder practiceLogId={practiceLog?.id} userId={user.id} index={index} existingRecordingPath={repertoireRecordings[index] || null} onRecordingComplete={path => handleRecordingComplete(index, path)} onRecordingDeleted={() => handleRecordingDeleted(index)} />
               </div>)}
           </div>
            {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[#ebf9eb]">
@@ -510,9 +502,7 @@ export function PracticeLogForm({
             </Button>}
 
           {/* Media Tools - only show when practice log exists */}
-          {practiceLog?.id && user && (
-            <MediaTools practiceLogId={practiceLog.id} userId={user.id} />
-          )}
+          {practiceLog?.id && user && <MediaTools practiceLogId={practiceLog.id} userId={user.id} />}
         </div>
 
         <div className="space-y-4">
@@ -541,81 +531,45 @@ export function PracticeLogForm({
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Ear Training</label>
             <div className="space-y-1">
-              {earTraining.slice(0, earTrainingCount).map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={earTrainingCompleted[index] || false} 
-                    onCheckedChange={checked => updateEarTrainingCompleted(index, !!checked)} 
-                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
-                  />
-                  <Input 
-                    value={item} 
-                    onChange={e => updateEarTraining(index, e.target.value)} 
-                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
-                  />
-                </div>
-              ))}
+              {earTraining.slice(0, earTrainingCount).map((item, index) => <div key={index} className="flex items-center gap-2">
+                  <Checkbox checked={earTrainingCompleted[index] || false} onCheckedChange={checked => updateEarTrainingCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={item} onChange={e => updateEarTraining(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                </div>)}
             </div>
-            {earTrainingCount < 10 && (
-              <Button type="button" variant="ghost" size="sm" onClick={addEarTraining} className="mt-2 text-muted-foreground hover:text-foreground">
+            {earTrainingCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addEarTraining} className="mt-2 text-muted-foreground hover:text-foreground">
                 <Plus className="w-4 h-4 mr-1" />
                 Add
-              </Button>
-            )}
+              </Button>}
           </div>
 
           {/* Additional Tasks */}
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Additional Task</label>
             <div className="space-y-1">
-              {additionalTasks.slice(0, additionalTaskCount).map((task, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={additionalTasksCompleted[index] || false} 
-                    onCheckedChange={checked => updateAdditionalTaskCompleted(index, !!checked)} 
-                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
-                  />
-                  <Input 
-                    value={task} 
-                    onChange={e => updateAdditionalTask(index, e.target.value)} 
-                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
-                  />
-                </div>
-              ))}
+              {additionalTasks.slice(0, additionalTaskCount).map((task, index) => <div key={index} className="flex items-center gap-2">
+                  <Checkbox checked={additionalTasksCompleted[index] || false} onCheckedChange={checked => updateAdditionalTaskCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={task} onChange={e => updateAdditionalTask(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                </div>)}
             </div>
-            {additionalTaskCount < 10 && (
-              <Button type="button" variant="ghost" size="sm" onClick={addAdditionalTask} className="mt-2 text-muted-foreground hover:text-foreground">
+            {additionalTaskCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addAdditionalTask} className="mt-2 text-muted-foreground hover:text-foreground">
                 <Plus className="w-4 h-4 mr-1" />
                 Add
-              </Button>
-            )}
+              </Button>}
           </div>
 
           {/* Music Listening */}
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Music Listening</label>
             <div className="space-y-1">
-              {musicListening.slice(0, musicListeningCount).map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={musicListeningCompleted[index] || false} 
-                    onCheckedChange={checked => updateMusicListeningCompleted(index, !!checked)} 
-                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
-                  />
-                  <Input 
-                    value={item} 
-                    onChange={e => updateMusicListening(index, e.target.value)} 
-                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
-                  />
-                </div>
-              ))}
+              {musicListening.slice(0, musicListeningCount).map((item, index) => <div key={index} className="flex items-center gap-2">
+                  <Checkbox checked={musicListeningCompleted[index] || false} onCheckedChange={checked => updateMusicListeningCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={item} onChange={e => updateMusicListening(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                </div>)}
             </div>
-            {musicListeningCount < 10 && (
-              <Button type="button" variant="ghost" size="sm" onClick={addMusicListening} className="mt-2 text-muted-foreground hover:text-foreground">
+            {musicListeningCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addMusicListening} className="mt-2 text-muted-foreground hover:text-foreground">
                 <Plus className="w-4 h-4 mr-1" />
                 Add
-              </Button>
-            )}
+              </Button>}
           </div>
         </div>
       </div>
