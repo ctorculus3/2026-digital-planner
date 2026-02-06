@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,6 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     endDate: null,
   });
 
+  // Flag to prevent duplicate subscription checks during initialization
+  const initialSessionLoaded = useRef(false);
+
   const fetchSubscription = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
       setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
@@ -46,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error("Subscription check error:", error);
-        // On 401, sign out
         if ((error as any)?.status === 401) {
           await supabase.auth.signOut();
         }
@@ -68,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         if (!mounted) return;
@@ -77,20 +79,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newSession?.user ?? null);
         setLoading(false);
 
-        // Fetch subscription when auth state changes
-        if (newSession) {
-          setSubscription(prev => ({ ...prev, status: 'loading' }));
-          await fetchSubscription(newSession);
-        } else {
-          setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        // Only fetch subscription if initial session has already been loaded
+        // This prevents duplicate calls during initialization
+        if (initialSessionLoaded.current) {
+          if (newSession) {
+            setSubscription(prev => ({ ...prev, status: 'loading' }));
+            await fetchSubscription(newSession);
+          } else {
+            setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+          }
         }
       }
     );
 
-    // Check for existing session
+    // Check for existing session - this is the single source of truth on init
     supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
       if (!mounted) return;
       
+      // Mark initial session as loaded so future onAuthStateChange events
+      // will trigger subscription checks
+      initialSessionLoaded.current = true;
+
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       setLoading(false);

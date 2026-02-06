@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/card";
 import { Music2, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -21,7 +22,79 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { subscription, refreshSubscription, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pollingRef = useRef(false);
+
+  // Handle post-checkout return: detect ?checkout=success and poll for active subscription
+  useEffect(() => {
+    const checkoutStatus = searchParams.get("checkout");
+    
+    if (checkoutStatus === "success" && !pollingRef.current) {
+      pollingRef.current = true;
+      setProcessingCheckout(true);
+
+      // Clean up URL params immediately
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("checkout");
+      setSearchParams(newParams, { replace: true });
+
+      // Poll for subscription activation
+      let attempts = 0;
+      const maxAttempts = 8;
+      const pollInterval = 2500;
+
+      const poll = async () => {
+        attempts++;
+        await refreshSubscription();
+        // We'll check subscription.status via the next render cycle
+        // Set a timeout for the next attempt
+        if (attempts < maxAttempts) {
+          setTimeout(poll, pollInterval);
+        } else {
+          // Max attempts reached - stop polling
+          setProcessingCheckout(false);
+          pollingRef.current = false;
+          toast({
+            title: "Still processing",
+            description: "Your subscription may take a moment to activate. Try refreshing in a few seconds.",
+          });
+        }
+      };
+
+      // Start polling after a short delay to let Stripe process
+      setTimeout(poll, 1500);
+    }
+
+    if (checkoutStatus === "cancelled") {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("checkout");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, refreshSubscription, toast]);
+
+  // Stop polling when subscription becomes active
+  useEffect(() => {
+    if (subscription.status === 'active' && processingCheckout) {
+      setProcessingCheckout(false);
+      pollingRef.current = false;
+      toast({
+        title: "Welcome! 🎉",
+        description: "Your subscription is active. Enjoy your practice journal!",
+      });
+    }
+  }, [subscription.status, processingCheckout, toast]);
+
+  // Show processing state during post-checkout polling
+  if (processingCheckout || (subscription.status === 'loading' && pollingRef.current)) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Processing your subscription...</p>
+      </div>
+    );
+  }
 
   // Show loading spinner while checking subscription
   if (subscription.status === 'loading') {
@@ -59,17 +132,14 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
+  // Fixed: removed stale closure check. Just refresh and let React re-render.
   const handleRefresh = async () => {
     setRefreshing(true);
+    toast({ title: "Checking subscription status..." });
     try {
       await refreshSubscription();
-      if (subscription.status !== 'active') {
-        toast({
-          title: "No active subscription found",
-          description: "Please start your free trial or check your account.",
-          variant: "destructive",
-        });
-      }
+      // Don't check subscription.status here - it's stale in this closure.
+      // The component will automatically re-render when status updates to 'active'.
     } catch (error) {
       toast({
         title: "Error",
