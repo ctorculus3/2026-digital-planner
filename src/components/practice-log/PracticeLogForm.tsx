@@ -98,6 +98,16 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [warmupCount, setWarmupCount] = useState(4);
   const [scaleCount, setScaleCount] = useState(4);
   const [repertoireCount, setRepertoireCount] = useState(10);
+  
+  // Additional Task state
+  const [additionalTasks, setAdditionalTasks] = useState<string[]>(Array(10).fill(""));
+  const [additionalTasksCompleted, setAdditionalTasksCompleted] = useState<boolean[]>(Array(10).fill(false));
+  const [additionalTaskCount, setAdditionalTaskCount] = useState(4);
+  
+  // Music Listening state
+  const [musicListening, setMusicListening] = useState<string[]>(Array(10).fill(""));
+  const [musicListeningCompleted, setMusicListeningCompleted] = useState<boolean[]>(Array(10).fill(false));
+  const [musicListeningCount, setMusicListeningCount] = useState(4);
 
   // Refs for auto-expanding textareas
   const mainGoalsRef = useRef<HTMLTextAreaElement>(null);
@@ -156,6 +166,27 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
+      
+      // Load additional tasks
+      const loadedAdditionalTasks = [...((practiceLog as { additional_tasks?: string[] }).additional_tasks || [])];
+      while (loadedAdditionalTasks.length < 10) loadedAdditionalTasks.push("");
+      setAdditionalTasks(loadedAdditionalTasks.slice(0, 10));
+      setAdditionalTaskCount(Math.max(4, (practiceLog as { additional_tasks?: string[] }).additional_tasks?.length || 0));
+      
+      const loadedAdditionalTasksCompleted = [...((practiceLog as { additional_tasks_completed?: boolean[] }).additional_tasks_completed || [])];
+      while (loadedAdditionalTasksCompleted.length < 10) loadedAdditionalTasksCompleted.push(false);
+      setAdditionalTasksCompleted(loadedAdditionalTasksCompleted.slice(0, 10));
+      
+      // Load music listening
+      const loadedMusicListening = [...((practiceLog as { music_listening?: string[] }).music_listening || [])];
+      while (loadedMusicListening.length < 10) loadedMusicListening.push("");
+      setMusicListening(loadedMusicListening.slice(0, 10));
+      setMusicListeningCount(Math.max(4, (practiceLog as { music_listening?: string[] }).music_listening?.length || 0));
+      
+      const loadedMusicListeningCompleted = [...((practiceLog as { music_listening_completed?: boolean[] }).music_listening_completed || [])];
+      while (loadedMusicListeningCompleted.length < 10) loadedMusicListeningCompleted.push(false);
+      setMusicListeningCompleted(loadedMusicListeningCompleted.slice(0, 10));
+      
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
       
@@ -179,6 +210,12 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setWarmupCount(4);
       setScaleCount(4);
       setRepertoireCount(10);
+      setAdditionalTasks(Array(10).fill(""));
+      setAdditionalTasksCompleted(Array(10).fill(false));
+      setAdditionalTaskCount(4);
+      setMusicListening(Array(10).fill(""));
+      setMusicListeningCompleted(Array(10).fill(false));
+      setMusicListeningCount(4);
       setNotes("");
       setMetronomeUsed(false);
       setHasUnsavedChanges(false);
@@ -220,9 +257,13 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       musicianship: "",
       notes,
       metronome_used: metronomeUsed,
+      additional_tasks: additionalTasks,
+      additional_tasks_completed: additionalTasksCompleted,
+      music_listening: musicListening,
+      music_listening_completed: musicListeningCompleted,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, additionalTasks, additionalTasksCompleted, musicListening, musicListeningCompleted, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);
@@ -291,6 +332,46 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const addRepertoire = () => {
     if (repertoireCount < 15) {
       setRepertoireCount(prev => prev + 1);
+    }
+  };
+
+  const updateAdditionalTask = (index: number, value: string) => {
+    const newTasks = [...additionalTasks];
+    newTasks[index] = value;
+    setAdditionalTasks(newTasks);
+    markChanged();
+  };
+
+  const updateAdditionalTaskCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...additionalTasksCompleted];
+    newCompleted[index] = checked;
+    setAdditionalTasksCompleted(newCompleted);
+    markChanged();
+  };
+
+  const addAdditionalTask = () => {
+    if (additionalTaskCount < 10) {
+      setAdditionalTaskCount(prev => prev + 1);
+    }
+  };
+
+  const updateMusicListeningItem = (index: number, value: string) => {
+    const newItems = [...musicListening];
+    newItems[index] = value;
+    setMusicListening(newItems);
+    markChanged();
+  };
+
+  const updateMusicListeningCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...musicListeningCompleted];
+    newCompleted[index] = checked;
+    setMusicListeningCompleted(newCompleted);
+    markChanged();
+  };
+
+  const addMusicListening = () => {
+    if (musicListeningCount < 10) {
+      setMusicListeningCount(prev => prev + 1);
     }
   };
 
@@ -514,6 +595,72 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
                 Used Metronome Today
               </label>
             </div>
+          </div>
+
+          {/* Additional Task Section */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-2 block">Additional Task</label>
+            <div className="space-y-1">
+              {additionalTasks.slice(0, additionalTaskCount).map((task, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={additionalTasksCompleted[index] || false}
+                    onCheckedChange={(checked) => updateAdditionalTaskCompleted(index, !!checked)}
+                    className="rounded-full w-4 h-4 border-muted-foreground/30"
+                  />
+                  <Input
+                    value={task}
+                    onChange={(e) => updateAdditionalTask(index, e.target.value)}
+                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7"
+                  />
+                </div>
+              ))}
+            </div>
+            {additionalTaskCount < 10 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={addAdditionalTask}
+                className="mt-2 text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+
+          {/* Music Listening Section */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-2 block">Music Listening</label>
+            <div className="space-y-1">
+              {musicListening.slice(0, musicListeningCount).map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={musicListeningCompleted[index] || false}
+                    onCheckedChange={(checked) => updateMusicListeningCompleted(index, !!checked)}
+                    className="rounded-full w-4 h-4 border-muted-foreground/30"
+                  />
+                  <Input
+                    value={item}
+                    onChange={(e) => updateMusicListeningItem(index, e.target.value)}
+                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7"
+                  />
+                </div>
+              ))}
+            </div>
+            {musicListeningCount < 10 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={addMusicListening}
+                className="mt-2 text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            )}
           </div>
         </div>
       </div>
