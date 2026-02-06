@@ -84,6 +84,16 @@ export function PracticeLogForm({
   const [notes, setNotes] = useState("");
   const [metronomeUsed, setMetronomeUsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Additional Tasks state
+  const [additionalTasks, setAdditionalTasks] = useState<string[]>(Array(10).fill(""));
+  const [additionalTasksCompleted, setAdditionalTasksCompleted] = useState<boolean[]>(Array(10).fill(false));
+  const [additionalTaskCount, setAdditionalTaskCount] = useState(4);
+  
+  // Music Listening state
+  const [musicListening, setMusicListening] = useState<string[]>(Array(10).fill(""));
+  const [musicListeningCompleted, setMusicListeningCompleted] = useState<boolean[]>(Array(10).fill(false));
+  const [musicListeningCount, setMusicListeningCount] = useState(4);
 
   // Track visible row counts
   const [warmupCount, setWarmupCount] = useState(4);
@@ -136,6 +146,25 @@ export function PracticeLogForm({
       setRepertoireCompleted(loadedCompleted.slice(0, 15));
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
+      
+      // Load Additional Tasks
+      const loadedAdditionalTasks = [...(practiceLog.additional_tasks || [])];
+      while (loadedAdditionalTasks.length < 10) loadedAdditionalTasks.push("");
+      setAdditionalTasks(loadedAdditionalTasks.slice(0, 10));
+      setAdditionalTaskCount(Math.max(4, practiceLog.additional_tasks?.length || 0));
+      const loadedAdditionalTasksCompleted = [...(practiceLog.additional_tasks_completed || [])];
+      while (loadedAdditionalTasksCompleted.length < 10) loadedAdditionalTasksCompleted.push(false);
+      setAdditionalTasksCompleted(loadedAdditionalTasksCompleted.slice(0, 10));
+      
+      // Load Music Listening
+      const loadedMusicListening = [...(practiceLog.music_listening || [])];
+      while (loadedMusicListening.length < 10) loadedMusicListening.push("");
+      setMusicListening(loadedMusicListening.slice(0, 10));
+      setMusicListeningCount(Math.max(4, practiceLog.music_listening?.length || 0));
+      const loadedMusicListeningCompleted = [...(practiceLog.music_listening_completed || [])];
+      while (loadedMusicListeningCompleted.length < 10) loadedMusicListeningCompleted.push(false);
+      setMusicListeningCompleted(loadedMusicListeningCompleted.slice(0, 10));
+      
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
 
@@ -160,6 +189,12 @@ export function PracticeLogForm({
       setRepertoireCount(10);
       setNotes("");
       setMetronomeUsed(false);
+      setAdditionalTasks(Array(10).fill(""));
+      setAdditionalTasksCompleted(Array(10).fill(false));
+      setAdditionalTaskCount(4);
+      setMusicListening(Array(10).fill(""));
+      setMusicListeningCompleted(Array(10).fill(false));
+      setMusicListeningCount(4);
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
     }
@@ -187,13 +222,18 @@ export function PracticeLogForm({
       scales,
       repertoire,
       repertoire_completed: repertoireCompleted,
+      repertoire_recordings: [],
       technique: "",
       musicianship: "",
       notes,
-      metronome_used: metronomeUsed
+      metronome_used: metronomeUsed,
+      additional_tasks: additionalTasks,
+      additional_tasks_completed: additionalTasksCompleted,
+      music_listening: musicListening,
+      music_listening_completed: musicListeningCompleted,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, notes, metronomeUsed, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, notes, metronomeUsed, additionalTasks, additionalTasksCompleted, musicListening, musicListeningCompleted, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);
@@ -250,6 +290,44 @@ export function PracticeLogForm({
       setRepertoireCount(prev => prev + 1);
     }
   };
+  
+  // Additional Tasks handlers
+  const updateAdditionalTask = (index: number, value: string) => {
+    const newTasks = [...additionalTasks];
+    newTasks[index] = value;
+    setAdditionalTasks(newTasks);
+    markChanged();
+  };
+  const updateAdditionalTaskCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...additionalTasksCompleted];
+    newCompleted[index] = checked;
+    setAdditionalTasksCompleted(newCompleted);
+    markChanged();
+  };
+  const addAdditionalTask = () => {
+    if (additionalTaskCount < 10) {
+      setAdditionalTaskCount(prev => prev + 1);
+    }
+  };
+  
+  // Music Listening handlers
+  const updateMusicListening = (index: number, value: string) => {
+    const newListening = [...musicListening];
+    newListening[index] = value;
+    setMusicListening(newListening);
+    markChanged();
+  };
+  const updateMusicListeningCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...musicListeningCompleted];
+    newCompleted[index] = checked;
+    setMusicListeningCompleted(newCompleted);
+    markChanged();
+  };
+  const addMusicListening = () => {
+    if (musicListeningCount < 10) {
+      setMusicListeningCount(prev => prev + 1);
+    }
+  };
   if (!user) {
     return <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Please sign in to view your practice log.</p>
@@ -296,7 +374,7 @@ export function PracticeLogForm({
       </div>
 
       {/* Time Tracking */}
-      <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
@@ -387,6 +465,60 @@ export function PracticeLogForm({
                 Used Metronome Today
               </label>
             </div>
+          </div>
+
+          {/* Additional Tasks */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-2 block">Additional Task</label>
+            <div className="space-y-1">
+              {additionalTasks.slice(0, additionalTaskCount).map((task, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox 
+                    checked={additionalTasksCompleted[index] || false} 
+                    onCheckedChange={checked => updateAdditionalTaskCompleted(index, !!checked)} 
+                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
+                  />
+                  <Input 
+                    value={task} 
+                    onChange={e => updateAdditionalTask(index, e.target.value)} 
+                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
+                  />
+                </div>
+              ))}
+            </div>
+            {additionalTaskCount < 10 && (
+              <Button type="button" variant="ghost" size="sm" onClick={addAdditionalTask} className="mt-2 text-muted-foreground hover:text-foreground">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+
+          {/* Music Listening */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-2 block">Music Listening</label>
+            <div className="space-y-1">
+              {musicListening.slice(0, musicListeningCount).map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox 
+                    checked={musicListeningCompleted[index] || false} 
+                    onCheckedChange={checked => updateMusicListeningCompleted(index, !!checked)} 
+                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
+                  />
+                  <Input 
+                    value={item} 
+                    onChange={e => updateMusicListening(index, e.target.value)} 
+                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
+                  />
+                </div>
+              ))}
+            </div>
+            {musicListeningCount < 10 && (
+              <Button type="button" variant="ghost" size="sm" onClick={addMusicListening} className="mt-2 text-muted-foreground hover:text-foreground">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            )}
           </div>
         </div>
       </div>
