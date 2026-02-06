@@ -15,6 +15,10 @@ interface PracticeLogData {
   repertoire: string[] | null;
   notes: string | null;
   metronome_used: boolean | null;
+  ear_training: string[] | null;
+  ear_training_completed: boolean[] | null;
+  additional_tasks: string[] | null;
+  additional_tasks_completed: boolean[] | null;
   sharer_name: string | null;
 }
 
@@ -58,7 +62,7 @@ export default function SharedPracticeLog() {
         // Fetch the practice log
         const { data: logData, error: logError } = await supabase
           .from("practice_logs")
-          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, notes, metronome_used")
+          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed")
           .eq("id", shareData.practice_log_id)
           .single();
 
@@ -241,6 +245,34 @@ export default function SharedPracticeLog() {
             {practiceLog.metronome_used && (
               <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
                 <p className="text-sm text-foreground">✓ Used Metronome</p>
+              </div>
+            )}
+            {/* Ear Training */}
+            {practiceLog.ear_training && practiceLog.ear_training.filter(e => e).length > 0 && (
+              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+                <h3 className="font-display text-sm text-muted-foreground mb-3">Ear Training</h3>
+                <ul className="space-y-1">
+                  {practiceLog.ear_training.filter(e => e).map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-foreground">
+                      <div className={`w-3 h-3 rounded-full border ${practiceLog.ear_training_completed?.[idx] ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Additional Tasks */}
+            {practiceLog.additional_tasks && practiceLog.additional_tasks.filter(t => t).length > 0 && (
+              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+                <h3 className="font-display text-sm text-muted-foreground mb-3">Additional Tasks</h3>
+                <ul className="space-y-1">
+                  {practiceLog.additional_tasks.filter(t => t).map((task, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-foreground">
+                      <div className={`w-3 h-3 rounded-full border ${practiceLog.additional_tasks_completed?.[idx] ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`} />
+                      {task}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

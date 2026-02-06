@@ -21,6 +21,8 @@ export interface PracticeLogData {
   metronome_used: boolean;
   additional_tasks: string[];
   additional_tasks_completed: boolean[];
+  ear_training: string[];
+  ear_training_completed: boolean[];
   music_listening: string[];
   music_listening_completed: boolean[];
 }
@@ -72,6 +74,8 @@ export function usePracticeLog(date: Date) {
         metronome_used: logData.metronome_used,
         additional_tasks: logData.additional_tasks.filter(t => t.trim()),
         additional_tasks_completed: logData.additional_tasks_completed,
+        ear_training: logData.ear_training.filter(e => e.trim()),
+        ear_training_completed: logData.ear_training_completed,
         music_listening: logData.music_listening.filter(m => m.trim()),
         music_listening_completed: logData.music_listening_completed,
       };
