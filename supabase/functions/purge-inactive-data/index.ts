@@ -164,7 +164,7 @@
       let deletedRecordingsCount = 0;
 
       if (!dryRun && usersToDelete.length > 0) {
-        // First, collect all recording paths before deleting practice logs
+    // First, collect all recording paths and practice log IDs before deleting
         const { data: logsToDelete, error: fetchError } = await supabase
           .from("practice_logs")
           .select("id, user_id, repertoire_recordings")
@@ -185,7 +185,7 @@
           }
         }
 
-        // Delete storage files first
+        // Delete practice-recordings storage files
         if (recordingPaths.length > 0) {
           const { error: storageError } = await supabase.storage
             .from("practice-recordings")
@@ -196,6 +196,41 @@
           } else {
             deletedRecordingsCount = recordingPaths.length;
             logStep("Deleted recordings from storage", { count: deletedRecordingsCount });
+          }
+        }
+
+        // Delete practice-media storage files and database records
+        const logIds = (logsToDelete || []).map(l => l.id);
+        if (logIds.length > 0) {
+          // Fetch media file paths
+          const { data: mediaItems } = await supabase
+            .from("practice_media")
+            .select("file_path, media_type")
+            .in("practice_log_id", logIds);
+
+          const mediaFilePaths = (mediaItems || [])
+            .filter(m => m.media_type === "audio" && m.file_path)
+            .map(m => m.file_path as string);
+
+          if (mediaFilePaths.length > 0) {
+            const { error: mediaStorageError } = await supabase.storage
+              .from("practice-media")
+              .remove(mediaFilePaths);
+            if (mediaStorageError) {
+              logStep("Warning: Failed to delete some media files", { error: mediaStorageError.message });
+            } else {
+              logStep("Deleted media files from storage", { count: mediaFilePaths.length });
+            }
+          }
+
+          // Delete practice_media rows (will also cascade when practice_logs are deleted,
+          // but explicit deletion ensures storage cleanup happens first)
+          const { error: mediaDeleteError } = await supabase
+            .from("practice_media")
+            .delete()
+            .in("practice_log_id", logIds);
+          if (mediaDeleteError) {
+            logStep("Warning: Failed to delete media records", { error: mediaDeleteError.message });
           }
         }
 

@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Save, Loader2, Plus } from "lucide-react";
 import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
+import { MediaTools } from "./MediaTools";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -503,10 +504,15 @@ export function PracticeLogForm({
                 />
               </div>)}
           </div>
-          {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[#ebf9eb]">
+           {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[#ebf9eb]">
               <Plus className="w-4 h-4 mr-1" />
               Add
             </Button>}
+
+          {/* Media Tools - only show when practice log exists */}
+          {practiceLog?.id && user && (
+            <MediaTools practiceLogId={practiceLog.id} userId={user.id} />
+          )}
         </div>
 
         <div className="space-y-4">

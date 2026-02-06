@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Music, Youtube } from "lucide-react";
+import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
 
 interface PracticeLogData {
   id: string;
@@ -22,9 +23,19 @@ interface PracticeLogData {
   sharer_name: string | null;
 }
 
+interface SharedMediaItem {
+  id: string;
+  media_type: "audio" | "youtube";
+  file_path: string | null;
+  youtube_url: string | null;
+  label: string | null;
+  sort_order: number;
+}
+
 export default function SharedPracticeLog() {
   const { token } = useParams<{ token: string }>();
   const [practiceLog, setPracticeLog] = useState<PracticeLogData | null>(null);
+  const [mediaItems, setMediaItems] = useState<SharedMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +90,15 @@ export default function SharedPracticeLog() {
           ...logData,
           sharer_name: profileData?.display_name || null,
         });
+
+        // Fetch media items for this shared log
+        const { data: mediaData } = await supabase
+          .from("practice_media")
+          .select("id, media_type, file_path, youtube_url, label, sort_order")
+          .eq("practice_log_id", shareData.practice_log_id)
+          .order("sort_order", { ascending: true });
+
+        setMediaItems((mediaData as SharedMediaItem[]) || []);
       } catch (err) {
         console.error("Error fetching shared log:", err);
         setError("Failed to load practice log.");
@@ -277,6 +297,44 @@ export default function SharedPracticeLog() {
             )}
           </div>
         </div>
+
+        {/* Media Tools */}
+        {mediaItems.length > 0 && (
+          <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+            <h3 className="font-display text-sm text-muted-foreground mb-3">Media Tools</h3>
+            <div className="space-y-3">
+              {mediaItems.map((item) => (
+                <div key={item.id} className="border border-border rounded-md p-2 space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {item.media_type === "audio" ? (
+                      <Music className="w-3.5 h-3.5" />
+                    ) : (
+                      <Youtube className="w-3.5 h-3.5" />
+                    )}
+                    <span className="truncate">{item.label || (item.media_type === "audio" ? "Audio" : "YouTube")}</span>
+                  </div>
+                  {item.media_type === "youtube" && item.youtube_url && (() => {
+                    const videoId = extractYouTubeVideoId(item.youtube_url);
+                    return videoId ? (
+                      <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                        <iframe
+                          className="absolute inset-0 w-full h-full rounded"
+                          src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+                          title="YouTube video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : null;
+                  })()}
+                  {item.media_type === "audio" && item.file_path && (
+                    <p className="text-xs text-muted-foreground italic">Audio playback not available in shared view</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center pt-8 border-t border-border">
