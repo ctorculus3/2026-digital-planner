@@ -19,6 +19,10 @@ export interface PracticeLogData {
   musicianship: string;
   notes: string;
   metronome_used: boolean;
+  additional_tasks: string[];
+  additional_tasks_completed: boolean[];
+  music_listening: string[];
+  music_listening_completed: boolean[];
 }
 
 export function usePracticeLog(date: Date) {
@@ -66,6 +70,10 @@ export function usePracticeLog(date: Date) {
         musicianship: logData.musicianship || null,
         notes: logData.notes || null,
         metronome_used: logData.metronome_used,
+        additional_tasks: logData.additional_tasks.filter(t => t.trim()),
+        additional_tasks_completed: logData.additional_tasks_completed,
+        music_listening: logData.music_listening.filter(m => m.trim()),
+        music_listening_completed: logData.music_listening_completed,
       };
 
       const { error } = await supabase

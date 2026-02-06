@@ -16,11 +16,15 @@ export type Database = {
     Tables: {
       practice_logs: {
         Row: {
+          additional_tasks: string[] | null
+          additional_tasks_completed: boolean[] | null
           created_at: string
           goals: string | null
           id: string
           log_date: string
           metronome_used: boolean | null
+          music_listening: string[] | null
+          music_listening_completed: boolean[] | null
           musicianship: string | null
           notes: string | null
           repertoire: string[] | null
@@ -37,11 +41,15 @@ export type Database = {
           warmups: string[] | null
         }
         Insert: {
+          additional_tasks?: string[] | null
+          additional_tasks_completed?: boolean[] | null
           created_at?: string
           goals?: string | null
           id?: string
           log_date: string
           metronome_used?: boolean | null
+          music_listening?: string[] | null
+          music_listening_completed?: boolean[] | null
           musicianship?: string | null
           notes?: string | null
           repertoire?: string[] | null
@@ -58,11 +66,15 @@ export type Database = {
           warmups?: string[] | null
         }
         Update: {
+          additional_tasks?: string[] | null
+          additional_tasks_completed?: boolean[] | null
           created_at?: string
           goals?: string | null
           id?: string
           log_date?: string
           metronome_used?: boolean | null
+          music_listening?: string[] | null
+          music_listening_completed?: boolean[] | null
           musicianship?: string | null
           notes?: string | null
           repertoire?: string[] | null
