@@ -1,114 +1,69 @@
 
 
-# Landing Page for Practice Daily
+# Fix: Auto-Create Practice Log When Uploading Media
 
-## Overview
+## The Problem
 
-A premium, professional landing page that replaces the current auth page for non-logged-in visitors. It positions "Practice Daily" as the go-to practice journal for serious musicians who want to build disciplined habits and be part of a community. The page leads with a strong hero section, showcases the app in action, features social proof from fellow musicians, and closes with clear pricing and a call-to-action.
+Currently, if you navigate to a day that hasn't been saved yet and try to upload audio or add a YouTube link, you get an error: "Please save your practice log first." This is a poor experience -- users shouldn't have to think about saving before they can use Media Tools.
 
-## Routing Changes
+## The Solution
 
-The current `/auth` route shows a simple sign-in/sign-up card. This will be replaced with a full landing page that includes the sign-in/sign-up form as a section. Logged-in users still get redirected to the main app as before -- no changes to that flow.
+When a user uploads media on a day that doesn't have a practice log yet, the app will automatically create a minimal (empty) practice log record for that day, then attach the media to it. This happens silently in the background -- the user just sees their upload succeed.
+
+## How It Works
 
 ```text
-Current flow:
-  /auth  -->  Sign-in card (centered)
-
-New flow:
-  /auth  -->  Full landing page with:
-              - Hero section
-              - App preview section
-              - Testimonials
-              - Pricing card
-              - Sign-up/Sign-in form (embedded at bottom)
+User drops audio file on Feb 3 (no practice log saved yet)
+  --> useMediaTools detects practiceLogId is undefined
+  --> Automatically creates an empty practice log for Feb 3
+  --> Gets back the new practice_log ID
+  --> Uploads the audio file and links it to that ID
+  --> Refreshes the practice log query so the form picks up the new record
 ```
 
-## Page Sections (top to bottom)
+## What Changes
 
-### 1. Navigation Bar
-- "Practice Daily" brand name with the Music2 icon (matching current teal-to-coral gradient)
-- Right side: "Sign In" and "Start Free Trial" buttons
-- Sticky on scroll for easy access to CTAs
+### 1. useMediaTools hook (`src/hooks/useMediaTools.ts`)
 
-### 2. Hero Section
-- Large headline: something like "Your Daily Practice, Elevated."
-- Sub-headline emphasizing the community angle: "Join musicians who track, refine, and grow together."
-- Primary CTA button: "Start Your 7-Day Free Trial"
-- Secondary link: "Already a member? Sign in"
-- Subtle background using the app's teal header color as a gradient wash
+- Accept two new parameters: `logDate` (the date string like "2026-02-06") and a callback `onPracticeLogCreated` that the form can use to refresh its data.
+- Add an internal `ensurePracticeLog` function that:
+  - If `practiceLogId` is already set, returns it immediately
+  - If not, creates a minimal practice log via upsert (user_id + log_date with empty defaults) and returns the new ID
+- Update `uploadAudio` and `addYouTubeLink` to call `ensurePracticeLog()` instead of showing an error when practiceLogId is missing.
 
-### 3. App Preview Section
-- Title: "See Your Practice Come to Life"
-- A styled screenshot/mockup of the practice log form inside a browser frame
-- 3-4 feature callout cards arranged in a grid:
-  - Daily practice logging with goals and time tracking
-  - Track scales, warmups, and repertoire with recordings
-  - Media tools for reference audio and YouTube videos
-  - Share your progress with teachers and peers
+### 2. PracticeLogForm (`src/components/practice-log/PracticeLogForm.tsx`)
 
-### 4. Community Vision Section
-- Title: "Built for Musicians Who Show Up Every Day"
-- Short paragraph about building a practice community
-- 3 icon-driven value propositions:
-  - Accountability: "Track your consistency and see your streak grow"
-  - Reference: "Keep audio, video, and notes all in one place"
-  - Growth: "Review your journey and celebrate progress"
+- Pass the `logDate` string and a refresh callback to `MediaTools`.
+- The refresh callback invalidates the practice-log query so the form picks up the newly created record and its ID.
+- Change the rendering condition from `practiceLog?.id && user` to just `user` (as previously planned) so Media Tools always appears.
 
-### 5. Testimonials Section
-- Title: "What Musicians Are Saying"
-- 3 testimonial cards with placeholder quotes (you can replace with real quotes later)
-- Each card: quote text, name, instrument/role
-- Styled with the warm card background and subtle borders
+### 3. MediaTools component (`src/components/practice-log/MediaTools.tsx`)
 
-### 6. Pricing Section
-- Title: "Simple, Honest Pricing"
-- Single pricing card (matching the existing SubscriptionGate design):
-  - $3.99/month
-  - 7-day free trial
-  - Feature checklist (daily logging, scales/warmups/repertoire, media tools, cloud storage, sharing)
-  - "Start Free Trial" CTA button
-- "Cancel anytime" note underneath
-
-### 7. Sign-In / Sign-Up Section
-- Title: "Ready to Practice?"
-- The existing auth form (email, password, display name for sign-up) embedded as a card
-- Toggle between Sign In and Sign Up
-- This replaces the standalone auth page -- same functionality, just embedded in the landing page
-
-### 8. Footer
-- "Practice Daily" branding
-- Copyright line
-- Optional future links (Privacy, Terms -- just placeholders for now)
-
-## Design Approach
-
-- Uses the existing design system: teal primary, coral accent, cream backgrounds, Libre Caslon Text / Roboto fonts
-- The scallop pattern from the app header will be used as a decorative divider between sections
-- Cards use the existing `bg-card`, `border-border`, `shadow-sm` patterns
-- Smooth scroll navigation from the top nav to each section
-- Fully responsive: stacks vertically on mobile, side-by-side layouts on desktop
+- Pass the new `logDate` and `onPracticeLogCreated` props through to the `useMediaTools` hook.
 
 ## Technical Details
 
-### Files Created
+### The `ensurePracticeLog` function (added to `useMediaTools.ts`)
 
-| File | Purpose |
-|------|---------|
-| `src/pages/Landing.tsx` | The full landing page component with all sections |
+```text
+ensurePracticeLog():
+  1. If practiceLogId exists, return it
+  2. Otherwise, upsert into practice_logs with:
+     - user_id, log_date (required fields)
+     - All other fields use database defaults (empty arrays, nulls)
+     - onConflict: "user_id,log_date" (safe if log was created between checks)
+  3. Query back the record to get the ID
+  4. Update local state with the new ID
+  5. Call onPracticeLogCreated() so the form refreshes
+  6. Return the new ID
+```
 
-### Files Modified
+### Props changes
 
-| File | Change |
-|------|--------|
-| `src/pages/Auth.tsx` | Replaced with a redirect/wrapper that renders the Landing page, or simplified to just import Landing |
-| `src/App.tsx` | Update the `/auth` PublicRoute to render the new Landing page instead of the old Auth component |
+- `MediaTools` component: adds `logDate: string` and `onPracticeLogCreated?: () => void`
+- `useMediaTools` hook: adds `logDate: string` and `onPracticeLogCreated?: () => void` parameters
 
-### Implementation Notes
+### No database changes needed
 
-- The sign-in/sign-up form logic stays exactly the same (email + password + optional display name). It just lives inside the landing page now instead of being the entire page.
-- The `useAuth` hook and `PublicRoute` wrapper remain unchanged -- logged-in users still get redirected to `/`.
-- No database changes needed. No new edge functions.
-- The landing page is a single-page scroll with anchor links from the nav bar (e.g., clicking "Pricing" scrolls to the pricing section).
-- Testimonial content will use placeholder data that you can easily swap out with real quotes later.
-- The app preview will be a styled static visual (CSS-built mockup using the app's actual color scheme and layout patterns) rather than a live screenshot.
+The existing `practice_logs` table already has sensible defaults for all optional columns (empty arrays, nulls, false for booleans). An upsert with just `user_id` and `log_date` will create a valid, minimal record.
 
