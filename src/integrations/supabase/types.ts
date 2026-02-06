@@ -98,6 +98,50 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_media: {
+        Row: {
+          created_at: string
+          file_path: string | null
+          id: string
+          label: string | null
+          media_type: string
+          practice_log_id: string
+          sort_order: number
+          user_id: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          label?: string | null
+          media_type: string
+          practice_log_id: string
+          sort_order?: number
+          user_id: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          label?: string | null
+          media_type?: string
+          practice_log_id?: string
+          sort_order?: number
+          user_id?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_media_practice_log_id_fkey"
+            columns: ["practice_log_id"]
+            isOneToOne: false
+            referencedRelation: "practice_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
