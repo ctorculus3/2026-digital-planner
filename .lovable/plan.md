@@ -1,62 +1,69 @@
 
-
-# Fix Day Tab Navigation to Stay Within the Same Week
+# Display Times in 12-Hour Clock Format
 
 ## The Problem
 
-The day tabs currently always move forward in time. When you:
-1. Start on Friday Feb 06
-2. Click Saturday - moves to Feb 07 (correct)
-3. Click Friday again - moves to Feb 13 (wrong! should be Feb 06)
-
-The tabs should represent the days surrounding today's date, allowing navigation both backward and forward within the week.
+When you enter a time like "2:30 PM", it gets saved to the database in 24-hour format ("14:30"). When you navigate away and return, the time displays as "14:30" instead of "2:30 PM".
 
 ## The Fix
 
-Change the navigation logic to move to the nearest occurrence of the selected day, preferring backward movement for past days and forward movement for future days within the same week context.
+Update the `normalizeTime` function to convert database times (24-hour format) back to 12-hour AM/PM format for display.
 
 ## Technical Details
 
-**File:** `src/components/practice-log/PracticeLogCalendar.tsx`
+**File:** `src/components/practice-log/PracticeLogForm.tsx`
 
-**Current Logic (broken):**
+**Current function (shows 24-hour time):**
 ```typescript
-const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
-  const currentDayOfWeek = getDay(currentDate);
-  let daysToAdd = targetDayOfWeek - currentDayOfWeek;
-  if (daysToAdd <= 0) {
-    daysToAdd += 7;  // Always moves forward
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`;
   }
-  const newDate = addDays(currentDate, daysToAdd);
-  setCurrentDate(newDate);
-}, [currentDate]);
+  return time;
+};
 ```
 
-**New Logic (fixed):**
+**New function (shows 12-hour time with AM/PM):**
 ```typescript
-const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
-  const currentDayOfWeek = getDay(currentDate);
-  const daysToAdd = targetDayOfWeek - currentDayOfWeek;
-  // Simply add the difference - can be negative (go back) or positive (go forward)
-  const newDate = addDays(currentDate, daysToAdd);
-  setCurrentDate(newDate);
-}, [currentDate]);
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    
+    if (isNaN(hours)) return time;
+    
+    const period = hours >= 12 ? "PM" : "AM";
+    
+    // Convert to 12-hour format
+    if (hours === 0) {
+      hours = 12; // Midnight
+    } else if (hours > 12) {
+      hours = hours - 12;
+    }
+    
+    return `${hours}:${minutes} ${period}`;
+  }
+  return time;
+};
 ```
 
-## How It Works After the Fix
+## How It Works
 
-| Current Day | Tab Clicked | Calculation | Result |
-|-------------|-------------|-------------|--------|
-| Saturday (6) | Friday (5) | 5 - 6 = -1 | Goes back 1 day |
-| Friday (5) | Saturday (6) | 6 - 5 = +1 | Goes forward 1 day |
-| Wednesday (3) | Sunday (0) | 0 - 3 = -3 | Goes back 3 days |
-| Sunday (0) | Saturday (6) | 6 - 0 = +6 | Goes forward 6 days |
+| Database Value | Display Value |
+|----------------|---------------|
+| 14:30 | 2:30 PM |
+| 09:00 | 9:00 AM |
+| 00:30 | 12:30 AM |
+| 12:00 | 12:00 PM |
 
 ## Summary
 
 | Location | Change |
 |----------|--------|
-| `src/components/practice-log/PracticeLogCalendar.tsx` | Remove the `if (daysToAdd <= 0)` block that adds 7 days |
+| `src/components/practice-log/PracticeLogForm.tsx` | Update `normalizeTime` to convert 24-hour database times to 12-hour AM/PM display format |
 
-This one-line fix allows the tabs to navigate naturally within the week, going backward for earlier days and forward for later days.
-
+The input parsing (`parseTimeString`) already handles both 12-hour and 24-hour input, so users can enter times in either format. This change ensures the display is always in the friendly 12-hour format.
