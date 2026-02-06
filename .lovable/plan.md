@@ -1,127 +1,62 @@
 
 
-# Make Repertoire Bullets Selectable
+# Fix Day Tab Navigation to Stay Within the Same Week
 
-## Overview
+## The Problem
 
-Convert the decorative bullet circles in the Repertoire & Exercises section into functional checkboxes so users can mark each exercise as completed. The completion status will persist to the database.
+The day tabs currently always move forward in time. When you:
+1. Start on Friday Feb 06
+2. Click Saturday - moves to Feb 07 (correct)
+3. Click Friday again - moves to Feb 13 (wrong! should be Feb 06)
 
-## What Changes
+The tabs should represent the days surrounding today's date, allowing navigation both backward and forward within the week.
 
-Currently, the repertoire data is stored as a simple array of strings (`string[]`). To track completion status, we have two options:
+## The Fix
 
-**Option A: Add a separate array for completion status**
-- Add a new `repertoire_completed` column (`boolean[]`) that tracks which items are completed
-- Simpler migration, keeps existing data intact
-
-**Option B: Store as JSON objects**
-- Change repertoire to store objects like `[{name: "Exercise", completed: true}]`
-- Requires data migration for existing records
-
-I'll implement **Option A** as it's cleaner and preserves existing data.
-
----
-
-## Changes Required
-
-### 1. Database Migration
-
-Add a new column to track completion status for each repertoire item:
-
-```sql
-ALTER TABLE practice_logs 
-ADD COLUMN repertoire_completed boolean[] DEFAULT '{}';
-```
-
----
-
-### 2. Update Hook Interface
-
-**File:** `src/hooks/usePracticeLog.ts`
-
-Add `repertoire_completed` to the `PracticeLogData` interface and include it in the save payload.
-
----
-
-### 3. Update Form Component
-
-**File:** `src/components/practice-log/PracticeLogForm.tsx`
-
-1. Add state for tracking completed items: `repertoireCompleted: boolean[]`
-2. Replace the decorative `<div>` bullet with the `<Checkbox>` component
-3. Add handler to toggle completion status
-4. Include completion data in save payload
-
-**Current code (decorative bullet):**
-```tsx
-<div className="w-4 h-4 rounded-full border border-muted-foreground/30" />
-```
-
-**New code (functional checkbox):**
-```tsx
-<Checkbox
-  checked={repertoireCompleted[index] || false}
-  onCheckedChange={(checked) => updateRepertoireCompleted(index, !!checked)}
-  className="rounded-full"
-/>
-```
-
----
+Change the navigation logic to move to the nearest occurrence of the selected day, preferring backward movement for past days and forward movement for future days within the same week context.
 
 ## Technical Details
 
-### New State Variable
+**File:** `src/components/practice-log/PracticeLogCalendar.tsx`
 
+**Current Logic (broken):**
 ```typescript
-const [repertoireCompleted, setRepertoireCompleted] = useState<boolean[]>(Array(15).fill(false));
+const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
+  const currentDayOfWeek = getDay(currentDate);
+  let daysToAdd = targetDayOfWeek - currentDayOfWeek;
+  if (daysToAdd <= 0) {
+    daysToAdd += 7;  // Always moves forward
+  }
+  const newDate = addDays(currentDate, daysToAdd);
+  setCurrentDate(newDate);
+}, [currentDate]);
 ```
 
-### Toggle Handler
-
+**New Logic (fixed):**
 ```typescript
-const updateRepertoireCompleted = (index: number, checked: boolean) => {
-  const newCompleted = [...repertoireCompleted];
-  newCompleted[index] = checked;
-  setRepertoireCompleted(newCompleted);
-  markChanged();
-};
+const handleSelectDayOfWeek = useCallback((targetDayOfWeek: number) => {
+  const currentDayOfWeek = getDay(currentDate);
+  const daysToAdd = targetDayOfWeek - currentDayOfWeek;
+  // Simply add the difference - can be negative (go back) or positive (go forward)
+  const newDate = addDays(currentDate, daysToAdd);
+  setCurrentDate(newDate);
+}, [currentDate]);
 ```
 
-### Updated Save Payload
+## How It Works After the Fix
 
-```typescript
-save({
-  // ... existing fields
-  repertoire_completed: repertoireCompleted,
-});
-```
+| Current Day | Tab Clicked | Calculation | Result |
+|-------------|-------------|-------------|--------|
+| Saturday (6) | Friday (5) | 5 - 6 = -1 | Goes back 1 day |
+| Friday (5) | Saturday (6) | 6 - 5 = +1 | Goes forward 1 day |
+| Wednesday (3) | Sunday (0) | 0 - 3 = -3 | Goes back 3 days |
+| Sunday (0) | Saturday (6) | 6 - 0 = +6 | Goes forward 6 days |
 
-### Load from Database
-
-When loading a practice log, initialize the completion state:
-
-```typescript
-const loadedCompleted = [...(practiceLog.repertoire_completed || [])];
-while (loadedCompleted.length < 15) loadedCompleted.push(false);
-setRepertoireCompleted(loadedCompleted);
-```
-
----
-
-## Summary of Changes
+## Summary
 
 | Location | Change |
 |----------|--------|
-| Database | Add `repertoire_completed` column (`boolean[]`) |
-| `src/hooks/usePracticeLog.ts` | Add `repertoire_completed` to interface and save payload |
-| `src/components/practice-log/PracticeLogForm.tsx` | Add completion state, replace bullet div with Checkbox, add toggle handler |
+| `src/components/practice-log/PracticeLogCalendar.tsx` | Remove the `if (daysToAdd <= 0)` block that adds 7 days |
 
----
-
-## User Experience
-
-- Clicking a bullet circle toggles it between empty (uncompleted) and checked (completed)
-- Completed exercises show a checkmark inside the circle
-- Completion status saves automatically with the practice log
-- Visual feedback helps users track their progress through the day's exercises
+This one-line fix allows the tabs to navigate naturally within the week, going backward for earlier days and forward for later days.
 
