@@ -158,33 +158,70 @@
        }
      }
  
-     logStep("Users marked for deletion", { count: usersToDelete.length, userIds: usersToDelete });
+      logStep("Users marked for deletion", { count: usersToDelete.length, userIds: usersToDelete });
+
+      let deletedCount = 0;
+      let deletedRecordingsCount = 0;
+
+      if (!dryRun && usersToDelete.length > 0) {
+        // First, collect all recording paths before deleting practice logs
+        const { data: logsToDelete, error: fetchError } = await supabase
+          .from("practice_logs")
+          .select("id, user_id, repertoire_recordings")
+          .in("user_id", usersToDelete);
+
+        if (fetchError) {
+          logStep("Warning: Failed to fetch practice logs for recording cleanup", { error: fetchError.message });
+        }
+
+        // Collect all non-empty recording paths
+        const recordingPaths: string[] = [];
+        for (const log of logsToDelete || []) {
+          const recordings = log.repertoire_recordings || [];
+          for (const path of recordings) {
+            if (path && typeof path === 'string' && path.trim()) {
+              recordingPaths.push(path);
+            }
+          }
+        }
+
+        // Delete storage files first
+        if (recordingPaths.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("practice-recordings")
+            .remove(recordingPaths);
+
+          if (storageError) {
+            logStep("Warning: Failed to delete some recordings", { error: storageError.message });
+          } else {
+            deletedRecordingsCount = recordingPaths.length;
+            logStep("Deleted recordings from storage", { count: deletedRecordingsCount });
+          }
+        }
+
+        // Now delete the practice logs
+        const { error: deleteError, count } = await supabase
+          .from("practice_logs")
+          .delete()
+          .in("user_id", usersToDelete);
+
+        if (deleteError) {
+          throw new Error(`Failed to delete practice logs: ${deleteError.message}`);
+        }
+
+        deletedCount = count || 0;
+        logStep("Deleted practice logs", { deletedCount });
+      }
  
-     let deletedCount = 0;
- 
-     if (!dryRun && usersToDelete.length > 0) {
-       // Delete practice logs for all marked users
-       const { error: deleteError, count } = await supabase
-         .from("practice_logs")
-         .delete()
-         .in("user_id", usersToDelete);
- 
-       if (deleteError) {
-         throw new Error(`Failed to delete practice logs: ${deleteError.message}`);
-       }
- 
-       deletedCount = count || 0;
-       logStep("Deleted practice logs", { deletedCount });
-     }
- 
-     const result = {
-       success: true,
-       dry_run: dryRun,
-       users_processed: uniqueUserIds.length,
-       users_marked_for_deletion: usersToDelete.length,
-       practice_logs_deleted: deletedCount,
-       timestamp: new Date().toISOString(),
-     };
+      const result = {
+        success: true,
+        dry_run: dryRun,
+        users_processed: uniqueUserIds.length,
+        users_marked_for_deletion: usersToDelete.length,
+        practice_logs_deleted: deletedCount,
+        recordings_deleted: deletedRecordingsCount,
+        timestamp: new Date().toISOString(),
+      };
  
      logStep("Purge completed", result);
  

@@ -10,12 +10,16 @@ interface UseAudioRecordingOptions {
   onRecordingDeleted: () => void;
 }
 
+const MAX_RECORDING_SECONDS = 300; // 5 minutes
+
 interface UseAudioRecordingReturn {
   isRecording: boolean;
   isPlaying: boolean;
   isLoading: boolean;
   hasRecording: boolean;
   isSupported: boolean;
+  recordingDuration: number;
+  maxRecordingSeconds: number;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   playRecording: () => Promise<void>;
@@ -35,11 +39,13 @@ export function useAudioRecording({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isSupported = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
@@ -66,6 +72,9 @@ export function useAudioRecording({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -128,17 +137,41 @@ export function useAudioRecording({
 
       mediaRecorder.start();
       setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Start timer to track duration and auto-stop at limit
+      timerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => {
+          if (prev >= MAX_RECORDING_SECONDS - 1) {
+            // Will trigger stopRecording via the effect below
+            return MAX_RECORDING_SECONDS;
+          }
+          return prev + 1;
+        });
+      }, 1000);
     } catch (error) {
       console.error("Error starting recording:", error);
     }
   }, [isSupported, practiceLogId, userId, index, onRecordingComplete]);
 
   const stopRecording = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+    setRecordingDuration(0);
   }, [isRecording]);
+
+  // Auto-stop when max duration reached
+  useEffect(() => {
+    if (recordingDuration >= MAX_RECORDING_SECONDS && isRecording) {
+      stopRecording();
+    }
+  }, [recordingDuration, isRecording, stopRecording]);
 
   const playRecording = useCallback(async () => {
     if (!audioUrl) return;
@@ -190,6 +223,8 @@ export function useAudioRecording({
     isLoading,
     hasRecording,
     isSupported,
+    recordingDuration,
+    maxRecordingSeconds: MAX_RECORDING_SECONDS,
     startRecording,
     stopRecording,
     playRecording,
