@@ -19,6 +19,8 @@ export type Database = {
           additional_tasks: string[] | null
           additional_tasks_completed: boolean[] | null
           created_at: string
+          ear_training: string[] | null
+          ear_training_completed: boolean[] | null
           goals: string | null
           id: string
           log_date: string
@@ -44,6 +46,8 @@ export type Database = {
           additional_tasks?: string[] | null
           additional_tasks_completed?: boolean[] | null
           created_at?: string
+          ear_training?: string[] | null
+          ear_training_completed?: boolean[] | null
           goals?: string | null
           id?: string
           log_date: string
@@ -69,6 +73,8 @@ export type Database = {
           additional_tasks?: string[] | null
           additional_tasks_completed?: boolean[] | null
           created_at?: string
+          ear_training?: string[] | null
+          ear_training_completed?: boolean[] | null
           goals?: string | null
           id?: string
           log_date?: string

@@ -92,6 +92,11 @@ export function PracticeLogForm({
   const [additionalTasksCompleted, setAdditionalTasksCompleted] = useState<boolean[]>(Array(10).fill(false));
   const [additionalTaskCount, setAdditionalTaskCount] = useState(4);
   
+  // Ear Training state
+  const [earTraining, setEarTraining] = useState<string[]>(Array(10).fill(""));
+  const [earTrainingCompleted, setEarTrainingCompleted] = useState<boolean[]>(Array(10).fill(false));
+  const [earTrainingCount, setEarTrainingCount] = useState(4);
+  
   // Music Listening state
   const [musicListening, setMusicListening] = useState<string[]>(Array(10).fill(""));
   const [musicListeningCompleted, setMusicListeningCompleted] = useState<boolean[]>(Array(10).fill(false));
@@ -161,6 +166,15 @@ export function PracticeLogForm({
       while (loadedAdditionalTasksCompleted.length < 10) loadedAdditionalTasksCompleted.push(false);
       setAdditionalTasksCompleted(loadedAdditionalTasksCompleted.slice(0, 10));
       
+      // Load Ear Training
+      const loadedEarTraining = [...((practiceLog as any).ear_training || [])];
+      while (loadedEarTraining.length < 10) loadedEarTraining.push("");
+      setEarTraining(loadedEarTraining.slice(0, 10));
+      setEarTrainingCount(Math.max(4, (practiceLog as any).ear_training?.length || 0));
+      const loadedEarTrainingCompleted = [...((practiceLog as any).ear_training_completed || [])];
+      while (loadedEarTrainingCompleted.length < 10) loadedEarTrainingCompleted.push(false);
+      setEarTrainingCompleted(loadedEarTrainingCompleted.slice(0, 10));
+      
       // Load Music Listening
       const loadedMusicListening = [...(practiceLog.music_listening || [])];
       while (loadedMusicListening.length < 10) loadedMusicListening.push("");
@@ -198,6 +212,9 @@ export function PracticeLogForm({
       setAdditionalTasks(Array(10).fill(""));
       setAdditionalTasksCompleted(Array(10).fill(false));
       setAdditionalTaskCount(4);
+      setEarTraining(Array(10).fill(""));
+      setEarTrainingCompleted(Array(10).fill(false));
+      setEarTrainingCount(4);
       setMusicListening(Array(10).fill(""));
       setMusicListeningCompleted(Array(10).fill(false));
       setMusicListeningCount(4);
@@ -235,11 +252,13 @@ export function PracticeLogForm({
       metronome_used: metronomeUsed,
       additional_tasks: additionalTasks,
       additional_tasks_completed: additionalTasksCompleted,
+      ear_training: earTraining,
+      ear_training_completed: earTrainingCompleted,
       music_listening: musicListening,
       music_listening_completed: musicListeningCompleted,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, additionalTasks, additionalTasksCompleted, musicListening, musicListeningCompleted, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, repertoireRecordings, notes, metronomeUsed, additionalTasks, additionalTasksCompleted, earTraining, earTrainingCompleted, musicListening, musicListeningCompleted, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);
@@ -325,6 +344,25 @@ export function PracticeLogForm({
   const addAdditionalTask = () => {
     if (additionalTaskCount < 10) {
       setAdditionalTaskCount(prev => prev + 1);
+    }
+  };
+  
+  // Ear Training handlers
+  const updateEarTraining = (index: number, value: string) => {
+    const newEarTraining = [...earTraining];
+    newEarTraining[index] = value;
+    setEarTraining(newEarTraining);
+    markChanged();
+  };
+  const updateEarTrainingCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...earTrainingCompleted];
+    newCompleted[index] = checked;
+    setEarTrainingCompleted(newCompleted);
+    markChanged();
+  };
+  const addEarTraining = () => {
+    if (earTrainingCount < 10) {
+      setEarTrainingCount(prev => prev + 1);
     }
   };
   
@@ -491,6 +529,33 @@ export function PracticeLogForm({
                 Used Metronome Today
               </label>
             </div>
+          </div>
+
+          {/* Ear Training */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-2 block">Ear Training</label>
+            <div className="space-y-1">
+              {earTraining.slice(0, earTrainingCount).map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox 
+                    checked={earTrainingCompleted[index] || false} 
+                    onCheckedChange={checked => updateEarTrainingCompleted(index, !!checked)} 
+                    className="rounded-full w-4 h-4 border-muted-foreground/30" 
+                  />
+                  <Input 
+                    value={item} 
+                    onChange={e => updateEarTraining(index, e.target.value)} 
+                    className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" 
+                  />
+                </div>
+              ))}
+            </div>
+            {earTrainingCount < 10 && (
+              <Button type="button" variant="ghost" size="sm" onClick={addEarTraining} className="mt-2 text-muted-foreground hover:text-foreground">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            )}
           </div>
 
           {/* Additional Tasks */}
