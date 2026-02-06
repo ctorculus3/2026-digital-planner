@@ -42,12 +42,26 @@ const parseTimeString = (timeStr: string): { hours: number; minutes: number } | 
   return { hours, minutes };
 };
 
-// Normalize time from database (HH:MM:SS to HH:MM)
+// Normalize time from database (24-hour HH:MM:SS to 12-hour h:MM AM/PM)
 const normalizeTime = (time: string | null): string => {
   if (!time) return "";
   const parts = time.split(":");
   if (parts.length >= 2) {
-    return `${parts[0]}:${parts[1]}`;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    
+    if (isNaN(hours)) return time;
+    
+    const period = hours >= 12 ? "PM" : "AM";
+    
+    // Convert to 12-hour format
+    if (hours === 0) {
+      hours = 12; // Midnight
+    } else if (hours > 12) {
+      hours = hours - 12;
+    }
+    
+    return `${hours}:${minutes} ${period}`;
   }
   return time;
 };
