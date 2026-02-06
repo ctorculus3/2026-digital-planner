@@ -54,13 +54,24 @@ function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
-export function useMediaTools(practiceLogId: string | undefined, userId: string) {
+export function useMediaTools(
+  practiceLogId: string | undefined,
+  userId: string,
+  logDate: string,
+  onPracticeLogCreated?: () => void
+) {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [resolvedLogId, setResolvedLogId] = useState<string | undefined>(practiceLogId);
+
+  // Keep resolvedLogId in sync when practiceLogId prop changes
+  useEffect(() => {
+    setResolvedLogId(practiceLogId);
+  }, [practiceLogId]);
 
   const fetchMedia = useCallback(async () => {
-    if (!practiceLogId) {
+    if (!resolvedLogId) {
       setMediaItems([]);
       return;
     }
@@ -69,7 +80,7 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
       const { data, error } = await supabase
         .from("practice_media")
         .select("*")
-        .eq("practice_log_id", practiceLogId)
+        .eq("practice_log_id", resolvedLogId)
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
@@ -79,7 +90,7 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
     } finally {
       setIsLoading(false);
     }
-  }, [practiceLogId]);
+  }, [resolvedLogId]);
 
   useEffect(() => {
     fetchMedia();
@@ -90,12 +101,42 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
     return Math.max(...mediaItems.map((m) => m.sort_order)) + 1;
   };
 
+  // Auto-create a minimal practice log if one doesn't exist yet
+  const ensurePracticeLog = useCallback(async (): Promise<string | null> => {
+    if (resolvedLogId) return resolvedLogId;
+
+    try {
+      const { error: upsertError } = await supabase
+        .from("practice_logs")
+        .upsert(
+          { user_id: userId, log_date: logDate },
+          { onConflict: "user_id,log_date" }
+        );
+
+      if (upsertError) throw upsertError;
+
+      // Query back to get the ID
+      const { data, error: selectError } = await supabase
+        .from("practice_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("log_date", logDate)
+        .single();
+
+      if (selectError || !data) throw selectError || new Error("Failed to retrieve practice log");
+
+      setResolvedLogId(data.id);
+      onPracticeLogCreated?.();
+      return data.id;
+    } catch (err) {
+      console.error("Error creating practice log:", err);
+      toast.error("Failed to create practice log");
+      return null;
+    }
+  }, [resolvedLogId, userId, logDate, onPracticeLogCreated]);
+
   const uploadAudio = useCallback(
     async (file: File) => {
-      if (!practiceLogId) {
-        toast.error("Please save your practice log first");
-        return;
-      }
       if (mediaItems.length >= MAX_MEDIA_ITEMS) {
         toast.error(`Maximum of ${MAX_MEDIA_ITEMS} media items reached`);
         return;
@@ -113,8 +154,11 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
 
       setIsUploading(true);
       try {
+        const logId = await ensurePracticeLog();
+        if (!logId) return;
+
         const sortOrder = getNextSortOrder();
-        const filePath = `${userId}/${practiceLogId}/media-${sortOrder}${ext}`;
+        const filePath = `${userId}/${logId}/media-${sortOrder}${ext}`;
 
         const { error: uploadError } = await supabase.storage
           .from("practice-media")
@@ -123,7 +167,7 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
         if (uploadError) throw uploadError;
 
         const { error: insertError } = await supabase.from("practice_media").insert({
-          practice_log_id: practiceLogId,
+          practice_log_id: logId,
           user_id: userId,
           media_type: "audio",
           file_path: filePath,
@@ -142,15 +186,11 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
         setIsUploading(false);
       }
     },
-    [practiceLogId, userId, mediaItems, fetchMedia]
+    [userId, mediaItems, fetchMedia, ensurePracticeLog]
   );
 
   const addYouTubeLink = useCallback(
     async (url: string) => {
-      if (!practiceLogId) {
-        toast.error("Please save your practice log first");
-        return false;
-      }
       if (mediaItems.length >= MAX_MEDIA_ITEMS) {
         toast.error(`Maximum of ${MAX_MEDIA_ITEMS} media items reached`);
         return false;
@@ -163,8 +203,11 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
       }
 
       try {
+        const logId = await ensurePracticeLog();
+        if (!logId) return false;
+
         const { error } = await supabase.from("practice_media").insert({
-          practice_log_id: practiceLogId,
+          practice_log_id: logId,
           user_id: userId,
           media_type: "youtube",
           youtube_url: url,
@@ -183,7 +226,7 @@ export function useMediaTools(practiceLogId: string | undefined, userId: string)
         return false;
       }
     },
-    [practiceLogId, userId, mediaItems, fetchMedia]
+    [userId, mediaItems, fetchMedia, ensurePracticeLog]
   );
 
   const deleteMedia = useCallback(
