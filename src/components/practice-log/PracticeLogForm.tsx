@@ -5,6 +5,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { usePracticeLog } from "@/hooks/usePracticeLog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { Save, Loader2, Plus } from "lucide-react";
 import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
@@ -69,6 +71,8 @@ export function PracticeLogForm({
   const {
     user
   } = useAuth();
+  const queryClient = useQueryClient();
+  const dateString = format(date, "yyyy-MM-dd");
   const {
     practiceLog,
     isLoading,
@@ -501,8 +505,8 @@ export function PracticeLogForm({
               Add
             </Button>}
 
-          {/* Media Tools - only show when practice log exists */}
-          {practiceLog?.id && user && <MediaTools practiceLogId={practiceLog.id} userId={user.id} />}
+          {/* Media Tools - always show when user is logged in */}
+          {user && <MediaTools practiceLogId={practiceLog?.id} userId={user.id} logDate={dateString} onPracticeLogCreated={() => queryClient.invalidateQueries({ queryKey: ["practice-log", dateString] })} />}
         </div>
 
         <div className="space-y-4">

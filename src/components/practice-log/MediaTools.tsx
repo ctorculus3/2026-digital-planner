@@ -6,6 +6,8 @@ import { Upload, Link, X, Loader2, Music, Youtube } from "lucide-react";
 interface MediaToolsProps {
   practiceLogId: string | undefined;
   userId: string;
+  logDate: string;
+  onPracticeLogCreated?: () => void;
 }
 function AudioPlayer({
   filePath,
@@ -44,7 +46,9 @@ function YouTubeEmbed({
 }
 export function MediaTools({
   practiceLogId,
-  userId
+  userId,
+  logDate,
+  onPracticeLogCreated
 }: MediaToolsProps) {
   const {
     mediaItems,
@@ -56,7 +60,7 @@ export function MediaTools({
     getSignedAudioUrl,
     itemCount,
     maxItems
-  } = useMediaTools(practiceLogId, userId);
+  } = useMediaTools(practiceLogId, userId, logDate, onPracticeLogCreated);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
