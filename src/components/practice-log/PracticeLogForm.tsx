@@ -73,6 +73,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
   const [warmups, setWarmups] = useState<string[]>(Array(10).fill(""));
   const [scales, setScales] = useState<string[]>(Array(10).fill(""));
   const [repertoire, setRepertoire] = useState<string[]>(Array(15).fill(""));
+  const [repertoireCompleted, setRepertoireCompleted] = useState<boolean[]>(Array(15).fill(false));
   const [notes, setNotes] = useState("");
   const [metronomeUsed, setMetronomeUsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -129,6 +130,10 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setRepertoire(loadedRepertoire.slice(0, 15));
       setRepertoireCount(Math.max(10, practiceLog.repertoire?.length || 0));
       
+      const loadedCompleted = [...(practiceLog.repertoire_completed || [])];
+      while (loadedCompleted.length < 15) loadedCompleted.push(false);
+      setRepertoireCompleted(loadedCompleted.slice(0, 15));
+      
       setNotes(practiceLog.notes || "");
       setMetronomeUsed(practiceLog.metronome_used || false);
       setHasUnsavedChanges(false);
@@ -149,6 +154,7 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       setWarmups(Array(10).fill(""));
       setScales(Array(10).fill(""));
       setRepertoire(Array(15).fill(""));
+      setRepertoireCompleted(Array(15).fill(false));
       setWarmupCount(4);
       setScaleCount(4);
       setRepertoireCount(10);
@@ -187,13 +193,14 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
       warmups,
       scales,
       repertoire,
+      repertoire_completed: repertoireCompleted,
       technique: "",
       musicianship: "",
       notes,
       metronome_used: metronomeUsed,
     });
     setHasUnsavedChanges(false);
-  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
+  }, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, repertoireCompleted, notes, metronomeUsed, save]);
 
   // Auto-save with debounce
   const debouncedSave = useDebouncedCallback(handleSave, 2000);
@@ -230,6 +237,13 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
     const newRepertoire = [...repertoire];
     newRepertoire[index] = value;
     setRepertoire(newRepertoire);
+    markChanged();
+  };
+
+  const updateRepertoireCompleted = (index: number, checked: boolean) => {
+    const newCompleted = [...repertoireCompleted];
+    newCompleted[index] = checked;
+    setRepertoireCompleted(newCompleted);
     markChanged();
   };
 
@@ -413,7 +427,11 @@ export function PracticeLogForm({ date }: PracticeLogFormProps) {
           <div className="space-y-1">
             {repertoire.slice(0, repertoireCount).map((item, index) => (
               <div key={index} className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border border-muted-foreground/30" />
+                <Checkbox
+                  checked={repertoireCompleted[index] || false}
+                  onCheckedChange={(checked) => updateRepertoireCompleted(index, !!checked)}
+                  className="rounded-full w-4 h-4 border-muted-foreground/30"
+                />
                 <Input
                   value={item}
                   onChange={(e) => updateRepertoire(index, e.target.value)}
