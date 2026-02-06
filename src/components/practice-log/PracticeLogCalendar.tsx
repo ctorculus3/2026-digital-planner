@@ -50,7 +50,7 @@ export function PracticeLogCalendar() {
       
       {/* Month Tabs */}
       <div className="bg-muted border-b border-border">
-        <div className="flex items-center justify-between px-4 bg-[#f6f6f4]">
+        <div className="flex items-center justify-between px-4 bg-[hsl(120,40%,95%)]">
           <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
           <div className="flex items-center gap-2">
             <ManageSubscription />
