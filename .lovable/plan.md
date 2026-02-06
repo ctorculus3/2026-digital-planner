@@ -1,24 +1,37 @@
 
 
-# Persist Total Practice Time to Database
+# Make Repertoire Bullets Selectable
 
 ## Overview
 
-This plan adds the ability to save the Total Practice Time to the database, along with fixing the start/stop time format conversion so all time values are properly stored.
+Convert the decorative bullet circles in the Repertoire & Exercises section into functional checkboxes so users can mark each exercise as completed. The completion status will persist to the database.
+
+## What Changes
+
+Currently, the repertoire data is stored as a simple array of strings (`string[]`). To track completion status, we have two options:
+
+**Option A: Add a separate array for completion status**
+- Add a new `repertoire_completed` column (`boolean[]`) that tracks which items are completed
+- Simpler migration, keeps existing data intact
+
+**Option B: Store as JSON objects**
+- Change repertoire to store objects like `[{name: "Exercise", completed: true}]`
+- Requires data migration for existing records
+
+I'll implement **Option A** as it's cleaner and preserves existing data.
+
+---
 
 ## Changes Required
 
 ### 1. Database Migration
 
-Add a new `total_time` column to store the calculated practice duration.
+Add a new column to track completion status for each repertoire item:
 
-**SQL Migration:**
 ```sql
 ALTER TABLE practice_logs 
-ADD COLUMN total_time interval;
+ADD COLUMN repertoire_completed boolean[] DEFAULT '{}';
 ```
-
-Using `interval` type allows storing durations like "2 hours 30 minutes" natively in the database.
 
 ---
 
@@ -26,7 +39,7 @@ Using `interval` type allows storing durations like "2 hours 30 minutes" nativel
 
 **File:** `src/hooks/usePracticeLog.ts`
 
-Add `total_time` to the `PracticeLogData` interface and include it in the save payload.
+Add `repertoire_completed` to the `PracticeLogData` interface and include it in the save payload.
 
 ---
 
@@ -34,77 +47,63 @@ Add `total_time` to the `PracticeLogData` interface and include it in the save p
 
 **File:** `src/components/practice-log/PracticeLogForm.tsx`
 
-1. **Add a helper function** to convert AM/PM time strings to database-compatible `HH:MM` format
-2. **Update `handleSave`** to:
-   - Convert start_time and stop_time to proper format before saving
-   - Include total_time in the save data
+1. Add state for tracking completed items: `repertoireCompleted: boolean[]`
+2. Replace the decorative `<div>` bullet with the `<Checkbox>` component
+3. Add handler to toggle completion status
+4. Include completion data in save payload
+
+**Current code (decorative bullet):**
+```tsx
+<div className="w-4 h-4 rounded-full border border-muted-foreground/30" />
+```
+
+**New code (functional checkbox):**
+```tsx
+<Checkbox
+  checked={repertoireCompleted[index] || false}
+  onCheckedChange={(checked) => updateRepertoireCompleted(index, !!checked)}
+  className="rounded-full"
+/>
+```
 
 ---
 
 ## Technical Details
 
-### New Helper Function
+### New State Variable
 
 ```typescript
-// Convert user input (e.g., "12:30 PM") to database format "HH:MM"
-const formatTimeForDb = (timeStr: string): string | null => {
-  const parsed = parseTimeString(timeStr);
-  if (!parsed) return null;
-  
-  const hours = parsed.hours.toString().padStart(2, '0');
-  const minutes = parsed.minutes.toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+const [repertoireCompleted, setRepertoireCompleted] = useState<boolean[]>(Array(15).fill(false));
+```
+
+### Toggle Handler
+
+```typescript
+const updateRepertoireCompleted = (index: number, checked: boolean) => {
+  const newCompleted = [...repertoireCompleted];
+  newCompleted[index] = checked;
+  setRepertoireCompleted(newCompleted);
+  markChanged();
 };
 ```
 
-### Updated handleSave
+### Updated Save Payload
 
 ```typescript
-const handleSave = useCallback(() => {
-  save({
-    goals: mainGoals,
-    subgoals,
-    start_time: formatTimeForDb(startTime),
-    stop_time: formatTimeForDb(stopTime),
-    total_time: totalTime || null,  // Add total time
-    warmups,
-    scales,
-    repertoire,
-    technique: "",
-    musicianship: "",
-    notes,
-    metronome_used: metronomeUsed,
-  });
-  setHasUnsavedChanges(false);
-}, [mainGoals, subgoals, startTime, stopTime, totalTime, warmups, scales, repertoire, notes, metronomeUsed, save]);
-```
-
-### Updated PracticeLogData Interface
-
-```typescript
-export interface PracticeLogData {
-  goals: string;
-  subgoals: string;
-  start_time: string | null;
-  stop_time: string | null;
-  total_time: string | null;  // Add this
-  warmups: string[];
-  scales: string[];
-  repertoire: string[];
-  technique: string;
-  musicianship: string;
-  notes: string;
-  metronome_used: boolean;
-}
-```
-
-### Updated Save Payload in Hook
-
-```typescript
-const payload = {
+save({
   // ... existing fields
-  total_time: logData.total_time || null,
-};
+  repertoire_completed: repertoireCompleted,
+});
+```
+
+### Load from Database
+
+When loading a practice log, initialize the completion state:
+
+```typescript
+const loadedCompleted = [...(practiceLog.repertoire_completed || [])];
+while (loadedCompleted.length < 15) loadedCompleted.push(false);
+setRepertoireCompleted(loadedCompleted);
 ```
 
 ---
@@ -113,15 +112,16 @@ const payload = {
 
 | Location | Change |
 |----------|--------|
-| Database | Add `total_time` column (interval type) to `practice_logs` table |
-| `src/hooks/usePracticeLog.ts` | Add `total_time` to interface and save payload |
-| `src/components/practice-log/PracticeLogForm.tsx` | Add `formatTimeForDb` helper, update `handleSave` to convert times and include total_time |
+| Database | Add `repertoire_completed` column (`boolean[]`) |
+| `src/hooks/usePracticeLog.ts` | Add `repertoire_completed` to interface and save payload |
+| `src/components/practice-log/PracticeLogForm.tsx` | Add completion state, replace bullet div with Checkbox, add toggle handler |
 
 ---
 
-## What This Fixes
+## User Experience
 
-1. **Start/Stop times now save correctly** - AM/PM input like "12:30 PM" gets converted to "12:30" before saving
-2. **Total Practice Time persists** - The calculated duration is stored in the database
-3. **Data loads correctly** - When you return to a saved log, all time values display properly
+- Clicking a bullet circle toggles it between empty (uncompleted) and checked (completed)
+- Completed exercises show a checkmark inside the circle
+- Completion status saves automatically with the practice log
+- Visual feedback helps users track their progress through the day's exercises
 
