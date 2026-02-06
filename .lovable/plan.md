@@ -1,160 +1,114 @@
 
 
-# Add Media Tools Section
+# Landing Page for Practice Daily
 
-## What's Changing
+## Overview
 
-A new "Media Tools" section will appear directly below the "Repertoire & Exercises" card in the left column. Users can add up to 5 media items per practice day -- either by uploading/dropping an audio file, or by pasting a YouTube video link. Each item displays inline: audio files get an HTML5 audio player, and YouTube links get an embedded video player. Items can be individually deleted.
+A premium, professional landing page that replaces the current auth page for non-logged-in visitors. It positions "Practice Daily" as the go-to practice journal for serious musicians who want to build disciplined habits and be part of a community. The page leads with a strong hero section, showcases the app in action, features social proof from fellow musicians, and closes with clear pricing and a call-to-action.
 
-## Steps
+## Routing Changes
 
-### 1. Create Database Table and Storage Bucket
+The current `/auth` route shows a simple sign-in/sign-up card. This will be replaced with a full landing page that includes the sign-in/sign-up form as a section. Logged-in users still get redirected to the main app as before -- no changes to that flow.
 
-A new `practice_media` table stores each media reference tied to a practice log. A new private storage bucket (`practice-media`) holds uploaded audio files separately from the repertoire recordings.
+```text
+Current flow:
+  /auth  -->  Sign-in card (centered)
 
-### 2. Create the Media Tools Hook
+New flow:
+  /auth  -->  Full landing page with:
+              - Hero section
+              - App preview section
+              - Testimonials
+              - Pricing card
+              - Sign-up/Sign-in form (embedded at bottom)
+```
 
-A new `useMediaTools.ts` hook manages fetching, uploading, adding YouTube links, and deleting media items for a given practice log. It handles:
-- Querying media items for the current practice log
-- Uploading audio files to storage and creating a database record
-- Validating and saving YouTube URLs
-- Deleting items (removing storage files when applicable)
+## Page Sections (top to bottom)
 
-### 3. Create the Media Tools Component
+### 1. Navigation Bar
+- "Practice Daily" brand name with the Music2 icon (matching current teal-to-coral gradient)
+- Right side: "Sign In" and "Start Free Trial" buttons
+- Sticky on scroll for easy access to CTAs
 
-A new `MediaTools.tsx` component provides:
-- A drag-and-drop zone that also works as a file picker (accepts audio files: mp3, wav, m4a, ogg, webm)
-- A text input for pasting YouTube URLs with an "Add" button
-- For each saved item: an audio player (for uploaded files) or an embedded YouTube iframe (for links), plus a delete button
-- A count indicator showing how many of the 5 slots are used
+### 2. Hero Section
+- Large headline: something like "Your Daily Practice, Elevated."
+- Sub-headline emphasizing the community angle: "Join musicians who track, refine, and grow together."
+- Primary CTA button: "Start Your 7-Day Free Trial"
+- Secondary link: "Already a member? Sign in"
+- Subtle background using the app's teal header color as a gradient wash
 
-### 4. Integrate into the Practice Log Form
+### 3. App Preview Section
+- Title: "See Your Practice Come to Life"
+- A styled screenshot/mockup of the practice log form inside a browser frame
+- 3-4 feature callout cards arranged in a grid:
+  - Daily practice logging with goals and time tracking
+  - Track scales, warmups, and repertoire with recordings
+  - Media tools for reference audio and YouTube videos
+  - Share your progress with teachers and peers
 
-Place the Media Tools section in the left column of `PracticeLogForm.tsx`, directly below the "Repertoire & Exercises" card. It only appears when the practice log has been saved at least once (needs a `practiceLogId`).
+### 4. Community Vision Section
+- Title: "Built for Musicians Who Show Up Every Day"
+- Short paragraph about building a practice community
+- 3 icon-driven value propositions:
+  - Accountability: "Track your consistency and see your streak grow"
+  - Reference: "Keep audio, video, and notes all in one place"
+  - Growth: "Review your journey and celebrate progress"
 
-### 5. Update the Shared Practice Log
+### 5. Testimonials Section
+- Title: "What Musicians Are Saying"
+- 3 testimonial cards with placeholder quotes (you can replace with real quotes later)
+- Each card: quote text, name, instrument/role
+- Styled with the warm card background and subtle borders
 
-Add a Media Tools display to `SharedPracticeLog.tsx` so shared logs also show audio players and embedded YouTube videos.
+### 6. Pricing Section
+- Title: "Simple, Honest Pricing"
+- Single pricing card (matching the existing SubscriptionGate design):
+  - $3.99/month
+  - 7-day free trial
+  - Feature checklist (daily logging, scales/warmups/repertoire, media tools, cloud storage, sharing)
+  - "Start Free Trial" CTA button
+- "Cancel anytime" note underneath
 
-### 6. Update the Data Purge Function
+### 7. Sign-In / Sign-Up Section
+- Title: "Ready to Practice?"
+- The existing auth form (email, password, display name for sign-up) embedded as a card
+- Toggle between Sign In and Sign Up
+- This replaces the standalone auth page -- same functionality, just embedded in the landing page
 
-Update the `purge-inactive-data` edge function to also clean up files in the `practice-media` bucket and delete rows from the `practice_media` table.
+### 8. Footer
+- "Practice Daily" branding
+- Copyright line
+- Optional future links (Privacy, Terms -- just placeholders for now)
 
----
+## Design Approach
+
+- Uses the existing design system: teal primary, coral accent, cream backgrounds, Libre Caslon Text / Roboto fonts
+- The scallop pattern from the app header will be used as a decorative divider between sections
+- Cards use the existing `bg-card`, `border-border`, `shadow-sm` patterns
+- Smooth scroll navigation from the top nav to each section
+- Fully responsive: stacks vertically on mobile, side-by-side layouts on desktop
 
 ## Technical Details
 
-### Database Migration
-
-```sql
--- Create practice_media table
-CREATE TABLE public.practice_media (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  practice_log_id uuid NOT NULL REFERENCES public.practice_logs(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL,
-  media_type text NOT NULL CHECK (media_type IN ('audio', 'youtube')),
-  file_path text,
-  youtube_url text,
-  label text,
-  sort_order integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- RLS policies
-ALTER TABLE public.practice_media ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own media"
-  ON public.practice_media FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own media"
-  ON public.practice_media FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own media"
-  ON public.practice_media FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Allow viewing media on shared logs
-CREATE POLICY "Anyone can view media for shared logs"
-  ON public.practice_media FOR SELECT
-  USING (
-    practice_log_id IN (
-      SELECT practice_log_id FROM shared_practice_logs
-      WHERE expires_at IS NULL OR expires_at > now()
-    )
-  );
-
--- Storage bucket for media uploads
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('practice-media', 'practice-media', false);
-
--- Storage RLS: users can manage their own files
-CREATE POLICY "Users can upload media files"
-  ON storage.objects FOR INSERT
-  WITH CHECK (
-    bucket_id = 'practice-media'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can read their own media files"
-  ON storage.objects FOR SELECT
-  USING (
-    bucket_id = 'practice-media'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can delete their own media files"
-  ON storage.objects FOR DELETE
-  USING (
-    bucket_id = 'practice-media'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-```
-
-### New Files
+### Files Created
 
 | File | Purpose |
 |------|---------|
-| `src/hooks/useMediaTools.ts` | Hook for CRUD operations on practice media (fetch, upload audio, add YouTube URL, delete) |
-| `src/components/practice-log/MediaTools.tsx` | UI component with drop zone, YouTube input, audio players, and embedded video players |
+| `src/pages/Landing.tsx` | The full landing page component with all sections |
 
-### Modified Files
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/practice-log/PracticeLogForm.tsx` | Import and render `MediaTools` below the Repertoire card, passing `practiceLogId` and `userId` |
-| `src/pages/SharedPracticeLog.tsx` | Query `practice_media` for the shared log and display audio/YouTube players |
-| `supabase/functions/purge-inactive-data/index.ts` | Add cleanup for `practice-media` storage bucket and `practice_media` table rows |
+| `src/pages/Auth.tsx` | Replaced with a redirect/wrapper that renders the Landing page, or simplified to just import Landing |
+| `src/App.tsx` | Update the `/auth` PublicRoute to render the new Landing page instead of the old Auth component |
 
-### YouTube URL Handling
+### Implementation Notes
 
-The component will extract video IDs from common YouTube URL formats:
-- `youtube.com/watch?v=VIDEO_ID`
-- `youtu.be/VIDEO_ID`
-- `youtube.com/embed/VIDEO_ID`
-
-Embedded players will use the standard `https://www.youtube.com/embed/VIDEO_ID` iframe format with privacy-enhanced mode (`youtube-nocookie.com`).
-
-### Audio Upload Constraints
-
-- Accepted formats: `.mp3`, `.wav`, `.m4a`, `.ogg`, `.webm`
-- Maximum file size: 20MB per file
-- Files stored at path: `{user_id}/{practice_log_id}/media-{sort_order}.{ext}`
-
-### UI Placement (left column)
-
-```text
-+---------------------------+
-| Repertoire & Exercises    |
-|  (existing, unchanged)    |
-+---------------------------+
-| Media Tools (NEW)         |
-|  [Drop audio or browse]   |
-|  [YouTube URL input]      |
-|  - Audio player 1    [x]  |
-|  - YouTube embed 2   [x]  |
-|  2/5 slots used           |
-+---------------------------+
-```
+- The sign-in/sign-up form logic stays exactly the same (email + password + optional display name). It just lives inside the landing page now instead of being the entire page.
+- The `useAuth` hook and `PublicRoute` wrapper remain unchanged -- logged-in users still get redirected to `/`.
+- No database changes needed. No new edge functions.
+- The landing page is a single-page scroll with anchor links from the nav bar (e.g., clicking "Pricing" scrolls to the pricing section).
+- Testimonial content will use placeholder data that you can easily swap out with real quotes later.
+- The app preview will be a styled static visual (CSS-built mockup using the app's actual color scheme and layout patterns) rather than a live screenshot.
 
