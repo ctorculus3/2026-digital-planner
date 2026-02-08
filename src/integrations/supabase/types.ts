@@ -271,7 +271,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      lookup_shared_practice_log: {
+        Args: { p_share_token: string }
+        Returns: {
+          practice_log_id: string
+          sharer_display_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
