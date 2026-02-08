@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionGate } from "@/components/subscription/SubscriptionGate";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import StaffPaper from "./pages/StaffPaper";
@@ -59,6 +60,20 @@ const App = () => (
           <Routes>
             <Route
               path="/"
+              element={<Navigate to="/dashboard" replace />}
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionGate>
+                    <Dashboard />
+                  </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/journal"
               element={
                 <ProtectedRoute>
                   <SubscriptionGate>

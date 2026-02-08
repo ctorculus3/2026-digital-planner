@@ -6,6 +6,7 @@ import { PracticeLogForm } from "./PracticeLogForm";
 import { DateNavigator } from "./DateNavigator";
 import { UserMenu } from "./UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { addDays, getDay, subDays, format, parseISO } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 export function PracticeLogCalendar() {
@@ -60,14 +61,21 @@ export function PracticeLogCalendar() {
       {/* Scalloped Header */}
       <ScallopHeader />
       
-      {/* Month Tabs */}
-      <div className="bg-muted border-b border-border">
-        <div className="flex items-center justify-between px-4 bg-[hsl(120,40%,95%)]">
-          <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
+      {/* Navigation + Controls */}
+      <div className="bg-[hsl(var(--time-section-bg))] border-b border-border">
+        <div className="flex items-center justify-between px-4">
+          <DashboardNav />
           <div className="flex items-center gap-2">
             <ManageSubscription />
             <UserMenu />
           </div>
+        </div>
+      </div>
+
+      {/* Month Tabs */}
+      <div className="bg-muted border-b border-border">
+        <div className="flex items-center justify-center px-4 bg-[hsl(120,40%,95%)]">
+          <MonthTabs selectedMonth={selectedMonth} onSelectMonth={handleSelectMonth} />
         </div>
       </div>
 
