@@ -187,7 +187,7 @@ export default function Landing() {
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center">
           See Your Practice Come to Life
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">Everything you need to structure, plan, record, and reflect on your daily practice — in one elegant digital planner.</p>
+        <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">Everything you need to structure, record, and reflect on your daily practice — in one elegant digital planner.</p>
 
         {/* App mockup */}
         <div className="mx-auto mt-12 max-w-3xl">
