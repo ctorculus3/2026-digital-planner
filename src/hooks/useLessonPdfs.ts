@@ -5,6 +5,18 @@ import { toast } from "sonner";
 const MAX_PDF_ITEMS = 10;
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
+/** Sanitize a filename for safe storage paths (no spaces/special chars). */
+function sanitizeStorageName(fileName: string, sortOrder: number): string {
+  const lastDot = fileName.lastIndexOf(".");
+  const ext = lastDot !== -1 ? fileName.slice(lastDot).toLowerCase() : "";
+  const base = lastDot !== -1 ? fileName.slice(0, lastDot) : fileName;
+  const safe = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `pdf-${sortOrder}-${safe}${ext}`;
+}
+
 export interface LessonPdfItem {
   id: string;
   practice_log_id: string;
@@ -118,7 +130,8 @@ export function useLessonPdfs(
         if (!logId) return;
 
         const sortOrder = getNextSortOrder();
-        const filePath = `${userId}/${logId}/${file.name}`;
+        const safeName = sanitizeStorageName(file.name, sortOrder);
+        const filePath = `${userId}/${logId}/${safeName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("lesson-pdfs")
