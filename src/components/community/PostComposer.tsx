@@ -38,11 +38,11 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         return;
       }
 
-      // Check for moderation rejection or other errors in response
-      if (data?.error) {
+      // Structured response: check success flag
+      if (data && !data.success) {
         toast({
-          title: data.moderation_rejected ? "Post not approved" : "Error",
-          description: data.error,
+          title: data.moderation_rejected ? "Post not approved" : "Cannot post",
+          description: data.error || "Something went wrong.",
           variant: "destructive",
         });
         return;
