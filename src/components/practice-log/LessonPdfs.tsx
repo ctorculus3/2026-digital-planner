@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useLessonPdfs, type LessonPdfItem } from "@/hooks/useLessonPdfs";
-import { Upload, X, Loader2, FileText, Plus, Download } from "lucide-react";
+import { Upload, X, Loader2, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -195,22 +195,10 @@ export function LessonPdfs({
         }}
       >
         <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[90vh] flex flex-col p-0">
-          <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border shrink-0">
-            <DialogTitle className="text-sm font-medium truncate pr-2">
+          <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+            <DialogTitle className="text-sm font-medium truncate pr-8">
               {pdfViewerName}
             </DialogTitle>
-            {pdfViewerUrl && (
-              <a
-                href={pdfViewerUrl}
-                download={pdfViewerName}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0 mr-8"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download
-              </a>
-            )}
           </DialogHeader>
           <div className="flex-1 min-h-0">
             {pdfViewerUrl && (
