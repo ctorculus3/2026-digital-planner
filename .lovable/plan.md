@@ -1,96 +1,93 @@
 
-## Add Moderator Role to Community
 
-This plan adds a moderator system so designated users (like you, Christopher) can delete any community post -- not just their own.
+## Admin Role Management UI
+
+This plan adds an admin panel so you can promote and demote community members to/from the moderator role, all from within the Community page.
+
+### What you'll see
+
+- A small **shield icon button** next to the Community heading, visible only to admins
+- Clicking it opens a **Role Management dialog** with two sections:
+  1. **Current Moderators** -- a list showing each moderator's name with a "Remove" button
+  2. **Add Moderator** -- a search field where you type a user's display name, see matching results, and click "Promote" to grant moderator access
+- All changes take effect immediately, with confirmation toasts
 
 ### What changes
 
-**1. Database: Create a roles system**
-- Create an `app_role` enum with values: `admin`, `moderator`, `user`
-- Create a `user_roles` table linking user IDs to roles, secured with RLS
-- Create a `has_role()` security-definer function to safely check roles without RLS recursion
-- Update the `community_posts` DELETE policy so moderators can also delete posts
-- Insert your user (`2c0aef3a-...`) as a `moderator`
+**1. Database: Upgrade your role and add admin policies**
 
-**2. Frontend: Hook to check moderator status**
-- Create a `useUserRole` hook that queries `user_roles` to check if the current user has the `moderator` role
-- Uses the existing Supabase client; result is cached for the session
+- Your current `moderator` role will be upgraded to `admin` (admins automatically have all moderator powers)
+- New RLS policies on `user_roles` so admins can:
+  - View all user roles (needed to list current moderators)
+  - Insert new roles (to promote users)
+  - Delete roles (to demote users)
 
-**3. Frontend: Show delete button on all posts for moderators**
-- Update `PostFeed` to accept an `isModerator` flag and pass it to `PostCard`
-- Update `PostCard` to show the trash icon on all posts when `isModerator` is true (not just own posts)
-- Update `Community.tsx` to use the new `useUserRole` hook and pass `isModerator` down
+**2. New component: RoleManagementDialog**
 
-**4. Confirmation dialog before deletion**
-- Add an `AlertDialog` confirmation step before any post deletion (for both regular users and moderators)
-- This prevents accidental deletions
+- A dialog component (`src/components/community/RoleManagementDialog.tsx`) containing:
+  - A list of current moderators fetched from `user_roles` joined with `profiles`
+  - A search input that queries `profiles` by display name
+  - Promote/demote buttons with confirmation
+  - Loading and empty states
+
+**3. Updated Community page**
+
+- Import `useUserRole` for `isAdmin` (already available but unused)
+- Show the admin shield button next to the "Community" heading when `isAdmin` is true
+- Opens the `RoleManagementDialog`
 
 ### Technical details
 
-**Database migration SQL:**
+**Database migration:**
+
 ```sql
--- Role enum
-CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
-
--- Roles table
-CREATE TABLE public.user_roles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  role app_role NOT NULL,
-  UNIQUE (user_id, role)
-);
-
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-
--- Authenticated users can read their own roles
-CREATE POLICY "Users can read own roles"
+-- Allow admins to view all user roles
+CREATE POLICY "Admins can view all roles"
   ON public.user_roles FOR SELECT
   TO authenticated
-  USING (auth.uid() = user_id);
+  USING (public.has_role(auth.uid(), 'admin'));
 
--- Security-definer function (avoids RLS recursion)
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
-
--- Update community_posts DELETE policy to allow moderators
-DROP POLICY "Users can delete own posts" ON public.community_posts;
-CREATE POLICY "Users and moderators can delete posts"
-  ON public.community_posts FOR DELETE
+-- Allow admins to assign roles
+CREATE POLICY "Admins can insert roles"
+  ON public.user_roles FOR INSERT
   TO authenticated
-  USING (
-    auth.uid() = user_id
-    OR public.has_role(auth.uid(), 'moderator')
-    OR public.has_role(auth.uid(), 'admin')
-  );
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Allow admins to remove roles
+CREATE POLICY "Admins can delete roles"
+  ON public.user_roles FOR DELETE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
 ```
 
-**Data insert (separate step):**
+**Data update:**
+
 ```sql
-INSERT INTO public.user_roles (user_id, role)
-VALUES ('2c0aef3a-2103-4e9e-b031-dcc6dfa8b9d4', 'moderator');
+UPDATE public.user_roles
+SET role = 'admin'
+WHERE user_id = '2c0aef3a-2103-4e9e-b031-dcc6dfa8b9d4';
 ```
 
-**New file -- `src/hooks/useUserRole.ts`:**
-- Queries `user_roles` for the current user
-- Returns `{ isModerator: boolean, isAdmin: boolean, loading: boolean }`
+**New file -- `src/components/community/RoleManagementDialog.tsx`:**
 
-**Modified files (incremental changes only):**
-- `src/pages/Community.tsx` -- import and use `useUserRole`, pass `isModerator` to `PostFeed`
-- `src/components/community/PostFeed.tsx` -- accept `isModerator` prop, pass to `PostCard`
-- `src/components/community/PostCard.tsx` -- show delete button when `isOwn || isModerator`, wrap in `AlertDialog` for confirmation
+- Uses `Dialog` from the existing UI library
+- Fetches current moderators: queries `user_roles` where `role = 'moderator'`, then joins with `profiles` for display names
+- Search input with debounce (uses existing `useDebounce` hook) to query `profiles` by `display_name` using `ilike`
+- Promote action: inserts into `user_roles` with `role = 'moderator'`
+- Demote action: deletes from `user_roles` matching `user_id` and `role = 'moderator'`
+- Both actions use confirmation dialogs and show toast feedback
+- Prevents assigning moderator to someone who already has it
+
+**Modified file -- `src/pages/Community.tsx`:**
+
+- Extract `isAdmin` from the existing `useUserRole()` hook (only `isModerator` is currently destructured)
+- Add a shield icon button next to the "Community" heading, conditionally rendered when `isAdmin` is true
+- Manages open/close state for the `RoleManagementDialog`
 
 ### Security notes
-- Roles are stored in a **separate table** (not on profiles), preventing privilege escalation
-- The `has_role()` function uses `SECURITY DEFINER` to bypass RLS safely
-- Only authenticated users can read their own role assignments
-- No client-side role storage; role is always verified server-side via RLS
+
+- All role changes are enforced server-side through RLS policies -- only users with the `admin` role can modify `user_roles`
+- The admin check uses the `has_role()` security-definer function, avoiding RLS recursion
+- Client-side visibility of the admin button is cosmetic only; unauthorized users cannot perform role changes even if they bypass the UI
+- Admins cannot accidentally remove their own admin role (the UI will only manage `moderator` assignments)
+
