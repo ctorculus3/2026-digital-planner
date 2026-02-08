@@ -1,39 +1,32 @@
 
 
-# Fix: Add Missing Storage UPDATE Policies
+# Add Practice Daily Logo to Landing Page
 
-## What's Happening
+## Overview
 
-Audio file uploads are failing because the storage buckets don't allow overwriting existing files. When a file already exists at the same path, the system needs UPDATE permission, which is currently missing.
+Place the uploaded logo in two locations on the landing page: the navigation bar brand and the auth/sign-up card.
 
-## The Fix
+## Changes
 
-A single database migration adds two UPDATE policies -- one for each storage bucket (`practice-media` and `practice-recordings`). These follow the same ownership pattern already used by the existing policies: only the file owner can overwrite their own files.
+### 1. Copy the logo image into the project
 
-## Technical Details
+The uploaded logo will be saved to `src/assets/practice-daily-logo.png` so it can be imported as an ES6 module in the React component.
 
-### Database Migration
+### 2. Navigation bar brand (sticky nav)
 
-```sql
--- Allow users to update/overwrite their own media files
-CREATE POLICY "Users can update their own media files"
-  ON storage.objects FOR UPDATE
-  USING (
-    bucket_id = 'practice-media'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
+**Current:** A small teal circle with a Music2 icon + "Practice Daily" text.
 
--- Allow users to update/overwrite their own recordings
-CREATE POLICY "Users can update own recordings"
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING (
-    bucket_id = 'practice-recordings'
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
-```
+**New:** Replace the teal circle + icon with a compact version of the logo image (sized to fit the 64px nav height, roughly 36-40px tall). The "Practice Daily" text label next to it will be removed since the logo already contains the brand name.
 
-### No Code Changes
+### 3. Auth / sign-up card
 
-The existing upload code already uses `upsert: true` -- it just needs the database permission to complete the operation.
+**Current:** A teal circle with a Music2 icon above the "Welcome Back" / "Create Your Account" title.
+
+**New:** Replace the circle + icon with the logo image, sized to around 120-140px wide, centered above the card title. This gives the sign-up/sign-in experience a polished, branded feel.
+
+### 4. Files modified
+
+- **`src/pages/Landing.tsx`** -- Import the logo asset; update the nav brand element (lines 127-136) and the auth card header icon (lines 302-305) to use an `<img>` tag referencing the imported logo. All other features and sections remain untouched.
+
+No other files are changed.
 
