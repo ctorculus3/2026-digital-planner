@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { PracticeCalendar } from "@/components/dashboard/PracticeCalendar";
@@ -9,6 +10,7 @@ import { ManageSubscription } from "@/components/subscription/ManageSubscription
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-indexed
@@ -66,6 +68,7 @@ export default function Dashboard() {
           practicedDates={practicedDates}
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
+          onDateClick={(dateStr) => navigate(`/journal?date=${dateStr}`)}
         />
 
         {/* Badge Shelf */}

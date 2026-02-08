@@ -22,6 +22,7 @@ interface PracticeCalendarProps {
   practicedDates: string[];
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onDateClick?: (dateStr: string) => void;
 }
 
 export function PracticeCalendar({
@@ -30,6 +31,7 @@ export function PracticeCalendar({
   practicedDates,
   onPrevMonth,
   onNextMonth,
+  onDateClick,
 }: PracticeCalendarProps) {
   const currentMonth = new Date(year, month - 1, 1);
 
@@ -81,12 +83,16 @@ export function PracticeCalendar({
           const practiced = practicedSet.has(dateStr);
 
           return (
-            <div
+            <button
               key={dateStr}
+              type="button"
+              disabled={!inMonth}
+              onClick={() => inMonth && onDateClick?.(dateStr)}
               className={cn(
                 "relative flex items-center justify-center h-9 w-full rounded-md text-sm transition-colors",
                 !inMonth && "opacity-30",
-                today && !practiced && "ring-1 ring-header-bg"
+                inMonth && "cursor-pointer hover:bg-muted/30",
+                today && "ring-2 ring-primary"
               )}
             >
               {practiced && (
@@ -102,7 +108,7 @@ export function PracticeCalendar({
               >
                 {format(day, "d")}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
