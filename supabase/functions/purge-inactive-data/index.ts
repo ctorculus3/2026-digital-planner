@@ -232,6 +232,36 @@
           if (mediaDeleteError) {
             logStep("Warning: Failed to delete media records", { error: mediaDeleteError.message });
           }
+
+          // Delete lesson-pdfs storage files and database records
+          const { data: pdfItems } = await supabase
+            .from("lesson_pdfs")
+            .select("file_path")
+            .in("practice_log_id", logIds);
+
+          const pdfFilePaths = (pdfItems || [])
+            .filter(p => p.file_path)
+            .map(p => p.file_path as string);
+
+          if (pdfFilePaths.length > 0) {
+            const { error: pdfStorageError } = await supabase.storage
+              .from("lesson-pdfs")
+              .remove(pdfFilePaths);
+            if (pdfStorageError) {
+              logStep("Warning: Failed to delete some lesson PDF files", { error: pdfStorageError.message });
+            } else {
+              logStep("Deleted lesson PDF files from storage", { count: pdfFilePaths.length });
+            }
+          }
+
+          // Delete lesson_pdfs rows (will also cascade, but explicit for storage cleanup)
+          const { error: pdfDeleteError } = await supabase
+            .from("lesson_pdfs")
+            .delete()
+            .in("practice_log_id", logIds);
+          if (pdfDeleteError) {
+            logStep("Warning: Failed to delete lesson PDF records", { error: pdfDeleteError.message });
+          }
         }
 
         // Now delete the practice logs
