@@ -1,8 +1,14 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useLessonPdfs, type LessonPdfItem } from "@/hooks/useLessonPdfs";
-import { Upload, X, Loader2, FileText, Plus } from "lucide-react";
+import { Upload, X, Loader2, FileText, Plus, Download } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LessonPdfsProps {
   practiceLogId: string | undefined;
@@ -30,6 +36,8 @@ export function LessonPdfs({
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerName, setPdfViewerName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFull = itemCount >= maxItems;
@@ -64,13 +72,8 @@ export function LessonPdfs({
     async (item: LessonPdfItem) => {
       const url = await getSignedPdfUrl(item.file_path);
       if (url) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        setPdfViewerUrl(url);
+        setPdfViewerName(item.file_name);
       } else {
         toast.error("Failed to open PDF");
       }
@@ -180,6 +183,46 @@ export function LessonPdfs({
           Add
         </Button>
       )}
+
+      {/* PDF Viewer Dialog */}
+      <Dialog
+        open={!!pdfViewerUrl}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPdfViewerUrl(null);
+            setPdfViewerName("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[90vh] flex flex-col p-0">
+          <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border shrink-0">
+            <DialogTitle className="text-sm font-medium truncate pr-2">
+              {pdfViewerName}
+            </DialogTitle>
+            {pdfViewerUrl && (
+              <a
+                href={pdfViewerUrl}
+                download={pdfViewerName}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0 mr-8"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download
+              </a>
+            )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfViewerUrl && (
+              <iframe
+                src={pdfViewerUrl}
+                className="w-full h-full border-0"
+                title={pdfViewerName}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

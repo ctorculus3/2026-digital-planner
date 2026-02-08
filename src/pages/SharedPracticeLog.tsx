@@ -1,8 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Music, Youtube, FileText } from "lucide-react";
+import { Loader2, Music, Youtube, FileText, Download } from "lucide-react";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface PracticeLogData {
   id: string;
@@ -44,6 +50,8 @@ export default function SharedPracticeLog() {
   const [practiceLog, setPracticeLog] = useState<PracticeLogData | null>(null);
   const [mediaItems, setMediaItems] = useState<SharedMediaItem[]>([]);
   const [pdfItems, setPdfItems] = useState<SharedPdfItem[]>([]);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerName, setPdfViewerName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,13 +165,8 @@ export default function SharedPracticeLog() {
       console.error("Signed URL error:", error);
       return;
     }
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    setPdfViewerUrl(data.signedUrl);
+    setPdfViewerName(item.file_name);
   }, []);
 
   if (isLoading) {
@@ -393,6 +396,46 @@ export default function SharedPracticeLog() {
             </div>
           </div>
         )}
+
+        {/* PDF Viewer Dialog */}
+        <Dialog
+          open={!!pdfViewerUrl}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPdfViewerUrl(null);
+              setPdfViewerName("");
+            }
+          }}
+        >
+          <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[90vh] flex flex-col p-0">
+            <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <DialogTitle className="text-sm font-medium truncate pr-2">
+                {pdfViewerName}
+              </DialogTitle>
+              {pdfViewerUrl && (
+                <a
+                  href={pdfViewerUrl}
+                  download={pdfViewerName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0 mr-8"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </a>
+              )}
+            </DialogHeader>
+            <div className="flex-1 min-h-0">
+              {pdfViewerUrl && (
+                <iframe
+                  src={pdfViewerUrl}
+                  className="w-full h-full border-0"
+                  title={pdfViewerName}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Footer */}
         <div className="text-center pt-8 border-t border-border">
