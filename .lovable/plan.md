@@ -1,121 +1,50 @@
 
-## Fix Intermittent "Failed to Post" Errors
 
-I identified three root causes for the unreliable posting behavior, all in how the backend function and the frontend talk to each other.
+## Add Yearly Plan Option to Checkout Flow
 
-### What's happening now
+Currently the paywall screen only shows the $3.99/month plan with a hardcoded price. This update will let users choose between monthly and yearly billing before starting their free trial.
 
-1. **The AI content moderator is too aggressive** -- When you post something casual like "Testing" or "Hello everyone", the AI sometimes rejects it as "off-topic" because it doesn't mention music explicitly. This is the main reason posts fail intermittently -- the same type of message might pass one time and fail the next depending on the AI's interpretation.
+### What you'll see
 
-2. **Error messages are getting swallowed** -- When the AI does reject a post, the backend returns a special error code (422). But the frontend treats ALL non-success responses the same way, showing a generic "Failed to submit post" message instead of the actual reason (like "Off-topic content"). So you never see WHY a post was rejected.
+The paywall card will be redesigned with a **plan toggle** (Monthly / Yearly) at the top of the pricing section. When "Yearly" is selected, the price display updates to show **$39.99/year** with a savings badge like "Save 17%". Both options still include the 7-day free trial. The "Start Free Trial" button will checkout with whichever plan is currently selected.
 
-3. **The authentication method is unreliable** -- The backend uses a method called `getClaims` to verify who you are, which is known to intermittently return empty results even with a valid login session. This can cause random "Unauthorized" failures.
+### Changes needed (3 files)
 
-### What will change
+**1. Paywall UI -- `src/components/subscription/SubscriptionGate.tsx`**
 
-**You'll see:**
-- Posts will succeed more reliably, especially casual messages and encouragement
-- When a post IS rejected by moderation, you'll see the specific reason (e.g., "Contains inappropriate language") instead of a vague error
-- No more random authentication failures
+- Add a `selectedPlan` state toggle: `"monthly"` (default) or `"yearly"`
+- Add a toggle/tab switcher above the price display (Monthly | Yearly)
+- Update the price display to reflect the selected plan ($3.99/mo vs $39.99/yr)
+- Show a "Save 17%" badge when yearly is selected
+- Pass the selected plan to the checkout function call:
+  ```
+  supabase.functions.invoke("create-checkout", {
+    body: { plan: selectedPlan }
+  })
+  ```
 
-### The fixes (3 targeted changes)
+**2. Backend checkout function -- `supabase/functions/create-checkout/index.ts`**
 
-**1. Backend function: Fix authentication and response format**
-- Replace the unreliable `getClaims` with the standard `getUser` method
-- Return success status (200) for ALL business-logic outcomes (moderation rejections, streak failures) with clear `success: true/false` in the response body
-- Reserve error status codes only for actual server failures
-- This ensures the frontend always receives and can display the specific reason
+- Define both price IDs in a plan map:
+  ```
+  const PRICES = {
+    monthly: "price_1Sx00wPp57aypoj4v8akm2IH",
+    yearly: "price_1SyhXOPp57aypoj4Hx9fG1zH",
+  };
+  ```
+- Read the `plan` parameter from the request body (default to `"monthly"` if missing)
+- Use the corresponding price ID when creating the Stripe checkout session
+- Also fix the authentication method (replace `getClaims` with `getUser`) for reliability, matching the fix already applied to the moderation function
 
-**2. Backend function: Tune the AI moderator**
-- Update the moderation prompt to be more lenient with casual conversation, greetings, encouragement, and short messages
-- Add a single retry when the AI service is temporarily unavailable (rate limited or down)
-- If moderation still fails after retry, allow the post through rather than blocking it -- the streak requirement already filters out bad actors
+**3. No changes needed to `check-subscription` or `ManageSubscription`**
 
-**3. Frontend PostComposer: Better error display**
-- Update the error handling to read the structured response instead of showing a generic message
-- Show the specific moderation rejection reason when applicable
-- Display streak-related messages clearly
+The subscription verification and management components work at the subscription level (active/inactive), not at the price level, so they'll work correctly with either plan. Users can switch plans via the Stripe Customer Portal ("Manage" button).
 
 ### Technical details
 
-**File: `supabase/functions/moderate-and-post/index.ts`**
+Price IDs:
+- Monthly: `price_1Sx00wPp57aypoj4v8akm2IH` ($3.99/mo)
+- Yearly: `price_1SyhXOPp57aypoj4Hx9fG1zH` ($39.99/yr)
 
-Authentication fix (line 39-48):
-```typescript
-// Replace getClaims with getUser
-const { data: { user }, error: userError } = await userClient.auth.getUser();
-if (userError || !user) {
-  return new Response(JSON.stringify({ error: "Unauthorized" }), {
-    status: 401,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-const userId = user.id;
-```
+The yearly plan saves roughly 17% vs paying monthly ($39.99 vs $47.88/yr). Both plans include the same 7-day free trial.
 
-Response format fix -- all business-logic responses return 200:
-```typescript
-// Streak failure: return 200 with success: false
-return new Response(
-  JSON.stringify({
-    success: false,
-    error: `You need a 10-day practice streak to post. Current streak: ${streak}`,
-  }),
-  { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-);
-
-// Moderation rejection: return 200 with success: false
-return new Response(
-  JSON.stringify({
-    success: false,
-    error: modResult.reason || "Your post was not approved by our content guidelines.",
-    moderation_rejected: true,
-  }),
-  { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-);
-```
-
-Moderation prompt update:
-```
-Be very lenient with: casual greetings, encouragement, questions, 
-short messages, test posts, and general community chat. Only reject 
-clearly harmful content. When in doubt, approve.
-```
-
-Add retry with fallback for AI moderation:
-```typescript
-// Retry once on transient failure
-// If both attempts fail, allow the post through (streak gate provides base filtering)
-```
-
-**File: `src/components/community/PostComposer.tsx`**
-
-Update error handling (lines 32-49):
-```typescript
-if (error) {
-  // Try to extract message from error context
-  toast({
-    title: "Error",
-    description: "Failed to submit post. Please try again.",
-    variant: "destructive",
-  });
-  return;
-}
-
-// Now data always contains the structured response
-if (data && !data.success) {
-  toast({
-    title: data.moderation_rejected ? "Post not approved" : "Cannot post",
-    description: data.error || "Something went wrong.",
-    variant: "destructive",
-  });
-  return;
-}
-```
-
-### Security notes
-
-- The streak requirement (10-day minimum) already provides strong anti-abuse filtering
-- The "approve on moderation failure" fallback is safe because only committed practitioners can post
-- Authentication via `getUser` makes a verified server-side call, eliminating token-parsing edge cases
-- No RLS policy changes needed -- the edge function uses a service-role client for inserts
