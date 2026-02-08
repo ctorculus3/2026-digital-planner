@@ -42,7 +42,7 @@ export function UserMenu() {
       .from("profiles")
       .select("avatar_url, display_name")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
     if (data) {
       setAvatarUrl((data as any).avatar_url || null);
       setDisplayName(data.display_name || null);
