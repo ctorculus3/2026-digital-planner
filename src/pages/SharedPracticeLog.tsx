@@ -64,54 +64,40 @@ export default function SharedPracticeLog() {
       }
 
       try {
-        // First get the share token to find the practice log id and creator
-        const { data: shareData, error: shareError } = await supabase
-          .from("shared_practice_logs")
-          .select("practice_log_id, expires_at, created_by")
-          .eq("share_token", token)
-          .maybeSingle();
+        // Look up the shared practice log using the secure RPC
+        // This avoids exposing the creator's user ID to the client
+        const { data: lookupData, error: lookupError } = await supabase
+          .rpc("lookup_shared_practice_log", { p_share_token: token });
 
-        if (shareError) throw shareError;
+        if (lookupError) throw lookupError;
 
-        if (!shareData) {
+        if (!lookupData || lookupData.length === 0) {
           setError("This share link is invalid or has expired.");
           setIsLoading(false);
           return;
         }
 
-        // Check if expired
-        if (shareData.expires_at && new Date(shareData.expires_at) < new Date()) {
-          setError("This share link has expired.");
-          setIsLoading(false);
-          return;
-        }
+        const { practice_log_id, sharer_display_name } = lookupData[0];
 
         // Fetch the practice log
         const { data: logData, error: logError } = await supabase
           .from("practice_logs")
           .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed")
-          .eq("id", shareData.practice_log_id)
+          .eq("id", practice_log_id)
           .single();
 
         if (logError) throw logError;
 
-        // Fetch the sharer's profile
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", shareData.created_by)
-          .maybeSingle();
-
         setPracticeLog({
           ...logData,
-          sharer_name: profileData?.display_name || null,
+          sharer_name: sharer_display_name || null,
         });
 
         // Fetch media items for this shared log
         const { data: mediaData } = await supabase
           .from("practice_media")
           .select("id, media_type, file_path, youtube_url, label, sort_order")
-          .eq("practice_log_id", shareData.practice_log_id)
+          .eq("practice_log_id", practice_log_id)
           .order("sort_order", { ascending: true });
 
         setMediaItems((mediaData as SharedMediaItem[]) || []);
@@ -120,7 +106,7 @@ export default function SharedPracticeLog() {
         const { data: pdfData } = await supabase
           .from("lesson_pdfs")
           .select("id, file_path, file_name, sort_order")
-          .eq("practice_log_id", shareData.practice_log_id)
+          .eq("practice_log_id", practice_log_id)
           .order("sort_order", { ascending: true });
 
         setPdfItems((pdfData as SharedPdfItem[]) || []);

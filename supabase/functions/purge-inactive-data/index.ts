@@ -22,12 +22,17 @@
    try {
      logStep("Function started");
  
-     // Check for authorization (cron job should pass the anon key)
-     const authHeader = req.headers.get("Authorization");
-     if (!authHeader) {
-       throw new Error("No authorization header provided");
-     }
-     logStep("Authorization verified");
+      // Validate authorization - only allow calls with the service role key
+      const authHeader = req.headers.get("Authorization");
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!authHeader || !serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`) {
+        logStep("Unauthorized access attempt blocked");
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      logStep("Authorization verified (service role key)");
  
      // Parse request body for dry_run option
      let dryRun = false;
