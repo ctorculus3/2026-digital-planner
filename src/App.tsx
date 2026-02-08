@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionGate } from "@/components/subscription/SubscriptionGate";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Community from "./pages/Community";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import StaffPaper from "./pages/StaffPaper";
@@ -78,6 +79,16 @@ const App = () => (
                 <ProtectedRoute>
                   <SubscriptionGate>
                     <Index />
+                  </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/community"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionGate>
+                    <Community />
                   </SubscriptionGate>
                 </ProtectedRoute>
               }

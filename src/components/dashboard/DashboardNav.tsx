@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BookOpen } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Journal", path: "/journal", icon: BookOpen },
+  { label: "Community", path: "/community", icon: Users },
 ];
 
 export function DashboardNav() {
