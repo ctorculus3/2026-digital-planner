@@ -266,11 +266,37 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_practice_streak: { Args: { p_user_id: string }; Returns: number }
+      get_practiced_dates: {
+        Args: { p_month: number; p_user_id: string; p_year: number }
+        Returns: string[]
+      }
       lookup_shared_practice_log: {
         Args: { p_share_token: string }
         Returns: {
