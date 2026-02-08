@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Music, Youtube } from "lucide-react";
+import { Loader2, Music, Youtube, FileText } from "lucide-react";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
 
 interface PracticeLogData {
@@ -32,10 +32,18 @@ interface SharedMediaItem {
   sort_order: number;
 }
 
+interface SharedPdfItem {
+  id: string;
+  file_path: string;
+  file_name: string;
+  sort_order: number;
+}
+
 export default function SharedPracticeLog() {
   const { token } = useParams<{ token: string }>();
   const [practiceLog, setPracticeLog] = useState<PracticeLogData | null>(null);
   const [mediaItems, setMediaItems] = useState<SharedMediaItem[]>([]);
+  const [pdfItems, setPdfItems] = useState<SharedPdfItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,6 +107,15 @@ export default function SharedPracticeLog() {
           .order("sort_order", { ascending: true });
 
         setMediaItems((mediaData as SharedMediaItem[]) || []);
+
+        // Fetch lesson PDFs for this shared log
+        const { data: pdfData } = await supabase
+          .from("lesson_pdfs")
+          .select("id, file_path, file_name, sort_order")
+          .eq("practice_log_id", shareData.practice_log_id)
+          .order("sort_order", { ascending: true });
+
+        setPdfItems((pdfData as SharedPdfItem[]) || []);
       } catch (err) {
         console.error("Error fetching shared log:", err);
         setError("Failed to load practice log.");
@@ -131,6 +148,23 @@ export default function SharedPracticeLog() {
     const minutes = totalMinutes % 60;
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   };
+
+  const handleOpenPdf = useCallback(async (item: SharedPdfItem) => {
+    const { data, error } = await supabase.storage
+      .from("lesson-pdfs")
+      .createSignedUrl(item.file_path, 3600);
+    if (error || !data?.signedUrl) {
+      console.error("Signed URL error:", error);
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, []);
 
   if (isLoading) {
     return (
@@ -330,6 +364,30 @@ export default function SharedPracticeLog() {
                   {item.media_type === "audio" && item.file_path && (
                     <p className="text-xs text-muted-foreground italic">Audio playback not available in shared view</p>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lesson PDFs */}
+        {pdfItems.length > 0 && (
+          <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+            <h3 className="font-display text-sm text-muted-foreground mb-3">Lesson PDF's</h3>
+            <div className="space-y-1">
+              {pdfItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center border border-border rounded-md px-2 py-1.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPdf(item)}
+                    className="flex items-center gap-1.5 text-xs text-foreground hover:text-primary truncate flex-1 min-w-0 text-left"
+                  >
+                    <FileText className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+                    <span className="truncate">{item.file_name}</span>
+                  </button>
                 </div>
               ))}
             </div>
