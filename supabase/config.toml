@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = false
+
+[functions.moderate-and-post]
+verify_jwt = false
