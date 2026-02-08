@@ -47,12 +47,18 @@ const parseTimeString = (timeStr: string): {
   };
 };
 
-// Normalize time from database (HH:MM:SS to HH:MM)
+// Normalize time from database (HH:MM:SS 24-hour to 12-hour AM/PM)
 const normalizeTime = (time: string | null): string => {
   if (!time) return "";
   const parts = time.split(":");
   if (parts.length >= 2) {
-    return `${parts[0]}:${parts[1]}`;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    if (isNaN(hours)) return time;
+    const period = hours >= 12 ? "PM" : "AM";
+    if (hours === 0) hours = 12;
+    else if (hours > 12) hours -= 12;
+    return `${hours}:${minutes} ${period}`;
   }
   return time;
 };
