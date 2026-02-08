@@ -1,50 +1,54 @@
 
 
-# Fix: Blank PDF Popup Window
+# Fix: PDF Viewer Using Embedded Dialog
 
 ## Problem
 
-When a user clicks a PDF name, the popup window opens blank. This happens because `window.open()` is called **after** an async network request (to fetch the signed URL). Browsers require `window.open()` to happen synchronously within the original click event -- once an `await` runs, the user gesture context expires, and the browser opens a restricted/blank window.
+The PDF signed URL works correctly (verified - the file loads fine when accessed directly), but every approach to open it in a new tab (window.open, anchor tag) results in a blank white page. This happens because the app runs inside an iframe with sandbox restrictions that prevent new browser tabs from properly navigating to external storage URLs.
 
 ## Solution
 
-Open the popup window immediately (synchronously) when the user clicks, then update its location once the signed URL arrives. This is a standard pattern for handling async content in popups.
+Instead of opening a new tab, display the PDF inside a fullscreen dialog using an embedded `<iframe>`. This keeps everything within the app and avoids the sandbox restrictions entirely. A "Download" link is included as a fallback for any edge cases.
 
-## What Changes
+## Changes
 
-**File: `src/components/practice-log/LessonPdfs.tsx`** -- update the `handleOpenPdf` function only.
+### 1. `src/components/practice-log/LessonPdfs.tsx`
 
-Current code (broken):
-```typescript
-const handleOpenPdf = useCallback(
-  async (item: LessonPdfItem) => {
-    const url = await getSignedPdfUrl(item.file_path);
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      toast.error("Failed to open PDF");
-    }
-  },
-  [getSignedPdfUrl]
-);
+Replace the `handleOpenPdf` anchor-tag logic with state-driven dialog display:
+
+- Add state for `pdfViewerUrl` and `pdfViewerName`
+- When a PDF is clicked, fetch the signed URL and set it in state (opens the dialog)
+- Render a fullscreen Dialog containing an `<iframe>` that loads the signed URL
+- Include a "Download" link and close button in the dialog header
+- Clear state on dialog close
+
+### 2. `src/pages/SharedPracticeLog.tsx`
+
+Apply the same embedded dialog approach:
+
+- Add state for `pdfViewerUrl` and `pdfViewerName`
+- Update `handleOpenPdf` to set state instead of creating an anchor
+- Add a fullscreen Dialog with embedded `<iframe>` for viewing the PDF
+
+## Technical Details
+
+```text
+User clicks PDF name
+       |
+       v
+Fetch signed URL (async)
+       |
+       v
+Set pdfViewerUrl state --> Dialog opens with <iframe src={signedUrl}>
+       |
+       v
+User views PDF inline, or clicks "Download" link
+       |
+       v
+Close dialog --> Clear state
 ```
 
-Fixed code:
-```typescript
-const handleOpenPdf = useCallback(
-  async (item: LessonPdfItem) => {
-    // Open window synchronously to preserve user gesture context
-    const newWindow = window.open("", "_blank");
-    const url = await getSignedPdfUrl(item.file_path);
-    if (url && newWindow) {
-      newWindow.location.href = url;
-    } else {
-      newWindow?.close();
-      toast.error("Failed to open PDF");
-    }
-  },
-  [getSignedPdfUrl]
-);
-```
+The Dialog will use near-fullscreen sizing (`max-w-[95vw] max-h-[95vh]`) so the PDF is easy to read. The iframe naturally renders PDFs using the browser's built-in PDF viewer, no external libraries needed.
 
-This is a single function change in one file -- no other files or database changes needed.
+Both components need this same fix since they share the same blank-page problem.
+
