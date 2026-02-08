@@ -1,53 +1,33 @@
 
 
-# Add Previous/Next Week Tabs to Day Tabs
+# Change Week Navigation to Land on Weekend Boundaries
 
-## Overview
+## What Changes
 
-Add two navigation tabs to the weekday tab strip on the right side: a **backward arrow tab** before Sunday to jump to the previous week, and a **forward arrow tab** after Saturday to jump to the next week. These will visually match the existing day tabs but use arrow symbols instead of day names.
+Instead of jumping exactly 7 days, the backward and forward week tabs will navigate to the edge of the adjacent week:
 
-## Changes
+- **Backward tab**: Always lands on **Saturday** of the previous week (the last day of that week)
+- **Forward tab**: Always lands on **Sunday** of the next week (the first day of that week)
 
-### 1. `src/components/practice-log/DayTabs.tsx`
+This makes navigating between weeks feel like "flipping pages" -- backward takes you to the end of the previous week, forward takes you to the start of the next week.
 
-- Add two new props: `onPrevWeek` and `onNextWeek` (callback functions)
-- Before the Sunday tab, render a "previous week" button with a left/up-pointing arrow (e.g., chevron icon or simple arrow character like "<<")
-- After the Saturday tab, render a "next week" button with a right/down-pointing arrow
-- Both tabs use the same vertical text styling and rounded-right shape as the day tabs
-- Use a neutral/distinct color (like a muted gray or a contrasting accent) so they stand out as navigation controls rather than day selectors
+## Examples
 
-### 2. `src/components/practice-log/PracticeLogCalendar.tsx`
+| Current Date | Press Backward | Press Forward |
+|---|---|---|
+| Sun Feb 8 | Sat Feb 7 | Sun Feb 15 |
+| Wed Feb 11 | Sat Feb 7 | Sun Feb 15 |
+| Sat Feb 14 | Sat Feb 7 | Sun Feb 15 |
 
-- Add two new handler functions:
-  - `handlePrevWeek`: subtracts 7 days from the current date using `subDays(currentDate, 7)`
-  - `handleNextWeek`: adds 7 days to the current date using `addDays(currentDate, 7)`
-- Pass these handlers to `DayTabs` as `onPrevWeek` and `onNextWeek` props
+## Change
 
-### 3. `src/index.css` (minor)
+### `src/components/practice-log/PracticeLogCalendar.tsx`
 
-- Add a CSS variable for the navigation tab color (e.g., `--tab-nav`) so it has a distinct but harmonious appearance with the existing day tab rainbow
+Update the two handler functions with new date math:
 
-### 4. `tailwind.config.ts` (minor)
+- **`handlePrevWeek`**: Calculate the previous Saturday by subtracting `(dayOfWeek + 1)` days from the current date. For example, from Sunday (day 0) that's 1 day back; from Wednesday (day 3) that's 4 days back.
 
-- Register the new `tab-nav` color utility class
+- **`handleNextWeek`**: Calculate the next Sunday by adding `(7 - dayOfWeek)` days from the current date. For example, from Saturday (day 6) that's 1 day forward; from Wednesday (day 3) that's 4 days forward.
 
-## Visual Layout (top to bottom on right side)
+No other files need changes -- the `DayTabs` component and styling remain the same.
 
-```text
-[ STAFF PAPER ]
-[   <<  ]  <-- Previous week tab (new)
-[  SUN  ]
-[  MON  ]
-[ TUES  ]
-[  WED  ]
-[ THUR  ]
-[  FRI  ]
-[  SAT  ]
-[   >>  ]  <-- Next week tab (new)
-```
-
-## Technical Details
-
-The new tabs will use `ChevronUp` and `ChevronDown` icons from lucide-react (since the tabs are vertical, up = backward in time, down = forward in time). They'll share the same rounded-right styling, shadow, and hover effects as the existing day tabs but won't have the "selected" ring indicator since they're action buttons, not selectors.
-
-No database changes needed -- this is purely a UI/navigation enhancement using the existing `setCurrentDate` state in `PracticeLogCalendar`.
