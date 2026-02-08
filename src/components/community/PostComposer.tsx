@@ -215,7 +215,14 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
             size="sm"
             type="button"
             className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.click();
+              } else {
+                console.warn("PostComposer: fileInputRef is null");
+                toast({ title: "Please try again", description: "The image picker wasn't ready. Tap the button once more.", variant: "destructive" });
+              }
+            }}
             disabled={submitting || images.length >= MAX_IMAGES}
           >
             <ImagePlus className="h-4 w-4" />
