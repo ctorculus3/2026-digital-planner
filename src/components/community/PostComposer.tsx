@@ -25,6 +25,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<SelectedImage[]>([]);
+  const [inputKey, setInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const charCount = content.trim().length;
@@ -88,7 +89,11 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !session || !user) return;
+    if (!canSubmit) return;
+    if (!session || !user) {
+      toast({ title: "Session expired", description: "Please refresh the page and try again.", variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     let uploadedPaths: string[] = [];
@@ -128,6 +133,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
       setContent("");
       images.forEach((img) => URL.revokeObjectURL(img.preview));
       setImages([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setInputKey(prev => prev + 1);
       onPostCreated();
       toast({ title: "Posted!", description: "Your post has been shared with the community." });
     } catch (err) {
@@ -194,6 +201,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <input
+            key={inputKey}
             ref={fileInputRef}
             type="file"
             accept={ACCEPTED_TYPES.join(",")}
