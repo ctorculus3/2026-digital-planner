@@ -124,47 +124,8 @@ export function UserMenu() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Avatar className="h-6 w-6">
-            {avatarUrl && <AvatarImage src={avatarUrl} alt="Avatar" />}
-            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-              {getInitials(displayName, user.email)}
-            </AvatarFallback>
-          </Avatar>
-          <span className="hidden sm:inline text-xs truncate max-w-[120px]">
-            {displayName || user.email}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">Signed in as</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Camera className="w-4 h-4 mr-2" />
-          )}
-          {uploading ? "Uploading…" : "Change avatar"}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-
-      {/* Hidden file input for avatar upload */}
+    <>
+      {/* Hidden file input OUTSIDE dropdown to prevent Radix interference */}
       <input
         ref={fileInputRef}
         type="file"
@@ -172,6 +133,51 @@ export function UserMenu() {
         className="hidden"
         onChange={handleAvatarUpload}
       />
-    </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2">
+            <Avatar className="h-6 w-6">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt="Avatar" />}
+              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                {getInitials(displayName, user.email)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="hidden sm:inline text-xs truncate max-w-[120px]">
+              {displayName || user.email}
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium">Signed in as</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              // Small delay to ensure dropdown event handling completes
+              setTimeout(() => fileInputRef.current?.click(), 100);
+            }}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4 mr-2" />
+            )}
+            {uploading ? "Uploading…" : "Change avatar"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
