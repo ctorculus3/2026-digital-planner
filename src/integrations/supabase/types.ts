@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      lesson_pdfs: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          practice_log_id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          practice_log_id: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          practice_log_id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_pdfs_practice_log_id_fkey"
+            columns: ["practice_log_id"]
+            isOneToOne: false
+            referencedRelation: "practice_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_logs: {
         Row: {
           additional_tasks: string[] | null

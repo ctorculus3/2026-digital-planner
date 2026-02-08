@@ -11,6 +11,7 @@ import { Save, Loader2, Plus } from "lucide-react";
 import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
 import { MediaTools } from "./MediaTools";
+import { LessonPdfs } from "./LessonPdfs";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -524,6 +525,9 @@ export function PracticeLogForm({
             adjustTextareaHeight(e.target);
           }} className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0" placeholder="Observations, breakthroughs, challenges..." />
           </div>
+
+          {/* Lesson PDFs */}
+          {user && <LessonPdfs practiceLogId={practiceLog?.id} userId={user.id} logDate={dateString} onPracticeLogCreated={() => queryClient.invalidateQueries({ queryKey: ["practice-log", dateString] })} />}
 
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <div className="flex items-center gap-3">
