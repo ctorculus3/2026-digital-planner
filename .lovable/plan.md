@@ -1,34 +1,36 @@
 
 
-# Fix: PDF Viewer Using Embedded Dialog
+# Fix: PDF Viewer Showing Blank in Embedded Dialog
 
 ## Problem
 
-The PDF signed URL works correctly (verified - the file loads fine when accessed directly), but every approach to open it in a new tab (window.open, anchor tag) results in a blank white page. This happens because the app runs inside an iframe with sandbox restrictions that prevent new browser tabs from properly navigating to external storage URLs.
+The Dialog opens correctly when you tap a PDF, but the iframe inside shows a blank white page. This happens because the storage service returns PDF files with security headers (`X-Frame-Options` or `Content-Security-Policy: frame-ancestors`) that block the PDF from loading inside an iframe.
 
 ## Solution
 
-Instead of opening a new tab, display the PDF inside a fullscreen dialog using an embedded `<iframe>`. This keeps everything within the app and avoids the sandbox restrictions entirely. A "Download" link is included as a fallback for any edge cases.
+Use **Google Docs Viewer** as an intermediary to render the PDF. Google Docs Viewer fetches the PDF from the signed URL and converts it into embeddable HTML that works inside an iframe without any header restrictions.
+
+The signed URL format becomes:
+```text
+https://docs.google.com/gview?url={SIGNED_URL}&embedded=true
+```
 
 ## Changes
 
 ### 1. `src/components/practice-log/LessonPdfs.tsx`
 
-Replace the `handleOpenPdf` anchor-tag logic with state-driven dialog display:
+Update the iframe `src` to wrap the signed URL with Google Docs Viewer:
 
-- Add state for `pdfViewerUrl` and `pdfViewerName`
-- When a PDF is clicked, fetch the signed URL and set it in state (opens the dialog)
-- Render a fullscreen Dialog containing an `<iframe>` that loads the signed URL
-- Include a "Download" link and close button in the dialog header
-- Clear state on dialog close
+- Change `<iframe src={pdfViewerUrl}>` to `<iframe src={googleDocsViewerUrl}>`
+- The viewer URL is constructed as: `https://docs.google.com/gview?url=${encodeURIComponent(pdfViewerUrl)}&embedded=true`
+- Keep the existing "Download" link pointing to the raw signed URL so direct download still works
 
 ### 2. `src/pages/SharedPracticeLog.tsx`
 
-Apply the same embedded dialog approach:
+Apply the same Google Docs Viewer wrapping:
 
-- Add state for `pdfViewerUrl` and `pdfViewerName`
-- Update `handleOpenPdf` to set state instead of creating an anchor
-- Add a fullscreen Dialog with embedded `<iframe>` for viewing the PDF
+- Update the iframe `src` in the PDF viewer Dialog to use Google Docs Viewer URL
+- Keep the "Download" link pointing to the raw signed URL
 
 ## Technical Details
 
@@ -36,19 +38,20 @@ Apply the same embedded dialog approach:
 User clicks PDF name
        |
        v
-Fetch signed URL (async)
+Fetch signed URL from storage (async)
        |
        v
-Set pdfViewerUrl state --> Dialog opens with <iframe src={signedUrl}>
+Set pdfViewerUrl state --> Dialog opens
        |
        v
-User views PDF inline, or clicks "Download" link
+iframe src = Google Docs Viewer URL wrapping the signed URL
        |
        v
-Close dialog --> Clear state
+Google fetches the PDF and renders it as embeddable HTML
+       |
+       v
+User views PDF inline, or clicks "Download" for raw file
 ```
 
-The Dialog will use near-fullscreen sizing (`max-w-[95vw] max-h-[95vh]`) so the PDF is easy to read. The iframe naturally renders PDFs using the browser's built-in PDF viewer, no external libraries needed.
-
-Both components need this same fix since they share the same blank-page problem.
+Both files need identical changes -- just wrapping the iframe `src` with the Google Docs Viewer URL. The "Download" link continues to use the direct signed URL. No new dependencies are needed.
 
