@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -52,6 +52,10 @@ export function ImageGallery({ imagePaths }: ImageGalleryProps) {
         onOpenChange={() => setLightboxIndex(null)}
       >
         <DialogContent className="max-w-3xl p-2 bg-background/95 border-border">
+          <VisuallyHidden>
+            <DialogTitle>Image preview</DialogTitle>
+            <DialogDescription>Full-size view of the post image</DialogDescription>
+          </VisuallyHidden>
           {lightboxIndex !== null && (
             <img
               src={getPublicUrl(imagePaths[lightboxIndex])}
