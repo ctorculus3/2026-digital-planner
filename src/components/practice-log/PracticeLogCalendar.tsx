@@ -41,6 +41,12 @@ export function PracticeLogCalendar() {
   const handleToday = useCallback(() => {
     setCurrentDate(new Date());
   }, []);
+  const handlePrevWeek = useCallback(() => {
+    setCurrentDate(prev => subDays(prev, 7));
+  }, []);
+  const handleNextWeek = useCallback(() => {
+    setCurrentDate(prev => addDays(prev, 7));
+  }, []);
   const handleStaffPaperClick = useCallback(() => {
     navigate(`/staff-paper?date=${format(currentDate, "yyyy-MM-dd")}`);
   }, [currentDate, navigate]);
@@ -77,7 +83,7 @@ export function PracticeLogCalendar() {
 
         {/* Day Tabs (Right Side) */}
         <div className="flex items-start pt-4 pr-1">
-          <DayTabs selectedDayOfWeek={selectedDayOfWeek} onSelectDayOfWeek={handleSelectDayOfWeek} onStaffPaperClick={handleStaffPaperClick} />
+          <DayTabs selectedDayOfWeek={selectedDayOfWeek} onSelectDayOfWeek={handleSelectDayOfWeek} onStaffPaperClick={handleStaffPaperClick} onPrevWeek={handlePrevWeek} onNextWeek={handleNextWeek} />
         </div>
       </div>
     </div>;

@@ -62,6 +62,9 @@ All colors MUST be HSL.
     /* Staff paper gold */
     --tab-staff: 38 95% 50%;
 
+    /* Navigation tab - muted bronze-gray */
+    --tab-nav: 30 20% 55%;
+
     /* Header scallop - rich teal */
     --header-bg: 168 60% 45%;
     --header-dark: 168 60% 35%;
@@ -129,6 +132,7 @@ All colors MUST be HSL.
     --tab-friday: 270 65% 55%;
     --tab-saturday: 310 70% 50%;
     --tab-staff: 38 90% 45%;
+    --tab-nav: 30 15% 45%;
     --header-bg: 168 55% 35%;
     --header-dark: 168 55% 28%;
     --ring-color: 30 50% 35%;

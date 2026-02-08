@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 const DAYS = [
   { short: "SUN", full: "SUNDAY", color: "bg-tab-sunday" },
@@ -15,13 +16,17 @@ interface DayTabsProps {
   onSelectDayOfWeek: (day: number) => void;
   showStaffPaper?: boolean;
   onStaffPaperClick?: () => void;
+  onPrevWeek?: () => void;
+  onNextWeek?: () => void;
 }
 
 export function DayTabs({ 
   selectedDayOfWeek, 
   onSelectDayOfWeek,
   showStaffPaper = true,
-  onStaffPaperClick 
+  onStaffPaperClick,
+  onPrevWeek,
+  onNextWeek
 }: DayTabsProps) {
   return (
     <div className="flex flex-col gap-1">
@@ -38,6 +43,22 @@ export function DayTabs({
           style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
         >
           STAFF PAPER
+        </button>
+      )}
+
+      {/* Previous Week Tab */}
+      {onPrevWeek && (
+        <button
+          onClick={onPrevWeek}
+          className={cn(
+            "bg-tab-nav text-primary-foreground font-display",
+            "py-2 px-2 rounded-r-lg shadow-md",
+            "hover:brightness-110 transition-all duration-200",
+            "flex items-center justify-center"
+          )}
+          title="Previous week"
+        >
+          <ChevronUp size={16} />
         </button>
       )}
       
@@ -58,6 +79,22 @@ export function DayTabs({
           {day.short}
         </button>
       ))}
+
+      {/* Next Week Tab */}
+      {onNextWeek && (
+        <button
+          onClick={onNextWeek}
+          className={cn(
+            "bg-tab-nav text-primary-foreground font-display",
+            "py-2 px-2 rounded-r-lg shadow-md",
+            "hover:brightness-110 transition-all duration-200",
+            "flex items-center justify-center"
+          )}
+          title="Next week"
+        >
+          <ChevronDown size={16} />
+        </button>
+      )}
     </div>
   );
 }
