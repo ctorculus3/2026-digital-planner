@@ -1,93 +1,121 @@
 
+## Fix Intermittent "Failed to Post" Errors
 
-## Admin Role Management UI
+I identified three root causes for the unreliable posting behavior, all in how the backend function and the frontend talk to each other.
 
-This plan adds an admin panel so you can promote and demote community members to/from the moderator role, all from within the Community page.
+### What's happening now
 
-### What you'll see
+1. **The AI content moderator is too aggressive** -- When you post something casual like "Testing" or "Hello everyone", the AI sometimes rejects it as "off-topic" because it doesn't mention music explicitly. This is the main reason posts fail intermittently -- the same type of message might pass one time and fail the next depending on the AI's interpretation.
 
-- A small **shield icon button** next to the Community heading, visible only to admins
-- Clicking it opens a **Role Management dialog** with two sections:
-  1. **Current Moderators** -- a list showing each moderator's name with a "Remove" button
-  2. **Add Moderator** -- a search field where you type a user's display name, see matching results, and click "Promote" to grant moderator access
-- All changes take effect immediately, with confirmation toasts
+2. **Error messages are getting swallowed** -- When the AI does reject a post, the backend returns a special error code (422). But the frontend treats ALL non-success responses the same way, showing a generic "Failed to submit post" message instead of the actual reason (like "Off-topic content"). So you never see WHY a post was rejected.
 
-### What changes
+3. **The authentication method is unreliable** -- The backend uses a method called `getClaims` to verify who you are, which is known to intermittently return empty results even with a valid login session. This can cause random "Unauthorized" failures.
 
-**1. Database: Upgrade your role and add admin policies**
+### What will change
 
-- Your current `moderator` role will be upgraded to `admin` (admins automatically have all moderator powers)
-- New RLS policies on `user_roles` so admins can:
-  - View all user roles (needed to list current moderators)
-  - Insert new roles (to promote users)
-  - Delete roles (to demote users)
+**You'll see:**
+- Posts will succeed more reliably, especially casual messages and encouragement
+- When a post IS rejected by moderation, you'll see the specific reason (e.g., "Contains inappropriate language") instead of a vague error
+- No more random authentication failures
 
-**2. New component: RoleManagementDialog**
+### The fixes (3 targeted changes)
 
-- A dialog component (`src/components/community/RoleManagementDialog.tsx`) containing:
-  - A list of current moderators fetched from `user_roles` joined with `profiles`
-  - A search input that queries `profiles` by display name
-  - Promote/demote buttons with confirmation
-  - Loading and empty states
+**1. Backend function: Fix authentication and response format**
+- Replace the unreliable `getClaims` with the standard `getUser` method
+- Return success status (200) for ALL business-logic outcomes (moderation rejections, streak failures) with clear `success: true/false` in the response body
+- Reserve error status codes only for actual server failures
+- This ensures the frontend always receives and can display the specific reason
 
-**3. Updated Community page**
+**2. Backend function: Tune the AI moderator**
+- Update the moderation prompt to be more lenient with casual conversation, greetings, encouragement, and short messages
+- Add a single retry when the AI service is temporarily unavailable (rate limited or down)
+- If moderation still fails after retry, allow the post through rather than blocking it -- the streak requirement already filters out bad actors
 
-- Import `useUserRole` for `isAdmin` (already available but unused)
-- Show the admin shield button next to the "Community" heading when `isAdmin` is true
-- Opens the `RoleManagementDialog`
+**3. Frontend PostComposer: Better error display**
+- Update the error handling to read the structured response instead of showing a generic message
+- Show the specific moderation rejection reason when applicable
+- Display streak-related messages clearly
 
 ### Technical details
 
-**Database migration:**
+**File: `supabase/functions/moderate-and-post/index.ts`**
 
-```sql
--- Allow admins to view all user roles
-CREATE POLICY "Admins can view all roles"
-  ON public.user_roles FOR SELECT
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-
--- Allow admins to assign roles
-CREATE POLICY "Admins can insert roles"
-  ON public.user_roles FOR INSERT
-  TO authenticated
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
--- Allow admins to remove roles
-CREATE POLICY "Admins can delete roles"
-  ON public.user_roles FOR DELETE
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+Authentication fix (line 39-48):
+```typescript
+// Replace getClaims with getUser
+const { data: { user }, error: userError } = await userClient.auth.getUser();
+if (userError || !user) {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    status: 401,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+const userId = user.id;
 ```
 
-**Data update:**
+Response format fix -- all business-logic responses return 200:
+```typescript
+// Streak failure: return 200 with success: false
+return new Response(
+  JSON.stringify({
+    success: false,
+    error: `You need a 10-day practice streak to post. Current streak: ${streak}`,
+  }),
+  { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+);
 
-```sql
-UPDATE public.user_roles
-SET role = 'admin'
-WHERE user_id = '2c0aef3a-2103-4e9e-b031-dcc6dfa8b9d4';
+// Moderation rejection: return 200 with success: false
+return new Response(
+  JSON.stringify({
+    success: false,
+    error: modResult.reason || "Your post was not approved by our content guidelines.",
+    moderation_rejected: true,
+  }),
+  { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+);
 ```
 
-**New file -- `src/components/community/RoleManagementDialog.tsx`:**
+Moderation prompt update:
+```
+Be very lenient with: casual greetings, encouragement, questions, 
+short messages, test posts, and general community chat. Only reject 
+clearly harmful content. When in doubt, approve.
+```
 
-- Uses `Dialog` from the existing UI library
-- Fetches current moderators: queries `user_roles` where `role = 'moderator'`, then joins with `profiles` for display names
-- Search input with debounce (uses existing `useDebounce` hook) to query `profiles` by `display_name` using `ilike`
-- Promote action: inserts into `user_roles` with `role = 'moderator'`
-- Demote action: deletes from `user_roles` matching `user_id` and `role = 'moderator'`
-- Both actions use confirmation dialogs and show toast feedback
-- Prevents assigning moderator to someone who already has it
+Add retry with fallback for AI moderation:
+```typescript
+// Retry once on transient failure
+// If both attempts fail, allow the post through (streak gate provides base filtering)
+```
 
-**Modified file -- `src/pages/Community.tsx`:**
+**File: `src/components/community/PostComposer.tsx`**
 
-- Extract `isAdmin` from the existing `useUserRole()` hook (only `isModerator` is currently destructured)
-- Add a shield icon button next to the "Community" heading, conditionally rendered when `isAdmin` is true
-- Manages open/close state for the `RoleManagementDialog`
+Update error handling (lines 32-49):
+```typescript
+if (error) {
+  // Try to extract message from error context
+  toast({
+    title: "Error",
+    description: "Failed to submit post. Please try again.",
+    variant: "destructive",
+  });
+  return;
+}
+
+// Now data always contains the structured response
+if (data && !data.success) {
+  toast({
+    title: data.moderation_rejected ? "Post not approved" : "Cannot post",
+    description: data.error || "Something went wrong.",
+    variant: "destructive",
+  });
+  return;
+}
+```
 
 ### Security notes
 
-- All role changes are enforced server-side through RLS policies -- only users with the `admin` role can modify `user_roles`
-- The admin check uses the `has_role()` security-definer function, avoiding RLS recursion
-- Client-side visibility of the admin button is cosmetic only; unauthorized users cannot perform role changes even if they bypass the UI
-- Admins cannot accidentally remove their own admin role (the UI will only manage `moderator` assignments)
-
+- The streak requirement (10-day minimum) already provides strong anti-abuse filtering
+- The "approve on moderation failure" fallback is safe because only committed practitioners can post
+- Authentication via `getUser` makes a verified server-side call, eliminating token-parsing edge cases
+- No RLS policy changes needed -- the edge function uses a service-role client for inserts
