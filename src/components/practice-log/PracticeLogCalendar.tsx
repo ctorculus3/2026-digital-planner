@@ -42,10 +42,16 @@ export function PracticeLogCalendar() {
     setCurrentDate(new Date());
   }, []);
   const handlePrevWeek = useCallback(() => {
-    setCurrentDate(prev => subDays(prev, 7));
+    setCurrentDate(prev => {
+      const dayOfWeek = getDay(prev);
+      return subDays(prev, dayOfWeek + 1);
+    });
   }, []);
   const handleNextWeek = useCallback(() => {
-    setCurrentDate(prev => addDays(prev, 7));
+    setCurrentDate(prev => {
+      const dayOfWeek = getDay(prev);
+      return addDays(prev, 7 - dayOfWeek);
+    });
   }, []);
   const handleStaffPaperClick = useCallback(() => {
     navigate(`/staff-paper?date=${format(currentDate, "yyyy-MM-dd")}`);
