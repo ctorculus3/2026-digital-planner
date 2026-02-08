@@ -9,7 +9,6 @@ export interface CommunityPost {
   created_at: string;
   display_name: string | null;
   avatar_url: string | null;
-  image_paths: string[] | null;
 }
 
 export function useCommunityPosts() {
@@ -23,7 +22,7 @@ export function useCommunityPosts() {
       // Fetch posts with profile data via a join
       const { data, error } = await supabase
         .from("community_posts")
-        .select("id, user_id, content, created_at, image_paths")
+        .select("id, user_id, content, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -54,7 +53,6 @@ export function useCommunityPosts() {
           ...post,
           display_name: profile?.display_name || null,
           avatar_url: profile?.avatar_url || null,
-          image_paths: (post as any).image_paths || null,
         };
       });
 

@@ -2,7 +2,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ImageGallery } from "./ImageGallery";
 import type { CommunityPost } from "@/hooks/useCommunityPosts";
 
 interface PostCardProps {
@@ -60,9 +59,6 @@ export function PostCard({ post, isOwn, onDelete }: PostCardProps) {
       <p className="text-sm text-foreground whitespace-pre-wrap break-words pl-11">
         {post.content}
       </p>
-      {post.image_paths && post.image_paths.length > 0 && (
-        <ImageGallery imagePaths={post.image_paths} />
-      )}
     </div>
   );
 }
