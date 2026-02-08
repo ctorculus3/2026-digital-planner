@@ -1,63 +1,179 @@
 
 
-# Test: 10-Day Streak Badge Awarding
+# Community Page -- Implementation Plan
 
-## What We'll Do
+## Overview
 
-Insert practice log entries for three missing dates to create a continuous 10-day streak, then verify the badge is automatically awarded when the Dashboard loads.
+Add a new **Community** tab to the app where musicians can share thoughts, discuss gear, habits, and encourage each other. The feature is designed around a niche, "human-sized" community ethos -- focused on quality over noise.
 
-## Current State
+**Access rules:**
+- All authenticated (subscribed) users can **read** posts
+- Only users with a **10+ day practice streak** can **create** posts
+- AI moderation automatically screens every post before publishing
 
-- Streak: 5 days (Feb 4-8)
-- Gap at: Feb 3 (breaks connection to Feb 1-2)
-- Missing before Feb 1: Jan 30, Jan 31
-- Badges earned: none
+---
 
-## Test Steps
+## What You'll See
 
-### Step 1: Insert Missing Practice Logs
+### Navigation
+A new **Community** tab (with a Users icon) appears in the existing Dashboard/Journal nav bar, accessible from any page.
 
-Add minimal practice log entries for three dates to create an unbroken 10-day chain:
-- **Jan 30** (new)
-- **Jan 31** (new)
-- **Feb 3** (fills the gap)
+### Community Page Layout
+- **Header area** with streak status banner:
+  - If streak >= 10: shows a post composer (text area + submit button)
+  - If streak < 10: shows an encouraging message like *"Reach a 10-day practice streak to unlock posting!"* with a progress indicator
+- **Post feed** below: a scrollable list of posts, newest first
+- Each post card shows:
+  - Author's profile picture (avatar) or initials fallback
+  - Display name
+  - Timestamp (relative, e.g. "2 hours ago")
+  - Post content (text)
+- **Real-time updates**: new posts appear automatically without refreshing
 
-This creates: Jan 30, 31, Feb 1, 2, 3, 4, 5, 6, 7, 8 = **10 consecutive days**
+### Profile Pictures
+- An avatar upload option added to the **User Menu** dropdown
+- Users can upload a profile picture that appears next to their posts
+- Fallback shows their initials in a colored circle (like the current User icon)
 
-No code changes needed -- just three INSERT statements into `practice_logs` using the existing user ID.
+---
 
-### Step 2: Refresh the Dashboard
+## Implementation Steps
 
-When the Dashboard loads, the `useDashboardData` hook will:
-1. Call `get_practice_streak` -- which should now return **10**
-2. Check badge thresholds -- streak >= 10 and `streak_10` not yet earned
-3. Automatically INSERT a row into `user_badges` with `badge_type = 'streak_10'`
+### Step 1: Database Changes
 
-### Step 3: Verify
+**Add `avatar_url` column to `profiles` table:**
+- New nullable `text` column for storing the path to the avatar image
 
-- The **StreakCounter** should display **10**
-- The **BadgeShelf** should show the **10 Days** badge as earned (colored, with today's date)
-- The other three badges (30, 50, 100) should remain grayed out
+**Create `community_posts` table:**
+- `id` (uuid, primary key)
+- `user_id` (uuid, not null) -- references the poster
+- `content` (text, not null) -- the post text
+- `created_at` (timestamptz, default now())
 
-### Technical Details
+**Create a public storage bucket `avatars`** for profile pictures.
 
-**SQL to insert test data** (will be run as a database operation):
+**RLS policies for `community_posts`:**
+- SELECT: all authenticated users can read all posts
+- INSERT: authenticated users where `get_practice_streak(auth.uid()) >= 10`
+- DELETE: users can delete their own posts
+- No UPDATE (posts are immutable once published)
+
+**Enable realtime** on `community_posts` so new posts appear live.
+
+### Step 2: AI Moderation Edge Function
+
+Create a `moderate-and-post` backend function that:
+1. Authenticates the user via their session token
+2. Validates the post content (non-empty, max 500 characters)
+3. Checks the user's streak (must be >= 10)
+4. Sends the content to an AI model (using the built-in Lovable AI key) with a prompt like: *"Evaluate if this text contains obscenity, hate speech, spam, or unauthorized brand promotion. Reply with JSON: {approved: boolean, reason: string}"*
+5. If approved, inserts the post into `community_posts` using a service-role client
+6. Returns success or rejection reason to the client
+
+This ensures all moderation + authorization happens server-side where it cannot be bypassed.
+
+### Step 3: Frontend -- Community Page and Components
+
+**New files:**
+- `src/pages/Community.tsx` -- main page with scallop header, nav, and content area
+- `src/components/community/PostFeed.tsx` -- fetches and displays posts with realtime subscription
+- `src/components/community/PostCard.tsx` -- individual post display with avatar, name, time, content
+- `src/components/community/PostComposer.tsx` -- text area + submit button, calls the moderation edge function
+- `src/components/community/StreakGateBanner.tsx` -- shown when user has < 10-day streak, displays progress
+- `src/hooks/useCommunityPosts.ts` -- data fetching hook with realtime subscription
+- `src/hooks/useUserStreak.ts` -- reusable hook to fetch current streak (extracted from dashboard logic)
+
+**Routing:**
+- Add `/community` route to `App.tsx` (protected + subscription-gated, like Dashboard and Journal)
+
+**Navigation:**
+- Add `{ label: "Community", path: "/community", icon: Users }` to the `DashboardNav` component
+
+### Step 4: Avatar Upload
+
+- Add avatar upload UI in the `UserMenu` dropdown (or a small modal)
+- Upload to the `avatars` storage bucket as `{user_id}.jpg`
+- Update the `profiles.avatar_url` column with the public URL
+- Update `PostCard` to display the avatar (with `AvatarFallback` showing initials)
+
+---
+
+## Technical Details
+
+### Database Migration SQL
 
 ```text
-INSERT INTO practice_logs (user_id, log_date)
-VALUES
-  ('2c0aef3a-...', '2026-01-30'),
-  ('2c0aef3a-...', '2026-01-31'),
-  ('2c0aef3a-...', '2026-02-03');
+-- Add avatar_url to profiles
+ALTER TABLE public.profiles ADD COLUMN avatar_url text;
+
+-- Create community_posts table
+CREATE TABLE public.community_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
+
+-- All authenticated users can read posts
+CREATE POLICY "Authenticated users can read posts"
+ON public.community_posts FOR SELECT TO authenticated
+USING (true);
+
+-- Only users with 10+ streak can insert (server-side backup; 
+-- primary enforcement is the edge function)
+CREATE POLICY "Users with streak can insert posts"
+ON public.community_posts FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() = user_id
+  AND public.get_practice_streak(auth.uid()) >= 10
+);
+
+-- Users can delete their own posts
+CREATE POLICY "Users can delete own posts"
+ON public.community_posts FOR DELETE TO authenticated
+USING (auth.uid() = user_id);
+
+-- Enable realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
 ```
 
-**No code files are modified** -- this is purely a data test to verify the existing badge-awarding logic works correctly.
+### Edge Function: `moderate-and-post`
 
-### What Success Looks Like
+- Uses `LOVABLE_API_KEY` (already configured) to call the AI moderation model
+- Uses `google/gemini-2.5-flash-lite` for fast, cost-effective moderation checks
+- Posts that fail moderation return a clear rejection reason to the user
+- Posts that pass are inserted using the service-role key for reliability
 
-After refreshing the Dashboard:
-- Streak counter shows "10"
-- The first badge (10 Days / Medal icon) lights up in color with today's date shown beneath it
-- The remaining three badges stay grayed out
-- The January calendar view (navigate back one month) shows Jan 30-31 with teal dots
+### Avatars Storage Bucket
+
+- Public bucket so avatar URLs can be displayed to all authenticated users
+- Files stored as `{user_id}.jpg` with upsert to replace old avatars
+- Max file size enforced client-side (e.g., 2MB)
+
+### Component Architecture
+
+```text
+Community.tsx
+  +-- ScallopHeader
+  +-- DashboardNav (with new Community tab)
+  +-- UserMenu + ManageSubscription
+  +-- StreakGateBanner (if streak < 10)
+  +-- PostComposer (if streak >= 10)
+  +-- PostFeed
+       +-- PostCard (repeated)
+            +-- Avatar + AvatarFallback
+            +-- Display name
+            +-- Relative timestamp
+            +-- Post content
+```
+
+### Security Considerations
+
+- Streak requirement enforced at **both** the edge function level and database RLS level
+- AI moderation runs server-side -- users cannot bypass it
+- Post content validated: non-empty, trimmed, max 500 characters
+- No HTML rendering of user content -- plain text only to prevent XSS
+- Avatar uploads restricted to image types (JPEG, PNG, WebP) and capped at 2MB
 
