@@ -15,6 +15,9 @@ export function PostFeed({ posts, loading, currentUserId, onPostDeleted }: PostF
   const { toast } = useToast();
 
   const handleDelete = async (postId: string) => {
+    // Find the post to get image_paths before deleting
+    const post = posts.find((p) => p.id === postId);
+
     const { error } = await supabase
       .from("community_posts")
       .delete()
@@ -27,6 +30,11 @@ export function PostFeed({ posts, loading, currentUserId, onPostDeleted }: PostF
         variant: "destructive",
       });
       return;
+    }
+
+    // Clean up associated images from storage
+    if (post?.image_paths && post.image_paths.length > 0) {
+      await supabase.storage.from("community-images").remove(post.image_paths);
     }
 
     onPostDeleted();

@@ -7,6 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonResponse(body: Record<string, unknown>, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,10 +23,7 @@ serve(async (req) => {
     // 1. Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -31,7 +35,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // User-scoped client for auth validation
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -39,35 +42,36 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const userId = claimsData.claims.sub as string;
 
-    // 2. Validate content
-    const { content } = await req.json();
-    if (!content || typeof content !== "string") {
-      return new Response(JSON.stringify({ error: "Content is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // 2. Validate content and image_paths
+    const { content, image_paths } = await req.json();
+
+    const trimmed = typeof content === "string" ? content.trim() : "";
+    const hasText = trimmed.length > 0;
+    const hasImages = Array.isArray(image_paths) && image_paths.length > 0;
+
+    if (!hasText && !hasImages) {
+      return jsonResponse({ error: "A post must have text or at least one image" }, 400);
     }
 
-    const trimmed = content.trim();
-    if (trimmed.length === 0) {
-      return new Response(JSON.stringify({ error: "Content cannot be empty" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (hasText && trimmed.length > 500) {
+      return jsonResponse({ error: "Content must be 500 characters or fewer" }, 400);
     }
-    if (trimmed.length > 500) {
-      return new Response(JSON.stringify({ error: "Content must be 500 characters or fewer" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    // Validate image_paths
+    if (hasImages) {
+      if (image_paths.length > 5) {
+        return jsonResponse({ error: "Maximum 5 images per post" }, 400);
+      }
+      for (const path of image_paths) {
+        if (typeof path !== "string" || !path.startsWith(`${userId}/`)) {
+          return jsonResponse({ error: "Invalid image path" }, 400);
+        }
+      }
     }
 
     // 3. Check streak (service role to bypass RLS)
@@ -79,142 +83,124 @@ serve(async (req) => {
 
     if (streakError) {
       console.error("Streak check error:", streakError);
-      return new Response(JSON.stringify({ error: "Failed to verify streak" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Failed to verify streak" }, 500);
     }
 
     const streak = streakData as number;
     if (streak < 10) {
-      return new Response(
-        JSON.stringify({
-          error: `You need a 10-day practice streak to post. Current streak: ${streak}`,
-        }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+      return jsonResponse(
+        { error: `You need a 10-day practice streak to post. Current streak: ${streak}` },
+        403
       );
     }
 
-    // 4. AI moderation
-    const moderationResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          messages: [
-            {
-              role: "system",
-              content:
-                'You are a content moderator for a music practice community. Evaluate if the user\'s post is appropriate. Reject posts that contain: obscenity, hate speech, harassment, spam, unauthorized brand promotion, or off-topic content unrelated to music/practice. Be lenient with casual conversation about music, gear, practice habits, and encouragement. Respond with ONLY valid JSON: {"approved": true} or {"approved": false, "reason": "brief explanation"}',
-            },
-            { role: "user", content: trimmed },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "moderation_result",
-                description: "Return the moderation decision",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    approved: { type: "boolean" },
-                    reason: { type: "string" },
+    // 4. AI moderation (text only)
+    if (hasText) {
+      const moderationResponse = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content:
+                  'You are a content moderator for a music practice community. Evaluate if the user\'s post is appropriate. Reject posts that contain: obscenity, hate speech, harassment, spam, unauthorized brand promotion, or off-topic content unrelated to music/practice. Be lenient with casual conversation about music, gear, practice habits, and encouragement. Respond with ONLY valid JSON: {"approved": true} or {"approved": false, "reason": "brief explanation"}',
+              },
+              { role: "user", content: trimmed },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "moderation_result",
+                  description: "Return the moderation decision",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      approved: { type: "boolean" },
+                      reason: { type: "string" },
+                    },
+                    required: ["approved"],
+                    additionalProperties: false,
                   },
-                  required: ["approved"],
-                  additionalProperties: false,
                 },
               },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "moderation_result" } },
-        }),
-      }
-    );
+            ],
+            tool_choice: { type: "function", function: { name: "moderation_result" } },
+          }),
+        }
+      );
 
-    if (!moderationResponse.ok) {
-      if (moderationResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Moderation service is busy. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      if (!moderationResponse.ok) {
+        if (moderationResponse.status === 429) {
+          return jsonResponse({ error: "Moderation service is busy. Please try again in a moment." }, 429);
+        }
+        if (moderationResponse.status === 402) {
+          return jsonResponse({ error: "Moderation service unavailable. Please try again later." }, 402);
+        }
+        console.error("AI moderation error:", moderationResponse.status);
+        return jsonResponse({ error: "Unable to verify post content. Please try again." }, 500);
+      }
+
+      const moderationData = await moderationResponse.json();
+      let modResult: { approved: boolean; reason?: string };
+
+      try {
+        const toolCall = moderationData.choices?.[0]?.message?.tool_calls?.[0];
+        if (toolCall?.function?.arguments) {
+          modResult = JSON.parse(toolCall.function.arguments);
+        } else {
+          const rawContent = moderationData.choices?.[0]?.message?.content || "";
+          modResult = JSON.parse(rawContent);
+        }
+      } catch {
+        console.error("Failed to parse moderation response:", moderationData);
+        return jsonResponse({ error: "Unable to verify post content. Please try again." }, 500);
+      }
+
+      if (!modResult.approved) {
+        return jsonResponse(
+          {
+            error: modResult.reason || "Your post was not approved by our content guidelines.",
+            moderation_rejected: true,
+          },
+          422
         );
       }
-      if (moderationResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Moderation service unavailable. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      console.error("AI moderation error:", moderationResponse.status);
-      // If moderation fails, reject to be safe
-      return new Response(
-        JSON.stringify({ error: "Unable to verify post content. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const moderationData = await moderationResponse.json();
-    let modResult: { approved: boolean; reason?: string };
-
-    try {
-      const toolCall = moderationData.choices?.[0]?.message?.tool_calls?.[0];
-      if (toolCall?.function?.arguments) {
-        modResult = JSON.parse(toolCall.function.arguments);
-      } else {
-        // Fallback: try parsing from content
-        const rawContent = moderationData.choices?.[0]?.message?.content || "";
-        modResult = JSON.parse(rawContent);
-      }
-    } catch {
-      console.error("Failed to parse moderation response:", moderationData);
-      return new Response(
-        JSON.stringify({ error: "Unable to verify post content. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!modResult.approved) {
-      return new Response(
-        JSON.stringify({
-          error: modResult.reason || "Your post was not approved by our content guidelines.",
-          moderation_rejected: true,
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // 5. Insert post using service role
+    const insertData: Record<string, unknown> = {
+      user_id: userId,
+      content: hasText ? trimmed : "",
+    };
+    if (hasImages) {
+      insertData.image_paths = image_paths;
+    }
+
     const { data: post, error: insertError } = await adminClient
       .from("community_posts")
-      .insert({ user_id: userId, content: trimmed })
+      .insert(insertData)
       .select("id, created_at")
       .single();
 
     if (insertError) {
       console.error("Insert error:", insertError);
-      return new Response(JSON.stringify({ error: "Failed to create post" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Failed to create post" }, 500);
     }
 
-    return new Response(JSON.stringify({ success: true, post }), {
-      status: 201,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true, post }, 201);
   } catch (error) {
     console.error("moderate-and-post error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return jsonResponse(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500
     );
   }
 });
