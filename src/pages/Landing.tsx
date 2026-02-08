@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote } from "lucide-react";
+import { Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Music2 } from "lucide-react";
+import practiceDailyLogo from "@/assets/practice-daily-logo.png";
 
 /* ─────────── data ─────────── */
 
@@ -127,13 +128,8 @@ export default function Landing() {
           <button onClick={() => window.scrollTo({
           top: 0,
           behavior: "smooth"
-        })} className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-full bg-header-bg flex items-center justify-center">
-              <Music2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight">
-              Practice Daily
-            </span>
+        })} className="flex items-center">
+            <img src={practiceDailyLogo} alt="Practice Daily" className="h-9 w-auto" />
           </button>
 
           <div className="flex items-center gap-2">
@@ -353,9 +349,7 @@ export default function Landing() {
 
         <Card className="mx-auto mt-10 max-w-md shadow-lg border-primary/20">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-14 h-14 rounded-full bg-header-bg flex items-center justify-center shadow-md">
-              <Music2 className="w-7 h-7 text-primary-foreground" />
-            </div>
+            <img src={practiceDailyLogo} alt="Practice Daily" className="mx-auto w-32 h-auto" />
             <CardTitle className="font-display text-xl">
               {isLogin ? "Welcome Back" : "Create Your Account"}
             </CardTitle>
