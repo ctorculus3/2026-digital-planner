@@ -1,39 +1,55 @@
 
 
-# Fix: Add Missing Storage UPDATE Policies
+# Fix: Time Display Reverting to 24-Hour Format
 
-## What's Happening
+## The Problem
 
-Audio file uploads are failing because the storage buckets don't allow overwriting existing files. When a file already exists at the same path, the system needs UPDATE permission, which is currently missing.
+When you enter times like "12:30 PM" or "2:30 PM", they save correctly to the database. But when you navigate away and come back, they display as "12:30" or "14:30" instead of the friendly AM/PM format you originally entered.
+
+This happens because the function that loads times from the database only strips the seconds -- it doesn't convert back to 12-hour AM/PM format.
 
 ## The Fix
 
-A single database migration adds two UPDATE policies -- one for each storage bucket (`practice-media` and `practice-recordings`). These follow the same ownership pattern already used by the existing policies: only the file owner can overwrite their own files.
+Update the `normalizeTime` function in `PracticeLogForm.tsx` to convert 24-hour database times back to 12-hour AM/PM format for display.
 
 ## Technical Details
 
-### Database Migration
+### File: `src/components/practice-log/PracticeLogForm.tsx`
 
-```sql
--- Allow users to update/overwrite their own media files
-CREATE POLICY "Users can update their own media files"
-  ON storage.objects FOR UPDATE
-  USING (
-    bucket_id = 'practice-media'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-
--- Allow users to update/overwrite their own recordings
-CREATE POLICY "Users can update own recordings"
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING (
-    bucket_id = 'practice-recordings'
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
+**Current `normalizeTime` function (lines 51-58):**
+```typescript
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`;  // Just strips seconds, stays in 24-hour
+  }
+  return time;
+};
 ```
 
-### No Code Changes
+**Updated `normalizeTime` function:**
+```typescript
+const normalizeTime = (time: string | null): string => {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    if (isNaN(hours)) return time;
+    const period = hours >= 12 ? "PM" : "AM";
+    if (hours === 0) hours = 12;
+    else if (hours > 12) hours -= 12;
+    return `${hours}:${minutes} ${period}`;
+  }
+  return time;
+};
+```
 
-The existing upload code already uses `upsert: true` -- it just needs the database permission to complete the operation.
+This converts database values like "14:30" to "2:30 PM" and "00:30" to "12:30 AM" when loading data back into the form. The save path remains unchanged -- `formatTimeForDb` already correctly converts AM/PM input to 24-hour format for storage.
+
+### No other files need to change
+
+- The `parseTimeString` function already handles both "2:30 PM" and "14:30" formats, so the total time calculation will continue to work correctly.
+- The `formatTimeForDb` function already converts AM/PM to 24-hour for saving.
 
