@@ -7,10 +7,12 @@ import { PostFeed } from "@/components/community/PostFeed";
 import { StreakGateBanner } from "@/components/community/StreakGateBanner";
 import { useCommunityPosts } from "@/hooks/useCommunityPosts";
 import { useUserStreak } from "@/hooks/useUserStreak";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function Community() {
   const { posts, loading: postsLoading, refetch, currentUserId } = useCommunityPosts();
   const { streak, loading: streakLoading } = useUserStreak();
+  const { isModerator } = useUserRole();
 
   const canPost = streak >= 10;
 
@@ -49,6 +51,7 @@ export default function Community() {
           posts={posts}
           loading={postsLoading}
           currentUserId={currentUserId}
+          isModerator={isModerator}
           onPostDeleted={refetch}
         />
       </main>

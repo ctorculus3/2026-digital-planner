@@ -8,10 +8,11 @@ interface PostFeedProps {
   posts: CommunityPost[];
   loading: boolean;
   currentUserId?: string;
+  isModerator?: boolean;
   onPostDeleted: () => void;
 }
 
-export function PostFeed({ posts, loading, currentUserId, onPostDeleted }: PostFeedProps) {
+export function PostFeed({ posts, loading, currentUserId, isModerator = false, onPostDeleted }: PostFeedProps) {
   const { toast } = useToast();
 
   const handleDelete = async (postId: string) => {
@@ -59,6 +60,7 @@ export function PostFeed({ posts, loading, currentUserId, onPostDeleted }: PostF
           key={post.id}
           post={post}
           isOwn={post.user_id === currentUserId}
+          isModerator={isModerator}
           onDelete={handleDelete}
         />
       ))}
