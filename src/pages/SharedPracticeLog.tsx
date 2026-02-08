@@ -428,7 +428,7 @@ export default function SharedPracticeLog() {
             <div className="flex-1 min-h-0">
               {pdfViewerUrl && (
                 <iframe
-                  src={pdfViewerUrl}
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(pdfViewerUrl)}&embedded=true`}
                   className="w-full h-full border-0"
                   title={pdfViewerName}
                 />
