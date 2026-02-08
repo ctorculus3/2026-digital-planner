@@ -1,39 +1,63 @@
 
 
-# Clickable Calendar Dates + Today Highlighting
+# Test: 10-Day Streak Badge Awarding
 
-## What Changes
+## What We'll Do
 
-### 1. Tappable Calendar Days
-Each date cell on the Dashboard calendar becomes a clickable button. When you tap a date that falls within the displayed month, you'll be navigated directly to that day's journal entry at `/journal?date=2026-02-05`. The Journal already reads the `?date=` parameter and opens the correct day, so no changes are needed on the Journal side.
+Insert practice log entries for three missing dates to create a continuous 10-day streak, then verify the badge is automatically awarded when the Dashboard loads.
 
-### 2. Distinct "Today" Color
-Today's date gets a unique visual treatment so it stands out from both practiced days and regular days:
-- **Today (not practiced)**: A coral/orange ring and bold text using the app's primary accent color (`--primary`)
-- **Today (practiced)**: Teal fill with a coral/orange ring around it, combining both indicators
-- **Practiced days**: Teal filled circle (unchanged)
-- **Regular days**: Plain text (unchanged)
+## Current State
 
-This makes it easy to spot "today" at a glance regardless of whether you've practiced yet.
+- Streak: 5 days (Feb 4-8)
+- Gap at: Feb 3 (breaks connection to Feb 1-2)
+- Missing before Feb 1: Jan 30, Jan 31
+- Badges earned: none
 
----
+## Test Steps
 
-## Technical Details
+### Step 1: Insert Missing Practice Logs
 
-### Files Modified
+Add minimal practice log entries for three dates to create an unbroken 10-day chain:
+- **Jan 30** (new)
+- **Jan 31** (new)
+- **Feb 3** (fills the gap)
 
-| File | Change |
-|---|---|
-| `src/components/dashboard/PracticeCalendar.tsx` | Add `onDateClick` prop, make day cells clickable buttons, update today styling |
-| `src/pages/Dashboard.tsx` | Pass `onDateClick` handler that navigates to `/journal?date=YYYY-MM-DD` |
+This creates: Jan 30, 31, Feb 1, 2, 3, 4, 5, 6, 7, 8 = **10 consecutive days**
 
-### PracticeCalendar Changes
-- Add an `onDateClick?: (dateStr: string) => void` prop to the component interface
-- Wrap each in-month day cell in a `<button>` element with `cursor-pointer` and hover effect
-- Update today's styling: replace the current `ring-1 ring-header-bg` with `ring-2 ring-primary` (coral/orange ring) so it's visually distinct from the teal practiced-day circles
-- When today is also a practiced day, show both the teal fill and the coral ring
+No code changes needed -- just three INSERT statements into `practice_logs` using the existing user ID.
 
-### Dashboard Changes
-- Import `useNavigate` from `react-router-dom`
-- Pass an `onDateClick` callback to `PracticeCalendar` that calls `navigate(\`/journal?date=\${dateStr}\`)`
+### Step 2: Refresh the Dashboard
+
+When the Dashboard loads, the `useDashboardData` hook will:
+1. Call `get_practice_streak` -- which should now return **10**
+2. Check badge thresholds -- streak >= 10 and `streak_10` not yet earned
+3. Automatically INSERT a row into `user_badges` with `badge_type = 'streak_10'`
+
+### Step 3: Verify
+
+- The **StreakCounter** should display **10**
+- The **BadgeShelf** should show the **10 Days** badge as earned (colored, with today's date)
+- The other three badges (30, 50, 100) should remain grayed out
+
+### Technical Details
+
+**SQL to insert test data** (will be run as a database operation):
+
+```text
+INSERT INTO practice_logs (user_id, log_date)
+VALUES
+  ('2c0aef3a-...', '2026-01-30'),
+  ('2c0aef3a-...', '2026-01-31'),
+  ('2c0aef3a-...', '2026-02-03');
+```
+
+**No code files are modified** -- this is purely a data test to verify the existing badge-awarding logic works correctly.
+
+### What Success Looks Like
+
+After refreshing the Dashboard:
+- Streak counter shows "10"
+- The first badge (10 Days / Medal icon) lights up in color with today's date shown beneath it
+- The remaining three badges stay grayed out
+- The January calendar view (navigate back one month) shows Jan 30-31 with teal dots
 
