@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2, ImagePlus, X } from "lucide-react";
@@ -26,7 +26,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [inputKey, setInputKey] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputId = "community-image-input";
 
   const charCount = content.trim().length;
   const hasText = charCount > 0;
@@ -58,7 +58,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
     setImages((prev) => [...prev, ...toAdd]);
     // Reset input so re-selecting the same file works
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    const el = document.getElementById(imageInputId) as HTMLInputElement | null;
+    if (el) el.value = "";
   };
 
   const removeImage = (index: number) => {
@@ -133,7 +134,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
       setContent("");
       images.forEach((img) => URL.revokeObjectURL(img.preview));
       setImages([]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const el = document.getElementById(imageInputId) as HTMLInputElement | null;
+      if (el) el.value = "";
       setInputKey(prev => prev + 1);
       onPostCreated();
       toast({ title: "Posted!", description: "Your post has been shared with the community." });
@@ -202,31 +204,23 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         <div className="flex items-center gap-1.5">
           <input
             key={inputKey}
-            ref={fileInputRef}
+            id={imageInputId}
             type="file"
             accept={ACCEPTED_TYPES.join(",")}
             multiple
-            className="hidden"
+            className="sr-only"
             onChange={handleImageSelect}
             disabled={submitting || images.length >= MAX_IMAGES}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.click();
-              } else {
-                console.warn("PostComposer: fileInputRef is null");
-                toast({ title: "Please try again", description: "The image picker wasn't ready. Tap the button once more.", variant: "destructive" });
-              }
-            }}
-            disabled={submitting || images.length >= MAX_IMAGES}
+          <label
+            htmlFor={imageInputId}
+            className={`inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors ${
+              submitting || images.length >= MAX_IMAGES ? "pointer-events-none opacity-50" : ""
+            }`}
+            aria-label="Attach images"
           >
             <ImagePlus className="h-4 w-4" />
-          </Button>
+          </label>
           <Button
             size="sm"
             onClick={handleSubmit}
