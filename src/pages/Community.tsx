@@ -12,16 +12,24 @@ import { useUserStreak } from "@/hooks/useUserStreak";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
-
 export default function Community() {
-  const { posts, loading: postsLoading, refetch, currentUserId } = useCommunityPosts();
-  const { streak, loading: streakLoading } = useUserStreak();
-  const { isModerator, isAdmin } = useUserRole();
+  const {
+    posts,
+    loading: postsLoading,
+    refetch,
+    currentUserId
+  } = useCommunityPosts();
+  const {
+    streak,
+    loading: streakLoading
+  } = useUserStreak();
+  const {
+    isModerator,
+    isAdmin
+  } = useUserRole();
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const canPost = streak >= 10;
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
+  return <div className="min-h-screen bg-background flex flex-col">
       <ScallopHeader />
 
       {/* Top bar with nav + user controls */}
@@ -39,44 +47,20 @@ export default function Community() {
       <main className="flex-1 p-4 md:p-8 max-w-3xl mx-auto w-full space-y-6">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Community
+            PracticeDaily Community
           </h1>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setRoleDialogOpen(true)}
-              title="Manage moderators"
-            >
+          {isAdmin && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRoleDialogOpen(true)} title="Manage moderators">
               <ShieldCheck className="h-4 w-4" />
-            </Button>
-          )}
+            </Button>}
         </div>
 
         {/* Streak gate or composer */}
-        {!streakLoading && (
-          canPost ? (
-            <PostComposer onPostCreated={refetch} />
-          ) : (
-            <StreakGateBanner streak={streak} />
-          )
-        )}
+        {!streakLoading && (canPost ? <PostComposer onPostCreated={refetch} /> : <StreakGateBanner streak={streak} />)}
 
         {/* Post feed */}
-        <PostFeed
-          posts={posts}
-          loading={postsLoading}
-          currentUserId={currentUserId}
-          isModerator={isModerator}
-          onPostDeleted={refetch}
-        />
+        <PostFeed posts={posts} loading={postsLoading} currentUserId={currentUserId} isModerator={isModerator} onPostDeleted={refetch} />
       </main>
 
-      <RoleManagementDialog
-        open={roleDialogOpen}
-        onOpenChange={setRoleDialogOpen}
-      />
-    </div>
-  );
+      <RoleManagementDialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen} />
+    </div>;
 }
