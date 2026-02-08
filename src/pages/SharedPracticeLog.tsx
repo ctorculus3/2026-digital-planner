@@ -20,6 +20,7 @@ interface PracticeLogData {
   warmups: string[] | null;
   scales: string[] | null;
   repertoire: string[] | null;
+  repertoire_recordings: string[] | null;
   notes: string | null;
   metronome_used: boolean | null;
   ear_training: string[] | null;
@@ -54,6 +55,8 @@ export default function SharedPracticeLog() {
   const [pdfViewerName, setPdfViewerName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mediaAudioUrls, setMediaAudioUrls] = useState<Record<string, string>>({});
+  const [recordingUrls, setRecordingUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
     async function fetchSharedLog() {
@@ -82,7 +85,7 @@ export default function SharedPracticeLog() {
         // Fetch the practice log
         const { data: logData, error: logError } = await supabase
           .from("practice_logs")
-          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed")
+          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, repertoire_recordings, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed")
           .eq("id", practice_log_id)
           .single();
 
@@ -100,7 +103,39 @@ export default function SharedPracticeLog() {
           .eq("practice_log_id", practice_log_id)
           .order("sort_order", { ascending: true });
 
-        setMediaItems((mediaData as SharedMediaItem[]) || []);
+        const fetchedMediaItems = (mediaData as SharedMediaItem[]) || [];
+        setMediaItems(fetchedMediaItems);
+
+        // Generate signed URLs for media audio files
+        const audioItems = fetchedMediaItems.filter(m => m.media_type === "audio" && m.file_path);
+        if (audioItems.length > 0) {
+          const audioUrlMap: Record<string, string> = {};
+          await Promise.all(audioItems.map(async (item) => {
+            const { data } = await supabase.storage
+              .from("practice-media")
+              .createSignedUrl(item.file_path!, 3600);
+            if (data?.signedUrl) {
+              audioUrlMap[item.id] = data.signedUrl;
+            }
+          }));
+          setMediaAudioUrls(audioUrlMap);
+        }
+
+        // Generate signed URLs for repertoire recordings
+        const recordings = logData.repertoire_recordings || [];
+        if (recordings.length > 0) {
+          const recUrlMap: Record<number, string> = {};
+          await Promise.all(recordings.map(async (path: string, idx: number) => {
+            if (!path || !path.trim()) return;
+            const { data } = await supabase.storage
+              .from("practice-recordings")
+              .createSignedUrl(path, 3600);
+            if (data?.signedUrl) {
+              recUrlMap[idx] = data.signedUrl;
+            }
+          }));
+          setRecordingUrls(recUrlMap);
+        }
 
         // Fetch lesson PDFs for this shared log
         const { data: pdfData } = await supabase
@@ -268,9 +303,14 @@ export default function SharedPracticeLog() {
             <h3 className="font-display text-sm text-muted-foreground mb-3">Repertoire & Exercises</h3>
             <ul className="space-y-1">
               {practiceLog.repertoire?.filter(r => r).map((item, idx) => (
-                <li key={idx} className="flex items-center gap-2 text-foreground">
-                  <div className="w-3 h-3 rounded-full border border-muted-foreground/30" />
-                  {item}
+                <li key={idx} className="space-y-1">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <div className="w-3 h-3 rounded-full border border-muted-foreground/30" />
+                    {item}
+                  </div>
+                  {recordingUrls[idx] && (
+                    <audio controls className="w-full h-8 ml-5" src={recordingUrls[idx]} />
+                  )}
                 </li>
               ))}
               {(!practiceLog.repertoire || practiceLog.repertoire.filter(r => r).length === 0) && (
@@ -351,7 +391,11 @@ export default function SharedPracticeLog() {
                     ) : null;
                   })()}
                   {item.media_type === "audio" && item.file_path && (
-                    <p className="text-xs text-muted-foreground italic">Audio playback not available in shared view</p>
+                    mediaAudioUrls[item.id] ? (
+                      <audio controls className="w-full h-8" src={mediaAudioUrls[item.id]} />
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Loading audio...</p>
+                    )
                   )}
                 </div>
               ))}
