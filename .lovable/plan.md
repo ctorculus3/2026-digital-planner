@@ -1,26 +1,53 @@
 
 
-# Remove Download Link from PDF Viewer Dialog
+# Add Previous/Next Week Tabs to Day Tabs
 
-## Why
+## Overview
 
-The Download link doesn't work due to browser sandbox restrictions (same issue that originally caused blank pages). Since the Google Docs Viewer already provides its own built-in download option in the top-right corner of the viewer, the custom Download link is redundant and broken.
+Add two navigation tabs to the weekday tab strip on the right side: a **backward arrow tab** before Sunday to jump to the previous week, and a **forward arrow tab** after Saturday to jump to the next week. These will visually match the existing day tabs but use arrow symbols instead of day names.
 
 ## Changes
 
-### 1. `src/components/practice-log/LessonPdfs.tsx`
+### 1. `src/components/practice-log/DayTabs.tsx`
 
-- Remove the `<a>` download link from the DialogHeader
-- Remove the `Download` icon import (if no longer used elsewhere)
-- Simplify the DialogHeader to just show the file name
+- Add two new props: `onPrevWeek` and `onNextWeek` (callback functions)
+- Before the Sunday tab, render a "previous week" button with a left/up-pointing arrow (e.g., chevron icon or simple arrow character like "<<")
+- After the Saturday tab, render a "next week" button with a right/down-pointing arrow
+- Both tabs use the same vertical text styling and rounded-right shape as the day tabs
+- Use a neutral/distinct color (like a muted gray or a contrasting accent) so they stand out as navigation controls rather than day selectors
 
-### 2. `src/pages/SharedPracticeLog.tsx`
+### 2. `src/components/practice-log/PracticeLogCalendar.tsx`
 
-- Remove the `<a>` download link from the DialogHeader
-- Remove the `Download` icon import
-- Simplify the DialogHeader to just show the file name
+- Add two new handler functions:
+  - `handlePrevWeek`: subtracts 7 days from the current date using `subDays(currentDate, 7)`
+  - `handleNextWeek`: adds 7 days to the current date using `addDays(currentDate, 7)`
+- Pass these handlers to `DayTabs` as `onPrevWeek` and `onNextWeek` props
 
-## Result
+### 3. `src/index.css` (minor)
 
-The PDF viewer dialog will show a clean header with just the file name and close button. Users can still download the PDF using the Google Docs Viewer's built-in download button within the viewer itself.
+- Add a CSS variable for the navigation tab color (e.g., `--tab-nav`) so it has a distinct but harmonious appearance with the existing day tab rainbow
 
+### 4. `tailwind.config.ts` (minor)
+
+- Register the new `tab-nav` color utility class
+
+## Visual Layout (top to bottom on right side)
+
+```text
+[ STAFF PAPER ]
+[   <<  ]  <-- Previous week tab (new)
+[  SUN  ]
+[  MON  ]
+[ TUES  ]
+[  WED  ]
+[ THUR  ]
+[  FRI  ]
+[  SAT  ]
+[   >>  ]  <-- Next week tab (new)
+```
+
+## Technical Details
+
+The new tabs will use `ChevronUp` and `ChevronDown` icons from lucide-react (since the tabs are vertical, up = backward in time, down = forward in time). They'll share the same rounded-right styling, shadow, and hover effects as the existing day tabs but won't have the "selected" ring indicator since they're action buttons, not selectors.
+
+No database changes needed -- this is purely a UI/navigation enhancement using the existing `setCurrentDate` state in `PracticeLogCalendar`.
