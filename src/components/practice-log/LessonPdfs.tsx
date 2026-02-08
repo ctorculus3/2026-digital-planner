@@ -62,10 +62,13 @@ export function LessonPdfs({
 
   const handleOpenPdf = useCallback(
     async (item: LessonPdfItem) => {
+      // Open window synchronously to preserve user gesture context
+      const newWindow = window.open("", "_blank");
       const url = await getSignedPdfUrl(item.file_path);
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
+      if (url && newWindow) {
+        newWindow.location.href = url;
       } else {
+        newWindow?.close();
         toast.error("Failed to open PDF");
       }
     },
