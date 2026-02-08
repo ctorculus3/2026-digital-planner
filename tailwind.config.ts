@@ -65,6 +65,7 @@ export default {
   			'tab-friday': 'hsl(var(--tab-friday))',
   			'tab-saturday': 'hsl(var(--tab-saturday))',
   			'tab-staff': 'hsl(var(--tab-staff))',
+  			'tab-nav': 'hsl(var(--tab-nav))',
   			'header-bg': 'hsl(var(--header-bg))',
   			'header-dark': 'hsl(var(--header-dark))',
   			'ring-color': 'hsl(var(--ring-color))'
