@@ -11,6 +11,7 @@ import {
 import { Music2, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
+import { PlanToggle } from "./PlanToggle";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 
@@ -23,6 +24,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const pollingRef = useRef(false);
@@ -114,8 +116,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const handleSubscribe = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: selectedPlan },
+      });
       if (data?.url) {
         window.location.href = data.url;
       } else {
@@ -169,10 +172,16 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          <PlanToggle selectedPlan={selectedPlan} onPlanChange={setSelectedPlan} />
+          
           <div className="text-center">
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-bold">$3.99</span>
-              <span className="text-muted-foreground">/month</span>
+              <span className="text-4xl font-bold">
+                {selectedPlan === "monthly" ? "$3.99" : "$39.99"}
+              </span>
+              <span className="text-muted-foreground">
+                {selectedPlan === "monthly" ? "/month" : "/year"}
+              </span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               <Sparkles className="w-4 h-4 inline mr-1" />
