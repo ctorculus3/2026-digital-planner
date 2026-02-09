@@ -1,71 +1,48 @@
 
 
-## Fix: Race Condition Causing Paywall Redirect After Sign-In
+## Add Practice Time Summary to the Dashboard
 
-### Root Cause Analysis
+Display practice time totals (Today, This Week, This Month, Total) alongside the existing streak counter in a single unified section.
 
-The current retry logic added in the previous fix doesn't address the actual root cause. The problem is a **race condition between concurrent subscription checks**, not individual check failures.
+### Data Approach
 
-Here's what happens:
-
-1. When you sign in (or refresh the page), Supabase's `onAuthStateChange` can fire **multiple events** in quick succession (e.g., `SIGNED_IN` followed by `TOKEN_REFRESHED`, or `INITIAL_SESSION` overlapping with `getSession()`)
-2. Each event triggers a separate `fetchSubscription()` call
-3. These calls run concurrently -- the first one might succeed and set status to `active`, but the **second one** (arriving slightly later) could fail due to a transient timing issue
-4. The second call's failure **overwrites** the first call's success, setting status back to `inactive`
-5. Result: you see the paywall even though the subscription check actually succeeded once
-
-This explains why **refreshing sometimes works** -- on refresh, the timing of events is slightly different, and you only get one call instead of two racing calls.
-
-### The Fix
-
-Add a **generation counter** to `fetchSubscription` so that only the **most recent** call's result is ever applied. If a newer call starts while an older one is in-flight, the older one's result is silently discarded.
-
-```text
-Call A starts (generation 1) ─── network request ─── succeeds ─── checks: am I still latest? NO (gen is now 2) ─── discarded
-Call B starts (generation 2) ─── network request ─── succeeds ─── checks: am I still latest? YES ─── applied as 'active'
-```
-
-This eliminates ALL race conditions regardless of how many times `onAuthStateChange` fires.
+The `practice_logs` table already stores `total_time` as a Postgres `interval`. Rather than creating a database function, we'll query practice logs directly on the client side with date filters, then sum the intervals in JavaScript. This keeps it simple and avoids a migration.
 
 ### What Changes
 
-**Only one file changes: `src/contexts/AuthContext.tsx`**
+**1. `src/hooks/useDashboardData.ts`** -- Add practice time fetching
 
-- Add a `fetchIdRef` (useRef) to track the latest subscription check generation
-- At the start of each `fetchSubscription` call, increment the ref and capture the value as `myId`
-- Before applying any result (setting subscription status), check if `myId` still matches `fetchIdRef.current`
-- If it doesn't match, the call was superseded by a newer one -- discard the result silently
-- Apply the same check before retrying, so stale retries are also skipped
+- Add a new `practiceTime` state object with four fields: `today`, `thisWeek`, `thisMonth`, `total` (all in minutes as numbers)
+- In `fetchData`, add a query to fetch `total_time` and `log_date` from `practice_logs` for the current user (no date filter -- we need all-time totals)
+- Parse the interval strings (e.g., "01:45:00") into minutes
+- Calculate the four buckets using date comparisons (today, start of week, start of month)
+- Return `practiceTime` alongside existing data
 
-### What Stays the Same
+**2. `src/components/dashboard/StreakCounter.tsx`** -- Expand to include time stats
 
-- The `check-subscription` edge function (working correctly)
-- The `SubscriptionGate` component (including polling, refresh, and error handling)
-- The `create-checkout` guard (409 for already-subscribed users)
-- The `initialSessionLoaded` ref (still used to prevent redundant calls during initialization)
-- All other auth flow logic (sign-in, sign-up, sign-out)
-- The retry mechanism (still retries once after 1 second, but now only if the call hasn't been superseded)
+- Rename to accept `practiceTime` prop alongside `streak`
+- Keep the existing flame icon + streak counter on the left
+- Add a vertical divider
+- Add the four time stats (Today, This Week, This Month, Total) on the right, formatted as `H:MM`
+- Use a responsive layout: side-by-side on desktop, stacked on mobile
 
-### Technical Details
+**3. `src/pages/Dashboard.tsx`** -- Pass new data
 
-The generation counter pattern works like this:
+- Destructure `practiceTime` from `useDashboardData` and pass it to `StreakCounter`
 
-```text
-fetchIdRef.current starts at 0
+### Time Formatting
 
-Call from onAuthStateChange(SIGNED_IN):
-  myId = ++fetchIdRef.current  (myId = 1)
-  ... network request in flight ...
+Times will display as hours and minutes in `H:MM` format:
+- Under 1 hour: `0:45`
+- Over 1 hour: `1:45`
+- Large totals: `12:50`
 
-Call from onAuthStateChange(TOKEN_REFRESHED):  
-  myId = ++fetchIdRef.current  (myId = 2)
-  ... network request in flight ...
+The label will say "hrs" to clarify (e.g., "Today: 1:45 hrs").
 
-First call completes:
-  myId (1) !== fetchIdRef.current (2) --> result DISCARDED
+### Technical Notes
 
-Second call completes:
-  myId (2) === fetchIdRef.current (2) --> result APPLIED
-```
+- The query fetches all practice logs for the user (needed for "Total"). Since each user typically has tens to low hundreds of logs, this is efficient.
+- Logs with `null` total_time are skipped in the sum.
+- "This Week" uses Monday as the start of the week (ISO standard), matching typical practice schedules.
+- The interval parsing handles the `HH:MM:SS` format returned by Postgres.
 
-This is a minimal, surgical change -- roughly 10 lines added/modified in a single file. No structural changes to the auth flow.
