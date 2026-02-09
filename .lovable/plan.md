@@ -1,46 +1,34 @@
 
 
-## Redesign Practice Time Layout
+## Add Download Button to Repertoire Audio Recordings
 
-Reorganize the practice time display into its own distinct section with a centered title, separate from the streak counter.
+Add a download icon button next to the existing Play and Delete buttons so users can save their recordings to their computer.
 
 ### Changes
 
-**`src/components/dashboard/StreakCounter.tsx`**
+**`src/hooks/useAudioRecording.ts`**
 
-- Remove the practice time grid and divider from the StreakCounter component
-- StreakCounter goes back to only showing the flame icon and streak count
+- Add a `downloadRecording` function that:
+  - Uses the existing signed URL (`audioUrl` state) to fetch the audio file
+  - Creates a temporary download link with a descriptive filename (e.g., `repertoire-1.webm`)
+  - Triggers the browser's native download dialog
+- Export `downloadRecording` from the hook's return object
 
-**`src/components/dashboard/PracticeTimeSummary.tsx`** (new file)
+**`src/components/practice-log/AudioRecorder.tsx`**
 
-- Create a new component that displays:
-  - A centered title: "Hours of Practice" (using the app's display font)
-  - A single horizontal row with all four stats: Today, This Week, This Month, Total
-  - Each stat shows the label above and the `H:MM hrs` value below
-  - Responsive: on mobile, the four items wrap into a 2x2 grid; on desktop they sit in one row
-- Accepts `practiceTime` and `loading` props
-
-**`src/pages/Dashboard.tsx`**
-
-- Import and render the new `PracticeTimeSummary` component below the `StreakCounter`
-- Pass `practiceTime` and `loading` to it
-- Remove `practiceTime` prop from `StreakCounter` (revert it to streak-only)
-
-### Layout Result
+- Import the `Download` icon from `lucide-react`
+- Destructure `downloadRecording` from the `useAudioRecording` hook
+- Add a download button between the Play and Delete buttons in the "has recording" state:
 
 ```text
-+---------------------------------+
-|  [flame] 11 day streak         |
-+---------------------------------+
-|      Hours of Practice          |
-|  Today  This Week  This Month  Total  |
-|  1:45   5:37       8:20        12:50  |
-+---------------------------------+
+[Play/Pause] [Download] [Delete]
 ```
+
+- Style it consistently with the existing buttons (ghost variant, `h-7 w-7`, muted foreground color with primary hover)
 
 ### Technical Notes
 
-- Reuses the existing `formatTime` helper and `PracticeTime` type from `useDashboardData`
-- The `StreakCounter` component signature simplifies back to just `streak` and `loading` props
-- No database or hook changes needed -- only UI reorganization
+- The signed URL is already fetched and stored in the hook's state when a recording exists, so no additional network call is needed to generate it
+- The download uses `fetch()` + `blob()` + temporary anchor element pattern to force a file download (rather than opening in a new tab)
+- The filename will be derived from the repertoire index (e.g., `recording-1.webm`) for clarity
 
