@@ -125,11 +125,20 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         throw new Error("No checkout URL received");
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start checkout",
-        variant: "destructive",
-      });
+      const msg = error?.message || "";
+      if (msg.includes("already have an active subscription")) {
+        toast({
+          title: "You're already subscribed!",
+          description: "Refreshing your subscription status...",
+        });
+        await refreshSubscription();
+      } else {
+        toast({
+          title: "Error",
+          description: msg || "Failed to start checkout",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

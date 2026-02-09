@@ -74,6 +74,27 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
+
+      // Guard: check if customer already has an active or trialing subscription
+      const existingSubs = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 1,
+      });
+      const trialingSubs = existingSubs.data.length === 0
+        ? await stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 })
+        : { data: [] };
+
+      if (existingSubs.data.length > 0 || trialingSubs.data.length > 0) {
+        logStep("Customer already has an active subscription", { customerId });
+        return new Response(
+          JSON.stringify({ error: "You already have an active subscription" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          }
+        );
+      }
     }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";

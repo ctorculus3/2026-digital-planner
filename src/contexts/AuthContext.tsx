@@ -42,28 +42,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke("check-subscription", {
-        headers: { Authorization: `Bearer ${currentSession.access_token}` },
-      });
+    const attempt = async (): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase.functions.invoke("check-subscription", {
+          headers: { Authorization: `Bearer ${currentSession.access_token}` },
+        });
 
-      if (error) {
-        console.error("Subscription check error:", error);
-        if ((error as any)?.status === 401) {
-          await supabase.auth.signOut();
+        if (error) {
+          console.warn("Subscription check error:", error);
+          if ((error as any)?.status === 401) {
+            await supabase.auth.signOut();
+            setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+            return true; // Don't retry on auth errors
+          }
+          return false; // Signal retry
         }
-        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
-        return;
-      }
 
-      setSubscription({
-        status: data?.subscribed ? 'active' : 'inactive',
-        isTrialing: data?.is_trialing || false,
-        endDate: data?.subscription_end || null,
-      });
-    } catch (error) {
-      console.error("Subscription check failed:", error);
-      setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        setSubscription({
+          status: data?.subscribed ? 'active' : 'inactive',
+          isTrialing: data?.is_trialing || false,
+          endDate: data?.subscription_end || null,
+        });
+        return true; // Success
+      } catch (error) {
+        console.warn("Subscription check failed:", error);
+        return false; // Signal retry
+      }
+    };
+
+    const firstAttemptOk = await attempt();
+    if (!firstAttemptOk) {
+      console.warn("Subscription check: retrying in 1s...");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const retryOk = await attempt();
+      if (!retryOk) {
+        console.error("Subscription check: retry also failed, setting inactive");
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+      }
     }
   }, []);
 
