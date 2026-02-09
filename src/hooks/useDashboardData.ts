@@ -8,6 +8,13 @@ interface Badge {
   earned_at: string;
 }
 
+export interface PracticeTime {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  total: number;
+}
+
 const BADGE_THRESHOLDS = [
   { type: "streak_10", threshold: 10 },
   { type: "streak_30", threshold: 30 },
@@ -15,11 +22,28 @@ const BADGE_THRESHOLDS = [
   { type: "streak_100", threshold: 100 },
 ] as const;
 
+function parseIntervalToMinutes(interval: unknown): number {
+  if (!interval || typeof interval !== "string") return 0;
+  const match = interval.match(/^(\d+):(\d+):(\d+)$/);
+  if (!match) return 0;
+  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+}
+
+function getStartOfWeek(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export function useDashboardData(viewYear: number, viewMonth: number) {
   const { user } = useAuth();
   const [practicedDates, setPracticedDates] = useState<string[]>([]);
   const [streak, setStreak] = useState(0);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [practiceTime, setPracticeTime] = useState<PracticeTime>({ today: 0, thisWeek: 0, thisMonth: 0, total: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -27,7 +51,7 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
     setLoading(true);
 
     try {
-      const [datesRes, streakRes, badgesRes] = await Promise.all([
+      const [datesRes, streakRes, badgesRes, timeRes] = await Promise.all([
         supabase.rpc("get_practiced_dates", {
           p_user_id: user.id,
           p_year: viewYear,
@@ -39,6 +63,10 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
         supabase
           .from("user_badges")
           .select("*")
+          .eq("user_id", user.id),
+        supabase
+          .from("practice_logs")
+          .select("total_time, log_date")
           .eq("user_id", user.id),
       ]);
 
@@ -73,6 +101,26 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
       if (updatedBadges) {
         setBadges(updatedBadges as Badge[]);
       }
+
+      // Calculate practice time buckets
+      if (timeRes.data) {
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const weekStart = getStartOfWeek(now);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let today = 0, thisWeek = 0, thisMonth = 0, total = 0;
+        for (const log of timeRes.data) {
+          const mins = parseIntervalToMinutes(log.total_time);
+          if (mins === 0) continue;
+          total += mins;
+          const logDate = new Date(log.log_date + "T00:00:00");
+          if (log.log_date === todayStr) today += mins;
+          if (logDate >= weekStart) thisWeek += mins;
+          if (logDate >= monthStart) thisMonth += mins;
+        }
+        setPracticeTime({ today, thisWeek, thisMonth, total });
+      }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -84,5 +132,5 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
     fetchData();
   }, [fetchData]);
 
-  return { practicedDates, streak, badges, loading, refetch: fetchData };
+  return { practicedDates, streak, badges, practiceTime, loading, refetch: fetchData };
 }
