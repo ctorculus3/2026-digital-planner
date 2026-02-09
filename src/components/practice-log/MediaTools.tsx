@@ -2,33 +2,40 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMediaTools, extractYouTubeVideoId, type MediaItem } from "@/hooks/useMediaTools";
-import { Upload, Link, X, Loader2, Music, Youtube } from "lucide-react";
+import { Upload, Link, X, Loader2, Music, Youtube, Video } from "lucide-react";
 interface MediaToolsProps {
   practiceLogId: string | undefined;
   userId: string;
   logDate: string;
   onPracticeLogCreated?: () => void;
 }
-function AudioPlayer({
+function MediaPlayer({
   filePath,
+  type,
   getSignedUrl
 }: {
   filePath: string;
+  type: "audio" | "video";
   getSignedUrl: (path: string) => Promise<string | null>;
 }) {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    getSignedUrl(filePath).then(url => {
-      if (!cancelled) setAudioUrl(url);
+    getSignedUrl(filePath).then(u => {
+      if (!cancelled) setUrl(u);
     });
     return () => {
       cancelled = true;
     };
   }, [filePath, getSignedUrl]);
-  if (!audioUrl) return <div className="h-8 flex items-center text-xs text-muted-foreground">Loading audio...</div>;
+  if (!url) return <div className="h-8 flex items-center text-xs text-muted-foreground">Loading...</div>;
+  if (type === "video") {
+    return <video controls className="w-full rounded" preload="metadata">
+        <source src={url} />
+      </video>;
+  }
   return <audio controls className="w-full h-8" preload="metadata">
-      <source src={audioUrl} />
+      <source src={url} />
     </audio>;
 }
 function YouTubeEmbed({
@@ -108,9 +115,9 @@ export function MediaTools({
               Uploading...
             </div> : <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Upload className="w-4 h-4" />
-              Drop audio file or click to browse
+              Drop audio/video file or click to browse
             </div>}
-          <input ref={fileInputRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.webm,audio/*" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileInputRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.webm,.mp4,.mov,audio/*,video/*" className="hidden" onChange={handleFileSelect} />
         </div>}
 
       {/* YouTube URL input */}
@@ -144,15 +151,15 @@ function MediaItemCard({
   return <div className="border border-border rounded-md p-2 space-y-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate flex-1 min-w-0">
-          {item.media_type === "audio" ? <Music className="w-3.5 h-3.5 flex-shrink-0" /> : <Youtube className="w-3.5 h-3.5 flex-shrink-0" />}
-          <span className="truncate">{item.label || (item.media_type === "audio" ? "Audio" : "YouTube")}</span>
+          {item.media_type === "audio" ? <Music className="w-3.5 h-3.5 flex-shrink-0" /> : item.media_type === "video" ? <Video className="w-3.5 h-3.5 flex-shrink-0" /> : <Youtube className="w-3.5 h-3.5 flex-shrink-0" />}
+          <span className="truncate">{item.label || (item.media_type === "youtube" ? "YouTube" : item.media_type === "video" ? "Video" : "Audio")}</span>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={() => onDelete(item)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive flex-shrink-0">
           <X className="w-3.5 h-3.5" />
         </Button>
       </div>
 
-      {item.media_type === "audio" && item.file_path && <AudioPlayer filePath={item.file_path} getSignedUrl={getSignedUrl} />}
+      {(item.media_type === "audio" || item.media_type === "video") && item.file_path && <MediaPlayer filePath={item.file_path} type={item.media_type} getSignedUrl={getSignedUrl} />}
 
       {item.media_type === "youtube" && item.youtube_url && <YouTubeEmbed url={item.youtube_url} />}
     </div>;

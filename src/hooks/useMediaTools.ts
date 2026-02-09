@@ -13,13 +13,18 @@ const ACCEPTED_AUDIO_TYPES = [
   "audio/ogg",
   "audio/webm",
 ];
-const ACCEPTED_EXTENSIONS = [".mp3", ".wav", ".m4a", ".ogg", ".webm"];
+const ACCEPTED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+];
+const ACCEPTED_EXTENSIONS = [".mp3", ".wav", ".m4a", ".ogg", ".webm", ".mp4", ".mov"];
 
 export interface MediaItem {
   id: string;
   practice_log_id: string;
   user_id: string;
-  media_type: "audio" | "youtube";
+  media_type: "audio" | "video" | "youtube";
   file_path: string | null;
   youtube_url: string | null;
   label: string | null;
@@ -147,10 +152,14 @@ export function useMediaTools(
       }
 
       const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
-      if (!ACCEPTED_EXTENSIONS.includes(ext) && !ACCEPTED_AUDIO_TYPES.includes(file.type)) {
-        toast.error("Unsupported audio format. Use mp3, wav, m4a, ogg, or webm.");
+      const isAccepted = ACCEPTED_EXTENSIONS.includes(ext) || ACCEPTED_AUDIO_TYPES.includes(file.type) || ACCEPTED_VIDEO_TYPES.includes(file.type);
+      if (!isAccepted) {
+        toast.error("Unsupported format. Use mp3, wav, m4a, ogg, webm, mp4, or mov.");
         return;
       }
+
+      const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type) || [".mp4", ".mov"].includes(ext);
+      const mediaType = isVideo ? "video" : "audio";
 
       setIsUploading(true);
       try {
@@ -169,7 +178,7 @@ export function useMediaTools(
         const { error: insertError } = await supabase.from("practice_media").insert({
           practice_log_id: logId,
           user_id: userId,
-          media_type: "audio",
+          media_type: mediaType,
           file_path: filePath,
           label: file.name,
           sort_order: sortOrder,
