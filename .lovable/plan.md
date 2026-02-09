@@ -1,50 +1,71 @@
 
 
-## Fix: Subscribed Users Incorrectly Seeing the Paywall
+## Fix: Race Condition Causing Paywall Redirect After Sign-In
 
-### Problem
+### Root Cause Analysis
 
-When logging in as ctorculus@mac.com (which has an active free trial), the paywall is displayed instead of the dashboard. The backend correctly returns `subscribed: true`, so the issue is in how the frontend handles the subscription check -- particularly when switching between accounts.
+The current retry logic added in the previous fix doesn't address the actual root cause. The problem is a **race condition between concurrent subscription checks**, not individual check failures.
 
-### Root Cause
+Here's what happens:
 
-In `AuthContext.tsx`, the `fetchSubscription` function has no retry logic. If the single subscription check fails (network hiccup, timing issue during account switch), the status is permanently set to `inactive` and the paywall appears. The user must manually click "Refresh status" to recover.
+1. When you sign in (or refresh the page), Supabase's `onAuthStateChange` can fire **multiple events** in quick succession (e.g., `SIGNED_IN` followed by `TOKEN_REFRESHED`, or `INITIAL_SESSION` overlapping with `getSession()`)
+2. Each event triggers a separate `fetchSubscription()` call
+3. These calls run concurrently -- the first one might succeed and set status to `active`, but the **second one** (arriving slightly later) could fail due to a transient timing issue
+4. The second call's failure **overwrites** the first call's success, setting status back to `inactive`
+5. Result: you see the paywall even though the subscription check actually succeeded once
 
-### Changes
+This explains why **refreshing sometimes works** -- on refresh, the timing of events is slightly different, and you only get one call instead of two racing calls.
 
-**1. Add retry logic to `fetchSubscription` in `src/contexts/AuthContext.tsx`**
+### The Fix
 
-- If `fetchSubscription` encounters an error or the `supabase.functions.invoke` call fails, automatically retry once after a 1-second delay before setting the status to `inactive`
-- Add `console.warn` logging when errors occur so future issues are easier to diagnose
-- This is a small, targeted change to the existing `fetchSubscription` callback -- no other code in this file changes
-
-**2. Guard against double-subscribing in `supabase/functions/create-checkout/index.ts`**
-
-- After looking up the Stripe customer, check if they already have an active or trialing subscription
-- If they do, return a clear error message (e.g., `"You already have an active subscription"`) instead of trying to create a new checkout session that fails with a confusing error
-- This prevents the "No checkout URL received" error that appears when a subscribed user is incorrectly shown the paywall and clicks "Start Free Trial"
-
-**3. Show a friendlier error in `src/components/subscription/SubscriptionGate.tsx`**
-
-- In the `handleSubscribe` error handler, detect the "already subscribed" error from the backend and automatically trigger a subscription status refresh instead of showing a generic error toast
-- This way, if a subscribed user somehow reaches the paywall and clicks subscribe, the app self-corrects by re-checking and letting them through
-
-### What stays the same
-
-- The `check-subscription` edge function is unchanged (it works correctly)
-- The `PlanToggle` component and plan selection logic are unchanged
-- The `ManageSubscription` component is unchanged
-- All existing subscription status flow, polling logic, and post-checkout handling are preserved
-
-### Technical details
-
-The retry in `fetchSubscription` will be a simple single retry with a 1-second delay:
+Add a **generation counter** to `fetchSubscription` so that only the **most recent** call's result is ever applied. If a newer call starts while an older one is in-flight, the older one's result is silently discarded.
 
 ```text
-attempt 1 fails -> wait 1s -> attempt 2 fails -> set inactive
-attempt 1 fails -> wait 1s -> attempt 2 succeeds -> set active
-attempt 1 succeeds -> set active (no retry needed)
+Call A starts (generation 1) ─── network request ─── succeeds ─── checks: am I still latest? NO (gen is now 2) ─── discarded
+Call B starts (generation 2) ─── network request ─── succeeds ─── checks: am I still latest? YES ─── applied as 'active'
 ```
 
-The active-subscription guard in `create-checkout` checks Stripe subscriptions with status `active` or `trialing` before creating a checkout session, returning HTTP 409 with a descriptive message if one exists.
+This eliminates ALL race conditions regardless of how many times `onAuthStateChange` fires.
 
+### What Changes
+
+**Only one file changes: `src/contexts/AuthContext.tsx`**
+
+- Add a `fetchIdRef` (useRef) to track the latest subscription check generation
+- At the start of each `fetchSubscription` call, increment the ref and capture the value as `myId`
+- Before applying any result (setting subscription status), check if `myId` still matches `fetchIdRef.current`
+- If it doesn't match, the call was superseded by a newer one -- discard the result silently
+- Apply the same check before retrying, so stale retries are also skipped
+
+### What Stays the Same
+
+- The `check-subscription` edge function (working correctly)
+- The `SubscriptionGate` component (including polling, refresh, and error handling)
+- The `create-checkout` guard (409 for already-subscribed users)
+- The `initialSessionLoaded` ref (still used to prevent redundant calls during initialization)
+- All other auth flow logic (sign-in, sign-up, sign-out)
+- The retry mechanism (still retries once after 1 second, but now only if the call hasn't been superseded)
+
+### Technical Details
+
+The generation counter pattern works like this:
+
+```text
+fetchIdRef.current starts at 0
+
+Call from onAuthStateChange(SIGNED_IN):
+  myId = ++fetchIdRef.current  (myId = 1)
+  ... network request in flight ...
+
+Call from onAuthStateChange(TOKEN_REFRESHED):  
+  myId = ++fetchIdRef.current  (myId = 2)
+  ... network request in flight ...
+
+First call completes:
+  myId (1) !== fetchIdRef.current (2) --> result DISCARDED
+
+Second call completes:
+  myId (2) === fetchIdRef.current (2) --> result APPLIED
+```
+
+This is a minimal, surgical change -- roughly 10 lines added/modified in a single file. No structural changes to the auth flow.
