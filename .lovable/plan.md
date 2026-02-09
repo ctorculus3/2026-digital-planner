@@ -1,34 +1,44 @@
 
 
-## Add Download Button to Repertoire Audio Recordings
+## Fix Audio Recording Download Format
 
-Add a download icon button next to the existing Play and Delete buttons so users can save their recordings to their computer.
+The downloaded `.webm` files won't play on many devices because WebM is primarily a video container format and lacks broad native support outside browsers (especially on macOS and Windows media players).
+
+### Root Cause
+
+The MediaRecorder currently prefers `audio/webm`, which browsers handle fine for in-app playback, but when downloaded to the user's computer, most native media players (QuickTime, Windows Media Player, etc.) either don't recognize it or refuse to play it.
+
+### Solution
+
+Change the recording format preference order to prioritize `audio/mp4` (AAC), which is universally playable on all platforms, and only fall back to `audio/webm` if MP4 isn't supported.
 
 ### Changes
 
 **`src/hooks/useAudioRecording.ts`**
 
-- Add a `downloadRecording` function that:
-  - Uses the existing signed URL (`audioUrl` state) to fetch the audio file
-  - Creates a temporary download link with a descriptive filename (e.g., `repertoire-1.webm`)
-  - Triggers the browser's native download dialog
-- Export `downloadRecording` from the hook's return object
+- Swap the MIME type preference: try `audio/mp4` first, then fall back to `audio/webm`
+  - `audio/mp4` produces `.m4a` files which play natively on macOS, Windows, iOS, and Android
+  - Safari and most mobile browsers support `audio/mp4`; Chrome/Firefox support `audio/webm`
+- Update the upload extension logic to match (already handles both cases)
+- No changes needed to the download function — it already detects the type from the blob
 
-**`src/components/practice-log/AudioRecorder.tsx`**
+**Change in the `startRecording` function (line 96-98):**
 
-- Import the `Download` icon from `lucide-react`
-- Destructure `downloadRecording` from the `useAudioRecording` hook
-- Add a download button between the Play and Delete buttons in the "has recording" state:
+```typescript
+// Before:
+const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+  ? "audio/webm"
+  : "audio/mp4";
 
-```text
-[Play/Pause] [Download] [Delete]
+// After:
+const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+  ? "audio/mp4"
+  : "audio/webm";
 ```
 
-- Style it consistently with the existing buttons (ghost variant, `h-7 w-7`, muted foreground color with primary hover)
+### Impact
 
-### Technical Notes
-
-- The signed URL is already fetched and stored in the hook's state when a recording exists, so no additional network call is needed to generate it
-- The download uses `fetch()` + `blob()` + temporary anchor element pattern to force a file download (rather than opening in a new tab)
-- The filename will be derived from the repertoire index (e.g., `recording-1.webm`) for clarity
+- New recordings will be saved as `.m4a` files (on browsers that support `audio/mp4`) which are universally playable
+- Existing `.webm` recordings will continue to work for in-app playback and download (the download function already handles both extensions)
+- Chrome on desktop may still fall back to `audio/webm` since it doesn't support `audio/mp4` recording — but Safari, Edge, and mobile browsers will produce `.m4a`
 
