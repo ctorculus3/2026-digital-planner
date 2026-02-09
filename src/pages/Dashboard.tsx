@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-indexed
 
-  const { practicedDates, streak, badges, loading } = useDashboardData(viewYear, viewMonth);
+  const { practicedDates, streak, badges, practiceTime, loading } = useDashboardData(viewYear, viewMonth);
 
   const handlePrevMonth = useCallback(() => {
     setViewMonth((prev) => {
@@ -59,7 +59,7 @@ export default function Dashboard() {
         </h1>
 
         {/* Streak Counter */}
-        <StreakCounter streak={streak} loading={loading} />
+        <StreakCounter streak={streak} loading={loading} practiceTime={practiceTime} />
 
         {/* Practice Calendar */}
         <PracticeCalendar
