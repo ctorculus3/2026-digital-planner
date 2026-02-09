@@ -190,7 +190,7 @@ export function useMediaTools(
         await fetchMedia();
       } catch (err) {
         console.error("Upload error:", err);
-        toast.error("Failed to upload audio file");
+        toast.error("Failed to upload file");
       } finally {
         setIsUploading(false);
       }
@@ -242,7 +242,7 @@ export function useMediaTools(
     async (item: MediaItem) => {
       try {
         // Delete storage file if audio
-        if (item.media_type === "audio" && item.file_path) {
+        if ((item.media_type === "audio" || item.media_type === "video") && item.file_path) {
           const { error: storageError } = await supabase.storage
             .from("practice-media")
             .remove([item.file_path]);
