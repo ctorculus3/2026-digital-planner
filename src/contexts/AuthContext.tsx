@@ -35,10 +35,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Flag to prevent duplicate subscription checks during initialization
   const initialSessionLoaded = useRef(false);
+  // Generation counter to prevent stale subscription results from racing calls
+  const fetchIdRef = useRef(0);
 
   const fetchSubscription = useCallback(async (currentSession: Session | null) => {
+    const myId = ++fetchIdRef.current;
+
     if (!currentSession) {
-      setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+      if (myId === fetchIdRef.current) {
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+      }
       return;
     }
 
@@ -48,14 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: { Authorization: `Bearer ${currentSession.access_token}` },
         });
 
+        // Stale check — a newer call has started, discard this result
+        if (myId !== fetchIdRef.current) return true;
+
         if (error) {
           console.warn("Subscription check error:", error);
           if ((error as any)?.status === 401) {
             await supabase.auth.signOut();
             setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
-            return true; // Don't retry on auth errors
+            return true;
           }
-          return false; // Signal retry
+          return false;
         }
 
         setSubscription({
@@ -63,19 +72,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isTrialing: data?.is_trialing || false,
           endDate: data?.subscription_end || null,
         });
-        return true; // Success
+        return true;
       } catch (error) {
+        if (myId !== fetchIdRef.current) return true;
         console.warn("Subscription check failed:", error);
-        return false; // Signal retry
+        return false;
       }
     };
 
     const firstAttemptOk = await attempt();
-    if (!firstAttemptOk) {
+    if (!firstAttemptOk && myId === fetchIdRef.current) {
       console.warn("Subscription check: retrying in 1s...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (myId !== fetchIdRef.current) return; // Superseded during wait
       const retryOk = await attempt();
-      if (!retryOk) {
+      if (!retryOk && myId === fetchIdRef.current) {
         console.error("Subscription check: retry also failed, setting inactive");
         setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
       }
