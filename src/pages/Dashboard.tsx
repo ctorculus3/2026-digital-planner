@@ -4,6 +4,7 @@ import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { PracticeCalendar } from "@/components/dashboard/PracticeCalendar";
 import { StreakCounter } from "@/components/dashboard/StreakCounter";
+import { PracticeTimeSummary } from "@/components/dashboard/PracticeTimeSummary";
 import { BadgeShelf } from "@/components/dashboard/BadgeShelf";
 import { UserMenu } from "@/components/practice-log/UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
@@ -59,7 +60,8 @@ export default function Dashboard() {
         </h1>
 
         {/* Streak Counter */}
-        <StreakCounter streak={streak} loading={loading} practiceTime={practiceTime} />
+        <StreakCounter streak={streak} loading={loading} />
+        <PracticeTimeSummary practiceTime={practiceTime} loading={loading} />
 
         {/* Practice Calendar */}
         <PracticeCalendar
