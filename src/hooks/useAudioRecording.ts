@@ -24,6 +24,7 @@ interface UseAudioRecordingReturn {
   stopRecording: () => void;
   playRecording: () => Promise<void>;
   pauseRecording: () => void;
+  downloadRecording: () => Promise<void>;
   deleteRecording: () => Promise<void>;
 }
 
@@ -196,6 +197,25 @@ export function useAudioRecording({
     }
   }, []);
 
+  const downloadRecording = useCallback(async () => {
+    if (!audioUrl) return;
+    try {
+      const response = await fetch(audioUrl);
+      const blob = await response.blob();
+      const extension = blob.type.includes("webm") ? "webm" : "m4a";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recording-${index + 1}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading recording:", error);
+    }
+  }, [audioUrl, index]);
+
   const deleteRecording = useCallback(async () => {
     if (!existingRecordingPath) return;
 
@@ -229,6 +249,7 @@ export function useAudioRecording({
     stopRecording,
     playRecording,
     pauseRecording,
+    downloadRecording,
     deleteRecording,
   };
 }

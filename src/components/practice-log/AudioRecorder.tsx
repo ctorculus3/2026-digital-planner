@@ -1,6 +1,6 @@
 import { useAudioRecording } from "@/hooks/useAudioRecording";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Play, Pause, Trash2, Loader2 } from "lucide-react";
+import { Mic, Square, Play, Pause, Trash2, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AudioRecorderProps {
@@ -30,6 +30,7 @@ export function AudioRecorder({
     stopRecording,
     playRecording,
     pauseRecording,
+    downloadRecording,
     deleteRecording,
   } = useAudioRecording({
     userId,
@@ -84,6 +85,15 @@ export function AudioRecorder({
           ) : (
             <Play className="w-4 h-4" />
           )}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={downloadRecording}
+          className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+        >
+          <Download className="w-3.5 h-3.5" />
         </Button>
         <Button
           type="button"
