@@ -1,44 +1,34 @@
 
 
-## Fix Audio Recording Download Format
+## Add Video File Support to Media Tools
 
-The downloaded `.webm` files won't play on many devices because WebM is primarily a video container format and lacks broad native support outside browsers (especially on macOS and Windows media players).
-
-### Root Cause
-
-The MediaRecorder currently prefers `audio/webm`, which browsers handle fine for in-app playback, but when downloaded to the user's computer, most native media players (QuickTime, Windows Media Player, etc.) either don't recognize it or refuse to play it.
-
-### Solution
-
-Change the recording format preference order to prioritize `audio/mp4` (AAC), which is universally playable on all platforms, and only fall back to `audio/webm` if MP4 isn't supported.
+Extend the Media Tools section to accept video files (mp4, mov, webm) in addition to the existing audio files, and render an inline video player for uploaded videos.
 
 ### Changes
 
-**`src/hooks/useAudioRecording.ts`**
+**`src/hooks/useMediaTools.ts`**
 
-- Swap the MIME type preference: try `audio/mp4` first, then fall back to `audio/webm`
-  - `audio/mp4` produces `.m4a` files which play natively on macOS, Windows, iOS, and Android
-  - Safari and most mobile browsers support `audio/mp4`; Chrome/Firefox support `audio/webm`
-- Update the upload extension logic to match (already handles both cases)
-- No changes needed to the download function — it already detects the type from the blob
+- Add video MIME types to the accepted list: `video/mp4`, `video/quicktime`, `video/webm`
+- Add video extensions to the accepted list: `.mp4`, `.mov`
+- Update the `uploadAudio` function (rename conceptually but keep backward compatible) to handle video files:
+  - Detect whether the file is audio or video based on MIME type
+  - Set `media_type` to `"video"` for video files, `"audio"` for audio files
+- Update the `MediaItem` type to include `"video"` as a valid `media_type`
 
-**Change in the `startRecording` function (line 96-98):**
+**`src/components/practice-log/MediaTools.tsx`**
 
-```typescript
-// Before:
-const mimeType = MediaRecorder.isTypeSupported("audio/webm")
-  ? "audio/webm"
-  : "audio/mp4";
+- Update the drop zone label from "Drop audio file or click to browse" to "Drop audio/video file or click to browse"
+- Update the file input `accept` attribute to include video types: `.mp4,.mov,.webm,video/*`
+- Import the `Video` icon from `lucide-react`
+- Add a video player rendering case in `MediaItemCard`:
+  - For `media_type === "video"`, render a `<video>` element with controls (similar pattern to the AudioPlayer component, using a signed URL)
+  - Show the `Video` icon in the item header
+- Rename the `AudioPlayer` component to `MediaPlayer` or add a parallel `VideoPlayer` component that fetches a signed URL and renders a `<video controls>` element
 
-// After:
-const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
-  ? "audio/mp4"
-  : "audio/webm";
-```
+### Technical Notes
 
-### Impact
-
-- New recordings will be saved as `.m4a` files (on browsers that support `audio/mp4`) which are universally playable
-- Existing `.webm` recordings will continue to work for in-app playback and download (the download function already handles both extensions)
-- Chrome on desktop may still fall back to `audio/webm` since it doesn't support `audio/mp4` recording — but Safari, Edge, and mobile browsers will produce `.m4a`
+- Video files will use the same `practice-media` storage bucket and 20MB size limit
+- The existing RLS policies on `practice_media` table already support this since `media_type` is a plain text column with no constraint
+- No database migration needed -- `media_type` is an unconstrained text field
+- The 5-item limit per practice log still applies across all media types
 
