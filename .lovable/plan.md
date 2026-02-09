@@ -1,50 +1,50 @@
 
 
-## Add Yearly Plan Option to Checkout Flow
+## Fix: Subscribed Users Incorrectly Seeing the Paywall
 
-Currently the paywall screen only shows the $3.99/month plan with a hardcoded price. This update will let users choose between monthly and yearly billing before starting their free trial.
+### Problem
 
-### What you'll see
+When logging in as ctorculus@mac.com (which has an active free trial), the paywall is displayed instead of the dashboard. The backend correctly returns `subscribed: true`, so the issue is in how the frontend handles the subscription check -- particularly when switching between accounts.
 
-The paywall card will be redesigned with a **plan toggle** (Monthly / Yearly) at the top of the pricing section. When "Yearly" is selected, the price display updates to show **$39.99/year** with a savings badge like "Save 17%". Both options still include the 7-day free trial. The "Start Free Trial" button will checkout with whichever plan is currently selected.
+### Root Cause
 
-### Changes needed (3 files)
+In `AuthContext.tsx`, the `fetchSubscription` function has no retry logic. If the single subscription check fails (network hiccup, timing issue during account switch), the status is permanently set to `inactive` and the paywall appears. The user must manually click "Refresh status" to recover.
 
-**1. Paywall UI -- `src/components/subscription/SubscriptionGate.tsx`**
+### Changes
 
-- Add a `selectedPlan` state toggle: `"monthly"` (default) or `"yearly"`
-- Add a toggle/tab switcher above the price display (Monthly | Yearly)
-- Update the price display to reflect the selected plan ($3.99/mo vs $39.99/yr)
-- Show a "Save 17%" badge when yearly is selected
-- Pass the selected plan to the checkout function call:
-  ```
-  supabase.functions.invoke("create-checkout", {
-    body: { plan: selectedPlan }
-  })
-  ```
+**1. Add retry logic to `fetchSubscription` in `src/contexts/AuthContext.tsx`**
 
-**2. Backend checkout function -- `supabase/functions/create-checkout/index.ts`**
+- If `fetchSubscription` encounters an error or the `supabase.functions.invoke` call fails, automatically retry once after a 1-second delay before setting the status to `inactive`
+- Add `console.warn` logging when errors occur so future issues are easier to diagnose
+- This is a small, targeted change to the existing `fetchSubscription` callback -- no other code in this file changes
 
-- Define both price IDs in a plan map:
-  ```
-  const PRICES = {
-    monthly: "price_1Sx00wPp57aypoj4v8akm2IH",
-    yearly: "price_1SyhXOPp57aypoj4Hx9fG1zH",
-  };
-  ```
-- Read the `plan` parameter from the request body (default to `"monthly"` if missing)
-- Use the corresponding price ID when creating the Stripe checkout session
-- Also fix the authentication method (replace `getClaims` with `getUser`) for reliability, matching the fix already applied to the moderation function
+**2. Guard against double-subscribing in `supabase/functions/create-checkout/index.ts`**
 
-**3. No changes needed to `check-subscription` or `ManageSubscription`**
+- After looking up the Stripe customer, check if they already have an active or trialing subscription
+- If they do, return a clear error message (e.g., `"You already have an active subscription"`) instead of trying to create a new checkout session that fails with a confusing error
+- This prevents the "No checkout URL received" error that appears when a subscribed user is incorrectly shown the paywall and clicks "Start Free Trial"
 
-The subscription verification and management components work at the subscription level (active/inactive), not at the price level, so they'll work correctly with either plan. Users can switch plans via the Stripe Customer Portal ("Manage" button).
+**3. Show a friendlier error in `src/components/subscription/SubscriptionGate.tsx`**
+
+- In the `handleSubscribe` error handler, detect the "already subscribed" error from the backend and automatically trigger a subscription status refresh instead of showing a generic error toast
+- This way, if a subscribed user somehow reaches the paywall and clicks subscribe, the app self-corrects by re-checking and letting them through
+
+### What stays the same
+
+- The `check-subscription` edge function is unchanged (it works correctly)
+- The `PlanToggle` component and plan selection logic are unchanged
+- The `ManageSubscription` component is unchanged
+- All existing subscription status flow, polling logic, and post-checkout handling are preserved
 
 ### Technical details
 
-Price IDs:
-- Monthly: `price_1Sx00wPp57aypoj4v8akm2IH` ($3.99/mo)
-- Yearly: `price_1SyhXOPp57aypoj4Hx9fG1zH` ($39.99/yr)
+The retry in `fetchSubscription` will be a simple single retry with a 1-second delay:
 
-The yearly plan saves roughly 17% vs paying monthly ($39.99 vs $47.88/yr). Both plans include the same 7-day free trial.
+```text
+attempt 1 fails -> wait 1s -> attempt 2 fails -> set inactive
+attempt 1 fails -> wait 1s -> attempt 2 succeeds -> set active
+attempt 1 succeeds -> set active (no retry needed)
+```
+
+The active-subscription guard in `create-checkout` checks Stripe subscriptions with status `active` or `trialing` before creating a checkout session, returning HTTP 409 with a descriptive message if one exists.
 
