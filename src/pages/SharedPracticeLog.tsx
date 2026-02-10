@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Music, Youtube, FileText } from "lucide-react";
+import { Loader2, Music, Youtube, FileText, Video, ImageIcon } from "lucide-react";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
 import {
   Dialog,
@@ -32,7 +32,7 @@ interface PracticeLogData {
 
 interface SharedMediaItem {
   id: string;
-  media_type: "audio" | "youtube";
+  media_type: "audio" | "youtube" | "video" | "photo";
   file_path: string | null;
   youtube_url: string | null;
   label: string | null;
@@ -107,10 +107,10 @@ export default function SharedPracticeLog() {
         setMediaItems(fetchedMediaItems);
 
         // Generate signed URLs for media audio files
-        const audioItems = fetchedMediaItems.filter(m => m.media_type === "audio" && m.file_path);
-        if (audioItems.length > 0) {
+        const fileItems = fetchedMediaItems.filter(m => (m.media_type === "audio" || m.media_type === "video" || m.media_type === "photo") && m.file_path);
+        if (fileItems.length > 0) {
           const audioUrlMap: Record<string, string> = {};
-          await Promise.all(audioItems.map(async (item) => {
+          await Promise.all(fileItems.map(async (item) => {
             const { data } = await supabase.storage
               .from("practice-media")
               .createSignedUrl(item.file_path!, 3600);
@@ -371,10 +371,14 @@ export default function SharedPracticeLog() {
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {item.media_type === "audio" ? (
                       <Music className="w-3.5 h-3.5" />
+                    ) : item.media_type === "video" ? (
+                      <Video className="w-3.5 h-3.5" />
+                    ) : item.media_type === "photo" ? (
+                      <ImageIcon className="w-3.5 h-3.5" />
                     ) : (
                       <Youtube className="w-3.5 h-3.5" />
                     )}
-                    <span className="truncate">{item.label || (item.media_type === "audio" ? "Audio" : "YouTube")}</span>
+                    <span className="truncate">{item.label || (item.media_type === "audio" ? "Audio" : item.media_type === "video" ? "Video" : item.media_type === "photo" ? "Photo" : "YouTube")}</span>
                   </div>
                   {item.media_type === "youtube" && item.youtube_url && (() => {
                     const videoId = extractYouTubeVideoId(item.youtube_url);
@@ -395,6 +399,20 @@ export default function SharedPracticeLog() {
                       <audio controls className="w-full h-8" src={mediaAudioUrls[item.id]} />
                     ) : (
                       <p className="text-xs text-muted-foreground italic">Loading audio...</p>
+                    )
+                  )}
+                  {item.media_type === "video" && item.file_path && (
+                    mediaAudioUrls[item.id] ? (
+                      <video controls className="w-full rounded" src={mediaAudioUrls[item.id]} />
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Loading video...</p>
+                    )
+                  )}
+                  {item.media_type === "photo" && item.file_path && (
+                    mediaAudioUrls[item.id] ? (
+                      <img src={mediaAudioUrls[item.id]} alt={item.label || "Photo"} className="w-full rounded object-contain max-h-80" />
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Loading photo...</p>
                     )
                   )}
                 </div>
