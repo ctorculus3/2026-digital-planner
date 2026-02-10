@@ -1,16 +1,37 @@
 
 
-## Fix: "Manage" Subscription Button Not Opening Stripe Portal
+## Fix: Manage Button Shows Blank Screen
 
 ### The Problem
 
-The Manage button works on the backend -- it successfully fetches the Stripe billing portal URL. However, the browser blocks the new tab from opening because `window.open` is called inside an async function (after the network request completes), which breaks the browser's requirement that popups originate from a direct user gesture.
+The `window.location.href` redirect navigates inside the preview iframe, but Stripe's billing portal blocks iframe embedding, resulting in a blank white page.
 
 ### The Fix
 
 **File:** `src/components/subscription/ManageSubscription.tsx`
 
-Change `window.open(data.url, "_blank")` to `window.location.href = data.url` so the browser navigates to the Stripe portal in the same tab instead of trying to open a blocked popup. The Stripe portal already has a "return URL" configured that brings the user back to the app afterward.
+Open a new browser window **synchronously** at the start of the click handler (before the async fetch), then set its location once the Stripe URL is returned. This works because:
+- The `window.open` call happens in the synchronous part of the click event, so browsers don't block it as a popup
+- The portal opens in a new tab (outside the iframe), so Stripe's frame restrictions don't apply
 
-This is a single-line change -- no new files, no database changes, no other components affected.
+```text
+Before (broken):
+  1. User clicks Manage
+  2. Async fetch fires
+  3. window.location.href = url  -->  navigates iframe  -->  blank screen
 
+After (fixed):
+  1. User clicks Manage
+  2. const newWindow = window.open("", "_blank")   <-- synchronous, not blocked
+  3. Async fetch fires
+  4. newWindow.location.href = url                  <-- navigates the new tab
+  5. If fetch fails, newWindow.close()
+```
+
+### Technical Details
+
+In `handleManage`:
+- Call `const portal = window.open("", "_blank")` immediately (synchronous, satisfies popup rules)
+- After `supabase.functions.invoke("customer-portal")` resolves with a URL, set `portal.location.href = data.url`
+- If there's an error, call `portal?.close()` and show the existing toast
+- No other files or backend changes needed
