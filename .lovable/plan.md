@@ -1,42 +1,32 @@
 
 
-## Add Photo Support to Media Tools
+## Show Photos and Videos on Shared Practice Logs
 
-Add the ability to drop or browse for photos (JPG, PNG, WEBP, etc.) in the Media Tools section, alongside existing audio, video, and YouTube support.
+Currently, shared practice log pages only display audio and YouTube media items. Videos and photos added via Media Tools are stored in the database and accessible via RLS, but the SharedPracticeLog page doesn't render them. This plan adds support for both.
 
 ### What Changes
 
-1. **Database**: Update the `practice_media_media_type_check` constraint to allow `'photo'` in addition to `'audio'`, `'video'`, and `'youtube'`.
-
-2. **Hook (`useMediaTools.ts`)**:
-   - Add accepted image MIME types (`image/jpeg`, `image/png`, `image/webp`, `image/gif`) and extensions (`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`).
-   - Update `MediaItem` type to include `"photo"` as a media_type.
-   - Detect image files and set `media_type: "photo"` during upload.
-   - Update the success toast to say "File uploaded" instead of "Audio uploaded".
-   - Clean up photo storage files on delete (same as audio/video).
-
-3. **Component (`MediaTools.tsx`)**:
-   - Update the drop zone text to "Drop audio/video/photo or click to browse".
-   - Update the file input `accept` attribute to include image types.
-   - Add an `ImageIcon` from lucide-react for photo items.
-   - Add a photo preview in the `MediaItemCard` that displays the image via signed URL (similar to how audio/video uses `MediaPlayer`).
-
-4. **UI for photo items**: Photos will display as a thumbnail image in the media card, loaded via signed URL from the private bucket.
+1. **`src/pages/SharedPracticeLog.tsx`**:
+   - Update the `SharedMediaItem` type to include `"video"` and `"photo"` media types.
+   - Generate signed URLs for video and photo files (alongside existing audio URL generation).
+   - Add rendering for video items (HTML5 `<video>` player with controls).
+   - Add rendering for photo items (thumbnail image display).
+   - Add appropriate icons (Video and Image icons from lucide-react) for the media type labels.
 
 ### Technical Details
 
-**Database migration:**
+**Type update:**
 ```text
-ALTER TABLE practice_media DROP CONSTRAINT practice_media_media_type_check;
-ALTER TABLE practice_media ADD CONSTRAINT practice_media_media_type_check 
-  CHECK (media_type = ANY (ARRAY['audio'::text, 'video'::text, 'youtube'::text, 'photo'::text]));
+media_type: "audio" | "video" | "youtube" | "photo"
 ```
 
-**New accepted types in hook:**
-- Extensions: `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`
-- MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+**Signed URL generation:**
+- Expand the existing signed URL logic to also cover items where `media_type` is `"video"` or `"photo"` (both use the same `practice-media` storage bucket).
 
-**File size limit**: Same 500MB limit applies (though photos are typically much smaller).
+**Rendering additions:**
+- Video items: Render an HTML5 `<video>` element with `controls`, using the signed URL as `src`.
+- Photo items: Render an `<img>` element with the signed URL, styled as a rounded thumbnail that fits within the media card.
+- Icons: Use `Video` icon for video items and `ImageIcon` for photo items from lucide-react.
 
-**Storage**: Photos go into the same `practice-media` bucket, same path pattern (`userId/logId/media-N.ext`).
+**No database or RLS changes needed** -- the existing "Anyone can view media for shared logs" policy already covers all media types, and the storage SELECT policies for the `practice-media` bucket already allow public access for shared log files.
 
