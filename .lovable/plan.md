@@ -1,37 +1,30 @@
 
 
-## Fix: Manage Button Shows Blank Screen
+## Fix: Community Post Timeout on Longer Content
 
-### The Problem
+### Problem
 
-The `window.location.href` redirect navigates inside the preview iframe, but Stripe's billing portal blocks iframe embedding, resulting in a blank white page.
+The `moderate-and-post` function calls an AI moderation API, which can sometimes be slow (especially for longer text). When this happens, the browser request times out before the function responds, and the user sees "Failed to submit post" even though the content is perfectly fine.
 
-### The Fix
+### Solution
 
-**File:** `src/components/subscription/ManageSubscription.tsx`
+Two changes to make this more resilient:
 
-Open a new browser window **synchronously** at the start of the click handler (before the async fetch), then set its location once the Stripe URL is returned. This works because:
-- The `window.open` call happens in the synchronous part of the click event, so browsers don't block it as a popup
-- The portal opens in a new tab (outside the iframe), so Stripe's frame restrictions don't apply
+**1. Add a timeout + retry in PostComposer** (`src/components/community/PostComposer.tsx`)
 
-```text
-Before (broken):
-  1. User clicks Manage
-  2. Async fetch fires
-  3. window.location.href = url  -->  navigates iframe  -->  blank screen
+Wrap the `supabase.functions.invoke` call with an `AbortController` timeout (e.g., 15 seconds). If it times out, automatically retry once. If both attempts fail, show a "Taking longer than expected, please try again" message instead of the generic error.
 
-After (fixed):
-  1. User clicks Manage
-  2. const newWindow = window.open("", "_blank")   <-- synchronous, not blocked
-  3. Async fetch fires
-  4. newWindow.location.href = url                  <-- navigates the new tab
-  5. If fetch fails, newWindow.close()
-```
+**2. Show specific error messages**
+
+When the edge function returns `moderation_rejected: true`, show the actual rejection reason from `data.error` so the user knows *why* the post was rejected rather than just seeing "Failed to submit post."
 
 ### Technical Details
 
-In `handleManage`:
-- Call `const portal = window.open("", "_blank")` immediately (synchronous, satisfies popup rules)
-- After `supabase.functions.invoke("customer-portal")` resolves with a URL, set `portal.location.href = data.url`
-- If there's an error, call `portal?.close()` and show the existing toast
-- No other files or backend changes needed
+**File: `src/components/community/PostComposer.tsx`**
+
+- Create a helper that invokes the edge function with an `AbortSignal.timeout(15000)`
+- On timeout (AbortError), retry once automatically
+- On moderation rejection, display the specific reason from the response
+- On persistent timeout, show "This is taking longer than expected. Please try again."
+- No backend/edge function changes needed -- the function itself works fine; the issue is purely client-side timeout
+
