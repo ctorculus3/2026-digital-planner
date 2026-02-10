@@ -9,7 +9,6 @@ const corsHeaders = {
 
 const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
 
-/** Helper: return a 200 with success: false for business-logic rejections */
 function reject(message: string, extra: Record<string, unknown> = {}) {
   return new Response(
     JSON.stringify({ success: false, error: message, ...extra }),
@@ -17,7 +16,6 @@ function reject(message: string, extra: Record<string, unknown> = {}) {
   );
 }
 
-/** Attempt a single moderation call; returns the parsed result or null on failure */
 async function callModeration(
   content: string,
   apiKey: string
@@ -78,7 +76,6 @@ async function callModeration(
     if (toolCall?.function?.arguments) {
       return JSON.parse(toolCall.function.arguments);
     }
-    // Fallback: try parsing from content
     const rawContent = data.choices?.[0]?.message?.content || "";
     return JSON.parse(rawContent);
   } catch (err) {
@@ -93,7 +90,6 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Authenticate user via getUser (reliable server-side validation)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -129,21 +125,33 @@ serve(async (req) => {
 
     const userId = user.id;
 
-    // 2. Validate content
-    const { content } = await req.json();
-    if (!content || typeof content !== "string") {
-      return reject("Content is required");
+    // Parse body
+    const { content, image_paths } = await req.json();
+
+    // Validate image_paths
+    const validatedPaths: string[] = [];
+    if (image_paths && Array.isArray(image_paths)) {
+      if (image_paths.length > 5) {
+        return reject("Maximum 5 images allowed");
+      }
+      for (const p of image_paths) {
+        if (typeof p !== "string" || !p.startsWith(`${userId}/`)) {
+          return reject("Invalid image path");
+        }
+        validatedPaths.push(p);
+      }
     }
 
-    const trimmed = content.trim();
-    if (trimmed.length === 0) {
-      return reject("Content cannot be empty");
+    // Validate content: required if no images
+    const trimmed = (content || "").trim();
+    if (trimmed.length === 0 && validatedPaths.length === 0) {
+      return reject("Post must have text or images");
     }
     if (trimmed.length > 500) {
       return reject("Content must be 500 characters or fewer");
     }
 
-    // 3. Check streak (service role to bypass RLS)
+    // Check streak
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: streakData, error: streakError } = await adminClient.rpc(
       "get_practice_streak",
@@ -165,36 +173,37 @@ serve(async (req) => {
       );
     }
 
-    // 4. AI moderation with retry and fail-open fallback
-    let modResult = await callModeration(trimmed, lovableApiKey);
-
-    // Retry once on transient failure
-    if (!modResult) {
-      console.log("Moderation attempt 1 failed, retrying...");
-      modResult = await callModeration(trimmed, lovableApiKey);
+    // AI moderation (text only)
+    if (trimmed.length > 0) {
+      let modResult = await callModeration(trimmed, lovableApiKey);
+      if (!modResult) {
+        console.log("Moderation attempt 1 failed, retrying...");
+        modResult = await callModeration(trimmed, lovableApiKey);
+      }
+      if (!modResult) {
+        console.log("Moderation unavailable — allowing post (fail-open)");
+        modResult = { approved: true };
+      }
+      if (!modResult.approved) {
+        return reject(
+          modResult.reason || "Your post was not approved by our content guidelines.",
+          { moderation_rejected: true }
+        );
+      }
     }
 
-    // If both attempts failed, allow the post through
-    // (streak gate already filters bad actors)
-    if (!modResult) {
-      console.log(
-        "Moderation unavailable after retry — allowing post (fail-open)"
-      );
-      modResult = { approved: true };
+    // Insert post
+    const insertData: Record<string, unknown> = {
+      user_id: userId,
+      content: trimmed,
+    };
+    if (validatedPaths.length > 0) {
+      insertData.image_paths = validatedPaths;
     }
 
-    if (!modResult.approved) {
-      return reject(
-        modResult.reason ||
-          "Your post was not approved by our content guidelines.",
-        { moderation_rejected: true }
-      );
-    }
-
-    // 5. Insert post using service role
     const { data: post, error: insertError } = await adminClient
       .from("community_posts")
-      .insert({ user_id: userId, content: trimmed })
+      .insert(insertData)
       .select("id, created_at")
       .single();
 

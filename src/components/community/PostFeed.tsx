@@ -16,6 +16,15 @@ export function PostFeed({ posts, loading, currentUserId, isModerator = false, o
   const { toast } = useToast();
 
   const handleDelete = async (postId: string) => {
+    // Find the post to check for images
+    const post = posts.find((p) => p.id === postId);
+    const imagePaths = post?.image_paths;
+
+    // Delete images from storage first
+    if (imagePaths && imagePaths.length > 0) {
+      await supabase.storage.from("community-images").remove(imagePaths);
+    }
+
     const { error } = await supabase
       .from("community_posts")
       .delete()

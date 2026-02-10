@@ -13,6 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import type { CommunityPost } from "@/hooks/useCommunityPosts";
 
 interface PostCardProps {
@@ -33,13 +40,20 @@ function getInitials(name: string | null): string {
     .toUpperCase();
 }
 
+function getImageUrl(path: string): string {
+  const { data } = supabase.storage.from("community-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export function PostCard({ post, isOwn, isModerator = false, onDelete }: PostCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
   });
 
   const canDelete = isOwn || isModerator;
+  const images = post.image_paths || [];
 
   return (
     <>
@@ -72,10 +86,50 @@ export function PostCard({ post, isOwn, isModerator = false, onDelete }: PostCar
             </Button>
           )}
         </div>
-        <p className="text-sm text-foreground whitespace-pre-wrap break-words pl-11">
-          {post.content}
-        </p>
+
+        {post.content && (
+          <p className="text-sm text-foreground whitespace-pre-wrap break-words pl-11">
+            {post.content}
+          </p>
+        )}
+
+        {/* Image gallery */}
+        {images.length > 0 && (
+          <div
+            className={`pl-11 grid gap-1.5 ${
+              images.length === 1
+                ? "grid-cols-1"
+                : "grid-cols-2"
+            }`}
+          >
+            {images.map((path, i) => (
+              <img
+                key={path}
+                src={getImageUrl(path)}
+                alt={`Post image ${i + 1}`}
+                className="w-full rounded-md object-cover cursor-pointer hover:opacity-90 transition-opacity border border-border"
+                style={{ maxHeight: images.length === 1 ? "20rem" : "10rem" }}
+                onClick={() => setLightboxIndex(i)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Lightbox */}
+      <Dialog open={lightboxIndex !== null} onOpenChange={() => setLightboxIndex(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background/95">
+          <DialogTitle className="sr-only">Image preview</DialogTitle>
+          <DialogDescription className="sr-only">Full size image from community post</DialogDescription>
+          {lightboxIndex !== null && images[lightboxIndex] && (
+            <img
+              src={getImageUrl(images[lightboxIndex])}
+              alt="Full size"
+              className="w-full h-auto max-h-[80vh] object-contain rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
