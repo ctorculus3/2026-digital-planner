@@ -1,32 +1,35 @@
 
 
-## Show Photos and Videos on Shared Practice Logs
+## Fix: Photos Not Loading on Shared Practice Logs
 
-Currently, shared practice log pages only display audio and YouTube media items. Videos and photos added via Media Tools are stored in the database and accessible via RLS, but the SharedPracticeLog page doesn't render them. This plan adds support for both.
+### Problem
 
-### What Changes
+The storage policy that allows anonymous access to shared practice media files only permits `'audio'` and `'video'` types. Photos are excluded, so signed URLs for photo files return access denied for unauthenticated viewers.
 
-1. **`src/pages/SharedPracticeLog.tsx`**:
-   - Update the `SharedMediaItem` type to include `"video"` and `"photo"` media types.
-   - Generate signed URLs for video and photo files (alongside existing audio URL generation).
-   - Add rendering for video items (HTML5 `<video>` player with controls).
-   - Add rendering for photo items (thumbnail image display).
-   - Add appropriate icons (Video and Image icons from lucide-react) for the media type labels.
-
-### Technical Details
-
-**Type update:**
-```text
-media_type: "audio" | "video" | "youtube" | "photo"
+The relevant policy is in `supabase/migrations/20260209221713_...sql`:
+```
+pm.media_type IN ('audio', 'video')
 ```
 
-**Signed URL generation:**
-- Expand the existing signed URL logic to also cover items where `media_type` is `"video"` or `"photo"` (both use the same `practice-media` storage bucket).
+### Fix
 
-**Rendering additions:**
-- Video items: Render an HTML5 `<video>` element with `controls`, using the signed URL as `src`.
-- Photo items: Render an `<img>` element with the signed URL, styled as a rounded thumbnail that fits within the media card.
-- Icons: Use `Video` icon for video items and `ImageIcon` for photo items from lucide-react.
+**Single database migration** to update the storage policy to also include `'photo'`:
 
-**No database or RLS changes needed** -- the existing "Anyone can view media for shared logs" policy already covers all media types, and the storage SELECT policies for the `practice-media` bucket already allow public access for shared log files.
+```sql
+DROP POLICY IF EXISTS "Allow access to shared practice media" ON storage.objects;
+CREATE POLICY "Allow access to shared practice media"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'practice-media'
+    AND EXISTS (
+      SELECT 1
+      FROM practice_media pm
+      JOIN shared_practice_logs spl ON spl.practice_log_id = pm.practice_log_id
+      WHERE pm.file_path = objects.name
+        AND pm.media_type IN ('audio', 'video', 'photo')
+        AND (spl.expires_at IS NULL OR spl.expires_at > now())
+    )
+  );
+```
 
+No code changes needed -- the `SharedPracticeLog.tsx` rendering is already correct. Only this storage access policy needs updating.
