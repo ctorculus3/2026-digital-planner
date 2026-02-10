@@ -19,51 +19,88 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const charCount = content.trim().length;
   const canSubmit = charCount > 0 && charCount <= 500 && !submitting;
 
+  const invokeWithTimeout = async (trimmedContent: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      const result = await supabase.functions.invoke("moderate-and-post", {
+        headers: { Authorization: `Bearer ${session!.access_token}` },
+        body: { content: trimmedContent },
+      });
+      clearTimeout(timeoutId);
+      return result;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit || !session) return;
 
     setSubmitting(true);
+    const trimmedContent = content.trim();
+
+    let data: any = null;
+    let error: any = null;
+    let timedOut = false;
+
     try {
-      const { data, error } = await supabase.functions.invoke("moderate-and-post", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { content: content.trim() },
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to submit post. Please try again.",
-          variant: "destructive",
-        });
-        return;
+      const result = await invokeWithTimeout(trimmedContent);
+      data = result.data;
+      error = result.error;
+    } catch (err: any) {
+      if (err?.name === "AbortError" || err?.message?.includes("abort")) {
+        // First attempt timed out — retry once
+        try {
+          const result = await invokeWithTimeout(trimmedContent);
+          data = result.data;
+          error = result.error;
+        } catch (retryErr: any) {
+          timedOut = true;
+        }
+      } else {
+        error = err;
       }
+    }
 
-      // Structured response: check success flag
-      if (data && !data.success) {
-        toast({
-          title: data.moderation_rejected ? "Post not approved" : "Cannot post",
-          description: data.error || "Something went wrong.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setContent("");
-      onPostCreated();
+    if (timedOut) {
       toast({
-        title: "Posted!",
-        description: "Your post has been shared with the community.",
-      });
-    } catch (err) {
-      console.error("Post submission error:", err);
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
+        title: "Taking longer than expected",
+        description: "The server is busy. Please try again in a moment.",
         variant: "destructive",
       });
-    } finally {
       setSubmitting(false);
+      return;
     }
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit post. Please try again.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    if (data && !data.success) {
+      toast({
+        title: data.moderation_rejected ? "Post not approved" : "Cannot post",
+        description: data.error || "Something went wrong.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    setContent("");
+    onPostCreated();
+    toast({
+      title: "Posted!",
+      description: "Your post has been shared with the community.",
+    });
+    setSubmitting(false);
   };
 
   return (
