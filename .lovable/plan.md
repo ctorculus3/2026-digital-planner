@@ -1,20 +1,35 @@
 
 
-## Brand the Shared Practice Log Page with Practice Daily Logo
+## Fix: Photos Not Loading on Shared Practice Logs
 
-Replace the text-only header and footer on the shared practice log page with the Practice Daily brand logo.
+### Problem
 
-### What Changes
+The storage policy that allows anonymous access to shared practice media files only permits `'audio'` and `'video'` types. Photos are excluded, so signed URLs for photo files return access denied for unauthenticated viewers.
 
-1. **Copy the logo image** into `src/assets/practice-daily-logo.png` so it can be imported in React components.
+The relevant policy is in `supabase/migrations/20260209221713_...sql`:
+```
+pm.media_type IN ('audio', 'video')
+```
 
-2. **`src/pages/SharedPracticeLog.tsx`** -- two targeted edits:
-   - **Header (lines 220-232)**: Replace the text "Music Practice Daily Record Journal" with the Practice Daily logo image, centered, at a reasonable size (around 160-200px wide). Keep the "Shared by" name and date display below it.
-   - **Footer (lines 477-481)**: Replace the text "Music Practice Daily Record Journal" with a smaller version of the same logo (around 120px wide).
+### Fix
 
-### No Other Changes
+**Single database migration** to update the storage policy to also include `'photo'`:
 
-- No database or backend changes needed.
-- All existing functionality (media, PDFs, recordings, etc.) remains untouched.
-- Only the header and footer text are replaced with the logo image.
+```sql
+DROP POLICY IF EXISTS "Allow access to shared practice media" ON storage.objects;
+CREATE POLICY "Allow access to shared practice media"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'practice-media'
+    AND EXISTS (
+      SELECT 1
+      FROM practice_media pm
+      JOIN shared_practice_logs spl ON spl.practice_log_id = pm.practice_log_id
+      WHERE pm.file_path = objects.name
+        AND pm.media_type IN ('audio', 'video', 'photo')
+        AND (spl.expires_at IS NULL OR spl.expires_at > now())
+    )
+  );
+```
 
+No code changes needed -- the `SharedPracticeLog.tsx` rendering is already correct. Only this storage access policy needs updating.
