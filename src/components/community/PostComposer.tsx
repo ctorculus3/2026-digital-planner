@@ -21,7 +21,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
   const invokeWithTimeout = async (trimmedContent: string) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
     try {
       const result = await supabase.functions.invoke("moderate-and-post", {
         headers: { Authorization: `Bearer ${session!.access_token}` },

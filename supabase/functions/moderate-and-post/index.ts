@@ -27,6 +27,7 @@ async function callModeration(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
+        signal: AbortSignal.timeout(8000),
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
