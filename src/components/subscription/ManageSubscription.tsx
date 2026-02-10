@@ -13,6 +13,7 @@ export function ManageSubscription() {
   const { toast } = useToast();
 
   const handleManage = async () => {
+    const portal = window.open("", "_blank");
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
@@ -20,9 +21,12 @@ export function ManageSubscription() {
       if (error) throw error;
       
       if (data?.url) {
-        window.location.href = data.url;
+        portal!.location.href = data.url;
+      } else {
+        portal?.close();
       }
     } catch (error: any) {
+      portal?.close();
       toast({
         title: "Error",
         description: error.message || "Failed to open subscription management",
