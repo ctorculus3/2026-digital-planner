@@ -1,30 +1,31 @@
 
 
-## Fix: Community Post Timeout on Longer Content
+## Increase Timeout and Skip Slow Moderation
 
-### Problem
+### Changes
 
-The `moderate-and-post` function calls an AI moderation API, which can sometimes be slow (especially for longer text). When this happens, the browser request times out before the function responds, and the user sees "Failed to submit post" even though the content is perfectly fine.
+**1. Edge Function: Add timeout to AI moderation call** (`supabase/functions/moderate-and-post/index.ts`)
 
-### Solution
+- Add an `AbortSignal.timeout(8000)` (8 seconds) to the `fetch` call inside `callModeration` so it doesn't hang indefinitely waiting for the AI service
+- The existing fail-open logic already handles this: if both moderation attempts return `null`, the post is allowed through
+- This means if the AI is slow, the post skips moderation and goes straight to insert (the streak gate still filters bad actors)
 
-Two changes to make this more resilient:
+**2. Client: Increase timeout from 15s to 25s** (`src/components/community/PostComposer.tsx`)
 
-**1. Add a timeout + retry in PostComposer** (`src/components/community/PostComposer.tsx`)
+- Change the `setTimeout` in `invokeWithTimeout` from 15000 to 25000ms
+- This gives the edge function enough time for: auth check + streak check + moderation attempt (8s) + retry (8s) + insert
+- The retry logic in the client stays as-is for additional resilience
 
-Wrap the `supabase.functions.invoke` call with an `AbortController` timeout (e.g., 15 seconds). If it times out, automatically retry once. If both attempts fail, show a "Taking longer than expected, please try again" message instead of the generic error.
+### Why This Works
 
-**2. Show specific error messages**
+The edge function currently waits indefinitely for the AI moderation API. By adding an 8-second timeout per attempt, the worst-case flow becomes:
 
-When the edge function returns `moderation_rejected: true`, show the actual rejection reason from `data.error` so the user knows *why* the post was rejected rather than just seeing "Failed to submit post."
+```text
+Attempt 1 moderation (8s timeout) -> fail
+Retry moderation (8s timeout) -> fail
+Fail-open: allow post -> insert
+Total: ~17s
+```
 
-### Technical Details
-
-**File: `src/components/community/PostComposer.tsx`**
-
-- Create a helper that invokes the edge function with an `AbortSignal.timeout(15000)`
-- On timeout (AbortError), retry once automatically
-- On moderation rejection, display the specific reason from the response
-- On persistent timeout, show "This is taking longer than expected. Please try again."
-- No backend/edge function changes needed -- the function itself works fine; the issue is purely client-side timeout
+The 25-second client timeout comfortably covers this. Most posts will complete in 2-5 seconds when moderation responds promptly.
 
