@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Music, Youtube, FileText, Video, ImageIcon } from "lucide-react";
+import practiceDailyLogo from "@/assets/practice-daily-logo.png";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
 import {
   Dialog,
@@ -218,9 +219,7 @@ export default function SharedPracticeLog() {
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-xl md:text-2xl font-display text-foreground">
-            Music Practice Daily Record Journal
-          </h1>
+          <img src={practiceDailyLogo} alt="Practice Daily" className="mx-auto w-40 md:w-48" />
           {practiceLog.sharer_name && (
             <p className="text-sm text-muted-foreground">
               Shared by {practiceLog.sharer_name}
@@ -475,9 +474,7 @@ export default function SharedPracticeLog() {
 
         {/* Footer */}
         <div className="text-center pt-8 border-t border-border">
-          <p className="text-sm text-muted-foreground">
-            Music Practice Daily Record Journal
-          </p>
+          <img src={practiceDailyLogo} alt="Practice Daily" className="mx-auto w-28" />
         </div>
       </div>
     </div>
