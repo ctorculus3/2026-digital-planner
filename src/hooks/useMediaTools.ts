@@ -18,13 +18,19 @@ const ACCEPTED_VIDEO_TYPES = [
   "video/quicktime",
   "video/webm",
 ];
-const ACCEPTED_EXTENSIONS = [".mp3", ".wav", ".m4a", ".ogg", ".webm", ".mp4", ".mov"];
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+const ACCEPTED_EXTENSIONS = [".mp3", ".wav", ".m4a", ".ogg", ".webm", ".mp4", ".mov", ".jpg", ".jpeg", ".png", ".webp", ".gif"];
 
 export interface MediaItem {
   id: string;
   practice_log_id: string;
   user_id: string;
-  media_type: "audio" | "video" | "youtube";
+  media_type: "audio" | "video" | "youtube" | "photo";
   file_path: string | null;
   youtube_url: string | null;
   label: string | null;
@@ -159,7 +165,8 @@ export function useMediaTools(
       }
 
       const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type) || [".mp4", ".mov"].includes(ext);
-      const mediaType = isVideo ? "video" : "audio";
+      const isPhoto = ACCEPTED_IMAGE_TYPES.includes(file.type) || [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext);
+      const mediaType = isPhoto ? "photo" : isVideo ? "video" : "audio";
 
       setIsUploading(true);
       try {
@@ -186,7 +193,7 @@ export function useMediaTools(
 
         if (insertError) throw insertError;
 
-        toast.success("Audio uploaded");
+        toast.success("File uploaded");
         await fetchMedia();
       } catch (err) {
         console.error("Upload error:", err);
@@ -242,7 +249,7 @@ export function useMediaTools(
     async (item: MediaItem) => {
       try {
         // Delete storage file if audio
-        if ((item.media_type === "audio" || item.media_type === "video") && item.file_path) {
+        if ((item.media_type === "audio" || item.media_type === "video" || item.media_type === "photo") && item.file_path) {
           const { error: storageError } = await supabase.storage
             .from("practice-media")
             .remove([item.file_path]);
