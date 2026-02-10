@@ -1,32 +1,30 @@
 
 
-## Update Link Preview Branding to Practice Daily
+## Add "Change Display Name" to User Menu
 
-### What This Fixes
+### What This Does
 
-When you share a link to your app in a text message, Slack, Discord, etc., the preview card currently shows the Lovable logo, name, and description. This plan updates it to show Practice Daily branding instead.
+Adds a new "Change name" option to your avatar dropdown menu on the Dashboard. Clicking it opens a small inline editor right in the menu where you can type a new name and save it -- no separate page needed.
 
-### What Changes
+### How It Works
 
-1. **Copy the Practice Daily logo** into the `public/images/` folder so it can be referenced as the Open Graph image (OG images must be publicly accessible URLs, not bundled assets).
-
-2. **Update `index.html` meta tags**:
-   - Change `<title>` to "Practice Daily"
-   - Update `<meta name="description">` to "See your practice come to life"
-   - Update `og:title` to "Practice Daily"
-   - Update `og:description` to "See your practice come to life"
-   - Update `og:image` to point to the Practice Daily logo (e.g., `/images/practice-daily-og.jpeg`)
-   - Update `twitter:image` similarly
-   - Remove or update `twitter:site` from `@Lovable`
-
-### Important Notes
-
-- Link previews are cached by most platforms. After publishing, previously shared links may still show the old Lovable branding for a while until caches expire.
-- The OG image works best at around 1200x630 pixels. The uploaded logo may appear with whitespace or cropping depending on the platform. If you'd like a custom OG-optimized banner image (1200x630 with the logo centered on a styled background), that would be a good follow-up.
+1. Click your avatar/name in the top-right corner
+2. Select "Change name" from the dropdown
+3. A text input appears in the menu with your current name pre-filled
+4. Type your new name and click Save (or press Enter)
+5. Your name updates immediately everywhere it appears
 
 ### Technical Details
 
-**Files modified:**
-- `index.html` -- update all meta tags
-- `public/images/practice-daily-og.jpeg` -- copy of uploaded logo
+**File modified:** `src/components/practice-log/UserMenu.tsx`
+
+- Add an `editing` state toggle
+- When "Change name" is clicked, swap the menu item for a small inline form (input + Save/Cancel buttons)
+- On save, update the `profiles` table `display_name` column via the existing Supabase client
+- Update local `displayName` state so the change reflects immediately in the trigger button
+- Use `e.preventDefault()` on the menu item's `onSelect` to keep the dropdown open during editing
+- Validate that the name is not empty/whitespace before saving
+- Show a toast on success or failure
+
+No database changes needed -- the `profiles` table already has a `display_name` column and an RLS policy allowing users to update their own profile.
 
