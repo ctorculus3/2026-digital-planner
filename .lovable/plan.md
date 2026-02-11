@@ -1,32 +1,26 @@
 
 
-## Fix: Always Show Expiration Options First
+## Fix: Show Repertoire Completion Status on Shared Practice Logs
 
 ### Problem
 
-When the Share dialog opens, the database query finds an existing active share and immediately switches to the revoke/link screen. The user never sees the expiration options screen first.
+The shared practice log view always shows empty circles next to Repertoire items, even when they were checked off as completed. The `repertoire_completed` array is neither fetched from the database nor included in the data interface, and the `music_listening` / `music_listening_completed` fields are also missing.
 
 ### Solution
 
-Add a `showLinkView` state variable to `ShareButton.tsx` that controls which screen is displayed, decoupling it from whether `shareData` exists.
+Three small, targeted changes in `src/pages/SharedPracticeLog.tsx`:
 
-### Technical Details
+1. **Add missing fields to the `PracticeLogData` interface** -- add `repertoire_completed`, `music_listening`, and `music_listening_completed`.
 
-**File: `src/components/practice-log/ShareButton.tsx`**
+2. **Add the missing fields to the SELECT query** (line 88) -- include `repertoire_completed, music_listening, music_listening_completed`.
 
-1. Add new state: `const [showLinkView, setShowLinkView] = useState(false);`
-2. Reset `showLinkView` to `false` when dialog opens (in the `useEffect`)
-3. Set `showLinkView = true` after `createShare` completes in `handleGenerateLink`
-4. Change render condition from `shareData ?` to `showLinkView && shareData ?`
-5. When `shareData` exists but `showLinkView` is false, show a banner in the expiration options screen: "You already have an active link" with a "View Link" button that sets `showLinkView = true`
-6. After revoking, set `showLinkView = false` so it returns to the expiration options
+3. **Update the repertoire circle rendering** (line 308) -- change the static empty circle to a conditional one that fills in when `repertoire_completed[idx]` is true, matching the same pattern already used for Ear Training and Additional Tasks.
 
-**No other files need changes.**
+4. **Add a Music Listening section** to the shared view, following the same pattern as Ear Training and Additional Tasks.
 
-### Updated Flow
+### What stays the same
 
-1. User clicks Share - dialog opens, `showLinkView` is false - expiration options show
-2. Fetch runs, finds existing share, sets `shareData`
-3. A banner appears: "You already have an active link. [View Link]"
-4. User can view existing link OR generate a new one
-5. After generating or clicking "View Link," revoke/link screen shows
+- No database or RLS changes needed
+- No changes to any other files
+- Ear Training and Additional Tasks completion circles already work correctly
+
