@@ -9,6 +9,40 @@ interface ShareData {
   created_at: string;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const APP_ORIGIN = "https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app";
+const OG_IMAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/community-images/og/practice-daily-og.jpeg`;
+
+function buildOgHtml(token: string, displayName: string, logDate: string | null): string {
+  const description = logDate
+    ? `Practice log shared by ${displayName} — ${logDate}`
+    : `Practice log shared by ${displayName}`;
+  const redirectUrl = `${APP_ORIGIN}/shared/${token}`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practice Daily</title>
+  <meta name="description" content="${description}" />
+  <meta property="og:title" content="Practice Daily" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${redirectUrl}" />
+  <meta property="og:image" content="${OG_IMAGE_URL}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Practice Daily" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${OG_IMAGE_URL}" />
+</head>
+<body>
+  <p>Redirecting to <a href="${redirectUrl}">Practice Daily</a>...</p>
+  <script>window.location.replace("${redirectUrl}");</script>
+</body>
+</html>`;
+}
+
 export function useSharePracticeLog(practiceLogId: string | undefined) {
   const [isLoading, setIsLoading] = useState(false);
   const [shareData, setShareData] = useState<ShareData | null>(null);
@@ -50,6 +84,7 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
         ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
+      // Insert share record
       const { data, error } = await supabase
         .from("shared_practice_logs")
         .insert({
@@ -62,6 +97,36 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
         .single();
 
       if (error) throw error;
+
+      // Fetch display name and log date for OG tags
+      const [profileRes, logRes] = await Promise.all([
+        supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+        supabase.from("practice_logs").select("log_date").eq("id", practiceLogId).maybeSingle(),
+      ]);
+
+      const displayName = profileRes.data?.display_name || "a musician";
+      const logDate = logRes.data?.log_date
+        ? new Date(logRes.data.log_date).toLocaleDateString("en-US", {
+            month: "long", day: "numeric", year: "numeric",
+          })
+        : null;
+
+      // Generate and upload static HTML for OG tags
+      const html = buildOgHtml(shareToken, displayName, logDate);
+      const htmlBlob = new Blob([html], { type: "text/html" });
+      const htmlFile = new File([htmlBlob], `${shareToken}.html`, { type: "text/html" });
+
+      const { error: uploadError } = await supabase.storage
+        .from("community-images")
+        .upload(`og-shares/${shareToken}.html`, htmlFile, {
+          contentType: "text/html",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("Failed to upload OG HTML:", uploadError);
+        // Non-fatal — share still works, just without rich preview
+      }
 
       setShareData(data);
       toast({
@@ -84,6 +149,7 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
 
   const revokeShare = async () => {
     if (!shareData?.id) return false;
+    const tokenToDelete = shareData.share_token;
 
     setIsLoading(true);
     try {
@@ -93,6 +159,11 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
         .eq("id", shareData.id);
 
       if (error) throw error;
+
+      // Clean up the OG HTML file (best-effort)
+      await supabase.storage
+        .from("community-images")
+        .remove([`og-shares/${tokenToDelete}.html`]);
 
       setShareData(null);
       toast({
@@ -115,8 +186,7 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
 
   const getShareUrl = () => {
     if (!shareData?.share_token) return null;
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    return `${supabaseUrl}/functions/v1/og-share?token=${shareData.share_token}`;
+    return `${SUPABASE_URL}/storage/v1/object/public/community-images/og-shares/${shareData.share_token}.html`;
   };
 
   return {
