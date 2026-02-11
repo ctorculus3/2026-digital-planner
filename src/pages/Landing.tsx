@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -453,12 +454,12 @@ export default function Landing() {
             © {new Date().getFullYear()} Practice Daily. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-muted-foreground">
-            <span className="hover:text-foreground cursor-pointer transition-colors">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
               Privacy
-            </span>
-            <span className="hover:text-foreground cursor-pointer transition-colors">
+            </Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">
               Terms
-            </span>
+            </Link>
           </div>
         </div>
       </footer>
