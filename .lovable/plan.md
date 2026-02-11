@@ -1,53 +1,64 @@
 
 
-## Fix: Always Show All Sections on Shared Practice Log
+## Fix: Inconsistent Streak Counter
 
-### What I Found
+### Root Cause
 
-After testing the shared link in a browser, I confirmed:
-- **"Used Metronome"** and **"Music Listening"** (with its completion circle) ARE actually rendering correctly with the latest code changes
-- **"Ear Training"** and **"Additional Tasks"** are hidden because those arrays are empty (`[]`) in the database for the Feb 10 log -- the code only shows those sections when they contain data
+The `get_practice_streak` database function starts counting from **today** (`CURRENT_DATE`) and walks backward. If you haven't logged practice **today yet**, it finds no log for today and immediately returns **0** -- even though you have a 12-day streak going through yesterday.
 
-The issue is likely one of two things:
-1. You may be seeing a cached version of the page (try a hard refresh)
-2. The sections are hidden when they have no entries, unlike the journal view which always shows them
+The "sometimes 12, sometimes 0" behavior happens because:
+- **Shows 12**: When you view the dashboard on a day you've already logged (or from a cached result)
+- **Shows 0**: When you view it before logging today's practice
 
-### Proposed Changes
+### The Fix
 
-**File: `src/pages/SharedPracticeLog.tsx`**
-
-Make all four sections always visible on the shared view, even when empty, to match the journal:
-
-1. **"Used Metronome Today"** -- already shows when `metronome_used` is true. Change it to always render, showing either a checkmark or an unchecked state (currently it hides entirely when `false`).
-
-2. **Ear Training** -- remove the conditional that hides it when the array is empty. Show "No ear training recorded" placeholder when empty.
-
-3. **Additional Tasks** -- same treatment: always show with an empty-state message.
-
-4. **Music Listening** -- same treatment: always show with an empty-state message.
-
-5. All completion circles already use the correct conditional logic (`bg-primary border-primary` when completed) -- no changes needed there.
+Update the database function so that if there's no log for today, it starts counting from **yesterday** instead. This way your streak stays visible all day and only resets if you miss an entire day.
 
 ### Technical Details
 
-For each section, replace the conditional wrapper like:
-```
-{practiceLog.ear_training && practiceLog.ear_training.filter(e => e).length > 0 && (...)}
-```
-with an always-rendered block that shows a placeholder when empty:
-```
-<div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-  <h3 ...>Ear Training</h3>
-  {hasItems ? <ul>...</ul> : <p className="text-muted-foreground italic">No ear training recorded</p>}
-</div>
+**Database migration** -- Replace the `get_practice_streak` function:
+
+```sql
+CREATE OR REPLACE FUNCTION public.get_practice_streak(p_user_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  streak INTEGER := 0;
+  check_date DATE := CURRENT_DATE;
+  has_log BOOLEAN;
+BEGIN
+  -- Check if there's a log for today
+  SELECT EXISTS (
+    SELECT 1 FROM public.practice_logs
+    WHERE user_id = p_user_id AND log_date = check_date
+  ) INTO has_log;
+
+  -- If no log today, start from yesterday
+  IF NOT has_log THEN
+    check_date := check_date - INTERVAL '1 day';
+  END IF;
+
+  -- Count consecutive days backward
+  LOOP
+    SELECT EXISTS (
+      SELECT 1 FROM public.practice_logs
+      WHERE user_id = p_user_id AND log_date = check_date
+    ) INTO has_log;
+
+    IF NOT has_log THEN
+      EXIT;
+    END IF;
+
+    streak := streak + 1;
+    check_date := check_date - INTERVAL '1 day';
+  END LOOP;
+
+  RETURN streak;
+END;
+$$;
 ```
 
-For metronome, change from conditional render to always showing:
-- `true`: "Used Metronome Today" with checkmark
-- `false`/`null`: "Used Metronome Today" with unchecked indicator
-
-### What stays the same
-- No database or RLS changes
-- No changes to other files
-- Completion circle logic is already correct
+No frontend code changes needed -- the same RPC call will now return the correct value consistently.
 
