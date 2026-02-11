@@ -12,6 +12,3 @@ verify_jwt = false
 
 [functions.moderate-and-post]
 verify_jwt = false
-
-[functions.og-share]
-verify_jwt = false
