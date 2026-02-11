@@ -1,88 +1,43 @@
 
 
-## New Approach: Static HTML Files in Storage
+## Fix: Storage RLS Policy Blocking OG HTML Upload
 
-### The Real Problem
+### Root Cause
 
-The Edge Function gateway **always** overrides `Content-Type` to `text/plain`, regardless of what headers we set. iMessage sees "Text Document" and never parses the OG tags. This is a platform limitation we cannot work around from inside the function.
+The upload to `community-images/og-shares/{token}.html` is silently failing because the storage INSERT policy requires the first folder in the path to be the user's auth ID. The path `og-shares/...` doesn't match, so RLS blocks the upload with a 403.
 
-### Solution: Generate Static HTML and Store It in the Public Bucket
+### Solution
 
-Instead of serving dynamic HTML from an Edge Function (whose headers we can't control), we'll:
+Two changes needed:
 
-1. **When a share link is created**, generate a small static HTML file containing the OG tags
-2. **Upload that HTML file** to the public `community-images` bucket (which serves files with correct MIME types)
-3. **Point the share URL** at the storage file instead of the Edge Function
+**1. Add a storage RLS policy for the `og-shares/` folder**
 
-Storage serves files with proper `Content-Type: text/html` based on the `.html` extension -- no gateway interference.
+Allow authenticated users to INSERT and DELETE files in the `og-shares/` path:
 
-### How It Works
+```sql
+CREATE POLICY "Users can upload og-share HTML"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'community-images'
+  AND (storage.foldername(name))[1] = 'og-shares'
+);
 
-```text
-User creates share link
-        |
-        v
-Hook generates static HTML with OG tags
-        |
-        v
-Uploads to: community-images/og-shares/{token}.html
-        |
-        v
-Share URL becomes: https://.../storage/v1/object/public/community-images/og-shares/{token}.html
-        |
-        v
-Crawler fetches URL -> gets text/html -> reads OG tags -> shows "Practice Daily" preview
-User's browser -> JS redirect -> full app at /shared/{token}
+CREATE POLICY "Users can delete og-share HTML"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+  bucket_id = 'community-images'
+  AND (storage.foldername(name))[1] = 'og-shares'
+);
 ```
 
-### Changes
+**2. No code changes needed**
 
-**1. Update `src/hooks/useSharePracticeLog.ts`**
+The existing `useSharePracticeLog.ts` code is already correct -- it uploads to `og-shares/{token}.html` and cleans up on revoke. Once the RLS policy allows the upload, everything will work.
 
-In the `createShare` function, after inserting the share record:
-- Fetch the user's display name from the `profiles` table
-- Build a small HTML string with OG meta tags and a JS redirect
-- Upload it to `community-images/og-shares/{shareToken}.html`
-- Update `getShareUrl()` to return the storage URL instead of the Edge Function URL
+### Testing
 
-In the `revokeShare` function:
-- Delete the HTML file from storage when revoking
-
-**2. No Edge Function changes needed**
-
-The `og-share` function can remain as a fallback but is no longer the primary share URL.
-
-### Technical Details
-
-The generated HTML file will look like:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Practice Daily</title>
-  <meta property="og:title" content="Practice Daily" />
-  <meta property="og:description" content="Practice log shared by Calvin 3 -- February 10, 2026" />
-  <meta property="og:image" content="https://cbuebvuqpippyiifatkn.supabase.co/storage/v1/object/public/community-images/og/practice-daily-og.jpeg" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <!-- ... twitter tags ... -->
-</head>
-<body>
-  <p>Redirecting...</p>
-  <script>window.location.replace("https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app/shared/{token}");</script>
-</body>
-</html>
-```
-
-The storage CDN will serve this with `Content-Type: text/html` automatically because of the `.html` extension.
-
-### Why This Will Work
-
-- Public storage buckets serve files with correct MIME types based on file extension
-- No gateway header override issue
-- Crawlers get proper HTML with OG tags
-- Users still get redirected via JS
-- Dynamic content (name, date) is baked in at share-creation time
-
+After the policy is added:
+1. Revoke the existing share link (from the Share dialog)
+2. Generate a new share link -- this will trigger the upload
+3. Send the new link in a fresh iMessage conversation
+4. The preview should show "Practice Daily" with the correct description and image
