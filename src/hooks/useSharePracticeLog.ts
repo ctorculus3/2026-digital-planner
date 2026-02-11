@@ -17,6 +17,7 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
   const fetchExistingShare = async () => {
     if (!practiceLogId) return null;
 
+    setShareData(null);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
