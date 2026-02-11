@@ -170,6 +170,14 @@ export default function SharedPracticeLog() {
     return `${dayName} – ${formattedDate}`;
   };
 
+  const formatTime = (time: string | null) => {
+    if (!time) return "—";
+    const [h, m] = time.split(":").map(Number);
+    const period = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${m.toString().padStart(2, "0")} ${period}`;
+  };
+
   const calculateTotalTime = (start: string | null, stop: string | null) => {
     if (!start || !stop) return null;
     const [startHour, startMin] = start.split(":").map(Number);
@@ -255,11 +263,11 @@ export default function SharedPracticeLog() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <h3 className="font-display text-sm text-muted-foreground mb-1">Start Time</h3>
-              <p className="text-foreground">{practiceLog.start_time || "—"}</p>
+              <p className="text-foreground">{formatTime(practiceLog.start_time)}</p>
             </div>
             <div>
               <h3 className="font-display text-sm text-muted-foreground mb-1">Stop Time</h3>
-              <p className="text-foreground">{practiceLog.stop_time || "—"}</p>
+              <p className="text-foreground">{formatTime(practiceLog.stop_time)}</p>
             </div>
             <div>
               <h3 className="font-display text-sm text-muted-foreground mb-1">Total Time</h3>
