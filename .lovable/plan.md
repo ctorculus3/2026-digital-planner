@@ -1,26 +1,53 @@
 
 
-## Fix: Show Repertoire Completion Status on Shared Practice Logs
+## Fix: Always Show All Sections on Shared Practice Log
 
-### Problem
+### What I Found
 
-The shared practice log view always shows empty circles next to Repertoire items, even when they were checked off as completed. The `repertoire_completed` array is neither fetched from the database nor included in the data interface, and the `music_listening` / `music_listening_completed` fields are also missing.
+After testing the shared link in a browser, I confirmed:
+- **"Used Metronome"** and **"Music Listening"** (with its completion circle) ARE actually rendering correctly with the latest code changes
+- **"Ear Training"** and **"Additional Tasks"** are hidden because those arrays are empty (`[]`) in the database for the Feb 10 log -- the code only shows those sections when they contain data
 
-### Solution
+The issue is likely one of two things:
+1. You may be seeing a cached version of the page (try a hard refresh)
+2. The sections are hidden when they have no entries, unlike the journal view which always shows them
 
-Three small, targeted changes in `src/pages/SharedPracticeLog.tsx`:
+### Proposed Changes
 
-1. **Add missing fields to the `PracticeLogData` interface** -- add `repertoire_completed`, `music_listening`, and `music_listening_completed`.
+**File: `src/pages/SharedPracticeLog.tsx`**
 
-2. **Add the missing fields to the SELECT query** (line 88) -- include `repertoire_completed, music_listening, music_listening_completed`.
+Make all four sections always visible on the shared view, even when empty, to match the journal:
 
-3. **Update the repertoire circle rendering** (line 308) -- change the static empty circle to a conditional one that fills in when `repertoire_completed[idx]` is true, matching the same pattern already used for Ear Training and Additional Tasks.
+1. **"Used Metronome Today"** -- already shows when `metronome_used` is true. Change it to always render, showing either a checkmark or an unchecked state (currently it hides entirely when `false`).
 
-4. **Add a Music Listening section** to the shared view, following the same pattern as Ear Training and Additional Tasks.
+2. **Ear Training** -- remove the conditional that hides it when the array is empty. Show "No ear training recorded" placeholder when empty.
+
+3. **Additional Tasks** -- same treatment: always show with an empty-state message.
+
+4. **Music Listening** -- same treatment: always show with an empty-state message.
+
+5. All completion circles already use the correct conditional logic (`bg-primary border-primary` when completed) -- no changes needed there.
+
+### Technical Details
+
+For each section, replace the conditional wrapper like:
+```
+{practiceLog.ear_training && practiceLog.ear_training.filter(e => e).length > 0 && (...)}
+```
+with an always-rendered block that shows a placeholder when empty:
+```
+<div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+  <h3 ...>Ear Training</h3>
+  {hasItems ? <ul>...</ul> : <p className="text-muted-foreground italic">No ear training recorded</p>}
+</div>
+```
+
+For metronome, change from conditional render to always showing:
+- `true`: "Used Metronome Today" with checkmark
+- `false`/`null`: "Used Metronome Today" with unchecked indicator
 
 ### What stays the same
-
-- No database or RLS changes needed
-- No changes to any other files
-- Ear Training and Additional Tasks completion circles already work correctly
+- No database or RLS changes
+- No changes to other files
+- Completion circle logic is already correct
 
