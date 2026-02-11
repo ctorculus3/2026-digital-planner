@@ -1,80 +1,61 @@
 
 
-## Add Picture Posting to Community
+## Fix Link Preview Branding for Shared Practice Logs
 
-### Overview
+### Problem
 
-Users will be able to attach up to 5 images when composing a community post. Images are uploaded to the existing `community-images` storage bucket and their paths stored in the existing `image_paths` array column on `community_posts`. Posts will be valid if they have text OR at least one image.
+When a shared practice log link is pasted into a chat app (iMessage, Slack, Discord, etc.), the link preview shows "Lovable" branding instead of "Practice Daily." This happens because:
 
-### What Already Exists
+- Chat app crawlers fetch the raw HTML and read the `<meta>` tags
+- The app is a single-page application, so every route returns the same `index.html`
+- The `lovable.app` preview domain may inject its own branding
 
-- `community_posts.image_paths` text[] column (already in DB)
-- `community-images` public storage bucket (already created)
-- Storage RLS: INSERT and DELETE scoped to `{user_id}/` folders (already configured)
-- No SELECT policy needed (bucket is public)
+### Solution
+
+Create a backend function called `og-share` that acts as a "landing page" for shared links. When a crawler visits the link, it gets a small HTML page with the correct Practice Daily branding and dynamic details (sharer name, date). When a real user visits, they see the same page but with a redirect to the full app.
+
+### How It Works
+
+```text
+User pastes link in chat
+        |
+Chat app crawler fetches URL
+        |
+   /shared/:token
+        |
+  og-share function
+        |
+  Returns HTML with:
+  - og:title = "Practice Daily"
+  - og:description = "Practice log shared by [Name] - [Date]"
+  - og:image = /images/practice-daily-og.jpeg
+  - Meta refresh redirect to the SPA
+```
 
 ### Changes
 
-**1. PostComposer.tsx -- Add image picker and preview**
+**1. New backend function: `supabase/functions/og-share/index.ts`**
 
-- Add state for selected image `File[]` (max 5)
-- Add an image attach button (camera/image icon) using a hidden `<input type="file">` triggered by a `<label>` (robust pattern per memory)
-- Show thumbnail previews of selected images with remove buttons
-- Update `canSubmit` logic: valid if text OR images present
-- On submit:
-  1. Upload images to `community-images/{user_id}/{uuid}.ext` using Supabase Storage
-  2. Collect the file paths
-  3. Pass `image_paths` array alongside `content` to the `moderate-and-post` edge function
-- Reset images and use dynamic `key` on file input after submit
-- Use `sr-only` class on the hidden input for accessibility
+- Accepts GET requests with the share token as a query parameter
+- Looks up the share token in the database to get the sharer's name and log date
+- Returns a minimal HTML page with:
+  - Correct `og:title`, `og:description`, and `og:image` meta tags branded as "Practice Daily"
+  - A `<meta http-equiv="refresh">` tag that redirects browsers to the SPA's `/shared/:token` route after 0 seconds
+  - A simple "Redirecting..." message as fallback
+- If the token is invalid/expired, returns generic Practice Daily branding with a redirect
 
-**2. moderate-and-post edge function -- Accept and store image_paths**
+**2. Update share link generation: `src/hooks/useSharePracticeLog.ts`**
 
-- Parse optional `image_paths` string array from request body
-- Validate: max 5 paths, each must start with the user's ID folder
-- Include `image_paths` in the INSERT to `community_posts`
-- Allow content to be empty string when images are present
-- Text moderation only applies to text content (images bypass -- streak gate provides trust)
+- Change `getShareUrl()` to point to the backend function URL instead of the SPA route directly
+- The new URL format: `https://{supabase-url}/functions/v1/og-share?token={share_token}`
+- This ensures that when users copy the share link, it goes through the backend function first
 
-**3. PostCard.tsx -- Display images in posts**
+**3. No changes to the existing SharedPracticeLog page**
 
-- If `post.image_paths` has entries, render an image gallery below the text
-- Use responsive grid: 1 image = full width, 2 = 2-col, 3+ = 2-col grid
-- Each image gets a public URL from the `community-images` bucket
-- Add a click-to-enlarge lightbox using Radix Dialog
+- The SPA route `/shared/:token` continues to work exactly as before
+- The backend function simply redirects to it after serving the OG tags
 
-**4. useCommunityPosts.ts -- Fetch image_paths**
+### Why This Works
 
-- Add `image_paths` to the select query
-- Include in the `CommunityPost` interface
-
-**5. PostFeed.tsx -- Handle image cleanup on delete**
-
-- When deleting a post that has images, also delete the image files from storage
-
-### Technical Details
-
-**File: `src/components/community/PostComposer.tsx`**
-- New state: `images: File[]`, `inputKey: number`
-- `<label>` with image icon triggers hidden `<input type="file" accept="image/*" multiple>`
-- Before calling edge function, upload each file: `supabase.storage.from('community-images').upload('{userId}/{crypto.randomUUID()}.{ext}', file)`
-- Pass resulting paths in body to `moderate-and-post`
-- On error, clean up any uploaded images
-
-**File: `supabase/functions/moderate-and-post/index.ts`**
-- Destructure `{ content, image_paths }` from body
-- Validate: content required if no images; image_paths max 5; paths must match user folder
-- Insert with `image_paths` column
-
-**File: `src/components/community/PostCard.tsx`**
-- New `ImageGallery` component renders grid of images
-- Lightbox dialog for full-size viewing with accessible hidden title/description
-- Public URLs via `supabase.storage.from('community-images').getPublicUrl(path)`
-
-**File: `src/hooks/useCommunityPosts.ts`**
-- Update select to include `image_paths`
-- Add `image_paths: string[] | null` to `CommunityPost` interface
-
-**File: `src/components/community/PostFeed.tsx`**
-- In `handleDelete`, if post has `image_paths`, call `supabase.storage.from('community-images').remove(paths)` before deleting the row
+Chat app crawlers (which don't run JavaScript) will see the correct Practice Daily branding in the meta tags. Real users will be instantly redirected to the full interactive shared practice log page. This approach works regardless of whether the app is on the `lovable.app` domain or a custom domain.
 
