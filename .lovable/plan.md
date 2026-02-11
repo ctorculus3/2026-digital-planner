@@ -1,51 +1,88 @@
 
 
-## Fix: Content-Type Override and OG Image Issues
+## New Approach: Static HTML Files in Storage
 
-### Problem 1: Content-Type being overridden to `text/plain`
+### The Real Problem
 
-The backend gateway is overriding the `Content-Type: text/html` header set by the function. When crawlers receive `text/plain`, they don't parse the HTML for OG meta tags, so the link preview falls back to whatever the platform default is ("Lovable").
+The Edge Function gateway **always** overrides `Content-Type` to `text/plain`, regardless of what headers we set. iMessage sees "Text Document" and never parses the OG tags. This is a platform limitation we cannot work around from inside the function.
 
-**Fix**: Add explicit `X-Content-Type-Options: nosniff` and ensure the Content-Type header is correctly prioritized. If the gateway still overrides it, we can work around it by returning a redirect response (HTTP 302) instead -- but first, we'll try a more direct fix by explicitly setting headers in a way the gateway respects.
+### Solution: Generate Static HTML and Store It in the Public Bucket
 
-### Problem 2: OG Image may not be accessible
+Instead of serving dynamic HTML from an Edge Function (whose headers we can't control), we'll:
 
-The uploaded image at `community-images/og/practice-daily-og.jpeg` appears to return a blank response when fetched. The image may not have uploaded correctly, or the path may be wrong.
+1. **When a share link is created**, generate a small static HTML file containing the OG tags
+2. **Upload that HTML file** to the public `community-images` bucket (which serves files with correct MIME types)
+3. **Point the share URL** at the storage file instead of the Edge Function
 
-**Fix**: Re-upload the image to storage, and verify it's accessible at the expected URL before updating the function.
+Storage serves files with proper `Content-Type: text/html` based on the `.html` extension -- no gateway interference.
+
+### How It Works
+
+```text
+User creates share link
+        |
+        v
+Hook generates static HTML with OG tags
+        |
+        v
+Uploads to: community-images/og-shares/{token}.html
+        |
+        v
+Share URL becomes: https://.../storage/v1/object/public/community-images/og-shares/{token}.html
+        |
+        v
+Crawler fetches URL -> gets text/html -> reads OG tags -> shows "Practice Daily" preview
+User's browser -> JS redirect -> full app at /shared/{token}
+```
 
 ### Changes
 
-**Step 1: Re-upload OG image to `community-images` bucket**
-- Upload `public/images/practice-daily-og.jpeg` to `community-images/og/practice-daily-og.jpeg`
-- Verify it's publicly accessible
+**1. Update `src/hooks/useSharePracticeLog.ts`**
 
-**Step 2: Update `supabase/functions/og-share/index.ts`**
-- Add `X-Content-Type-Options: nosniff` header to prevent content-type sniffing
-- Add `Cache-Control` header so crawlers get fresh responses
-- Keep the existing dynamic metadata (sharer name, date) and JS-only redirect
+In the `createShare` function, after inserting the share record:
+- Fetch the user's display name from the `profiles` table
+- Build a small HTML string with OG meta tags and a JS redirect
+- Upload it to `community-images/og-shares/{shareToken}.html`
+- Update `getShareUrl()` to return the storage URL instead of the Edge Function URL
 
-```typescript
-return new Response(html, {
-  status: 200,
-  headers: {
-    "Content-Type": "text/html; charset=utf-8",
-    "X-Content-Type-Options": "nosniff",
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-  },
-});
+In the `revokeShare` function:
+- Delete the HTML file from storage when revoking
+
+**2. No Edge Function changes needed**
+
+The `og-share` function can remain as a fallback but is no longer the primary share URL.
+
+### Technical Details
+
+The generated HTML file will look like:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Practice Daily</title>
+  <meta property="og:title" content="Practice Daily" />
+  <meta property="og:description" content="Practice log shared by Calvin 3 -- February 10, 2026" />
+  <meta property="og:image" content="https://cbuebvuqpippyiifatkn.supabase.co/storage/v1/object/public/community-images/og/practice-daily-og.jpeg" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <!-- ... twitter tags ... -->
+</head>
+<body>
+  <p>Redirecting...</p>
+  <script>window.location.replace("https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app/shared/{token}");</script>
+</body>
+</html>
 ```
 
-**Step 3: Deploy and verify**
-- Deploy the og-share function
-- Verify the response comes back as `text/html`
-- Verify the OG image URL returns a valid image
-- Generate a new share link for testing
+The storage CDN will serve this with `Content-Type: text/html` automatically because of the `.html` extension.
 
-### Why This Should Work
+### Why This Will Work
 
-The combination of fixes ensures:
-- Crawlers receive properly typed HTML (`text/html`) so they parse OG tags
-- The OG image is accessible and displays correctly in previews
-- No meta-refresh redirect means crawlers stay on this page
-- Dynamic metadata (sharer name + date) is already working correctly in the function logic
+- Public storage buckets serve files with correct MIME types based on file extension
+- No gateway header override issue
+- Crawlers get proper HTML with OG tags
+- Users still get redirected via JS
+- Dynamic content (name, date) is baked in at share-creation time
+
