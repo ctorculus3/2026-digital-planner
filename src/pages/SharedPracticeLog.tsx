@@ -21,12 +21,15 @@ interface PracticeLogData {
   scales: string[] | null;
   repertoire: string[] | null;
   repertoire_recordings: string[] | null;
+  repertoire_completed: boolean[] | null;
   notes: string | null;
   metronome_used: boolean | null;
   ear_training: string[] | null;
   ear_training_completed: boolean[] | null;
   additional_tasks: string[] | null;
   additional_tasks_completed: boolean[] | null;
+  music_listening: string[] | null;
+  music_listening_completed: boolean[] | null;
   sharer_name: string | null;
 }
 
@@ -85,7 +88,7 @@ export default function SharedPracticeLog() {
         // Fetch the practice log
         const { data: logData, error: logError } = await supabase
           .from("practice_logs")
-          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, repertoire_recordings, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed")
+          .select("id, log_date, goals, subgoals, start_time, stop_time, warmups, scales, repertoire, repertoire_recordings, repertoire_completed, notes, metronome_used, ear_training, ear_training_completed, additional_tasks, additional_tasks_completed, music_listening, music_listening_completed")
           .eq("id", practice_log_id)
           .single();
 
@@ -305,7 +308,7 @@ export default function SharedPracticeLog() {
               {practiceLog.repertoire?.filter(r => r).map((item, idx) => (
                 <li key={idx} className="space-y-1">
                   <div className="flex items-center gap-2 text-foreground">
-                    <div className="w-3 h-3 rounded-full border border-muted-foreground/30" />
+                    <div className={`w-3 h-3 rounded-full border ${practiceLog.repertoire_completed?.[idx] ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`} />
                     {item}
                   </div>
                   {recordingUrls[idx] && (
@@ -338,6 +341,20 @@ export default function SharedPracticeLog() {
                   {practiceLog.ear_training.filter(e => e).map((item, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-foreground">
                       <div className={`w-3 h-3 rounded-full border ${practiceLog.ear_training_completed?.[idx] ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Music Listening */}
+            {practiceLog.music_listening && practiceLog.music_listening.filter(m => m).length > 0 && (
+              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+                <h3 className="font-display text-sm text-muted-foreground mb-3">Music Listening</h3>
+                <ul className="space-y-1">
+                  {practiceLog.music_listening.filter(m => m).map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-foreground">
+                      <div className={`w-3 h-3 rounded-full border ${practiceLog.music_listening_completed?.[idx] ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`} />
                       {item}
                     </li>
                   ))}
