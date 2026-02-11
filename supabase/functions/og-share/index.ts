@@ -87,8 +87,13 @@ serve(async (req) => {
 </body>
 </html>`;
 
-  return new Response(html, {
+  const headers = new Headers();
+  headers.set("content-type", "text/html; charset=utf-8");
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("cache-control", "no-cache, no-store, must-revalidate");
+
+  return new Response(new Blob([html], { type: "text/html; charset=utf-8" }), {
     status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers,
   });
 });
