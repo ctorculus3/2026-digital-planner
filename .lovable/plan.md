@@ -1,35 +1,51 @@
 
 
-## Fix: Stop Crawlers from Following the Redirect
+## Fix: Content-Type Override and OG Image Issues
 
-### Root Cause
+### Problem 1: Content-Type being overridden to `text/plain`
 
-The `og-share` function uses `<meta http-equiv="refresh">` to redirect users to the app. The problem is that chat app crawlers (iMessage, Slack, Discord) **follow** this redirect because it's a standard HTML redirect mechanism. When they arrive at the `lovable.app` preview domain, that domain serves its own "Lovable" meta tags, which is what shows up in the link preview.
+The backend gateway is overriding the `Content-Type: text/html` header set by the function. When crawlers receive `text/plain`, they don't parse the HTML for OG meta tags, so the link preview falls back to whatever the platform default is ("Lovable").
 
-### Solution
+**Fix**: Add explicit `X-Content-Type-Options: nosniff` and ensure the Content-Type header is correctly prioritized. If the gateway still overrides it, we can work around it by returning a redirect response (HTTP 302) instead -- but first, we'll try a more direct fix by explicitly setting headers in a way the gateway respects.
 
-Replace the `<meta http-equiv="refresh">` tag with a `<script>` redirect. Crawlers do not execute JavaScript, so they will only see the "Practice Daily" OG tags served by the function. Real users (who have JavaScript enabled) will be redirected instantly.
+### Problem 2: OG Image may not be accessible
 
-### Change
+The uploaded image at `community-images/og/practice-daily-og.jpeg` appears to return a blank response when fetched. The image may not have uploaded correctly, or the path may be wrong.
 
-**`supabase/functions/og-share/index.ts`** -- one small change:
+**Fix**: Re-upload the image to storage, and verify it's accessible at the expected URL before updating the function.
 
-Replace this line in the HTML template:
-```html
-<meta http-equiv="refresh" content="0;url=${redirectUrl}" />
+### Changes
+
+**Step 1: Re-upload OG image to `community-images` bucket**
+- Upload `public/images/practice-daily-og.jpeg` to `community-images/og/practice-daily-og.jpeg`
+- Verify it's publicly accessible
+
+**Step 2: Update `supabase/functions/og-share/index.ts`**
+- Add `X-Content-Type-Options: nosniff` header to prevent content-type sniffing
+- Add `Cache-Control` header so crawlers get fresh responses
+- Keep the existing dynamic metadata (sharer name, date) and JS-only redirect
+
+```typescript
+return new Response(html, {
+  status: 200,
+  headers: {
+    "Content-Type": "text/html; charset=utf-8",
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+  },
+});
 ```
 
-With a JavaScript redirect in the body:
-```html
-<script>window.location.replace("${redirectUrl}");</script>
-```
+**Step 3: Deploy and verify**
+- Deploy the og-share function
+- Verify the response comes back as `text/html`
+- Verify the OG image URL returns a valid image
+- Generate a new share link for testing
 
-This is the only change needed. The rest of the function (OG tags, image URL, database lookup) remains the same.
+### Why This Should Work
 
-### Why This Works
-
-| Visitor | Behavior |
-|---------|----------|
-| Chat crawler (iMessage, Slack) | Reads HTML, sees "Practice Daily" OG tags, does NOT execute JS, stops here |
-| Real user in browser | JS executes instantly, redirects to the full app |
-
+The combination of fixes ensures:
+- Crawlers receive properly typed HTML (`text/html`) so they parse OG tags
+- The OG image is accessible and displays correctly in previews
+- No meta-refresh redirect means crawlers stay on this page
+- Dynamic metadata (sharer name + date) is already working correctly in the function logic
