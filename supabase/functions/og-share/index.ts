@@ -60,20 +60,8 @@ serve(async (req) => {
     }
   }
 
-  // Derive the app origin from the Referer header if available, otherwise use preview URL
-  const referer = req.headers.get("referer");
-  let appOrigin: string;
-  if (referer) {
-    try {
-      const refUrl = new URL(referer);
-      appOrigin = refUrl.origin;
-    } catch {
-      appOrigin = "https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app";
-    }
-  } else {
-    appOrigin = "https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app";
-  }
-  const ogImage = `${appOrigin}/images/practice-daily-og.jpeg`;
+  const appOrigin = "https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app";
+  const ogImage = `${supabaseUrl}/storage/v1/object/public/community-images/og/practice-daily-og.jpeg`;
   const redirectUrl = `${appOrigin}${redirectPath}`;
 
   const html = `<!DOCTYPE html>
@@ -86,6 +74,7 @@ serve(async (req) => {
   <meta property="og:title" content="${ogTitle}" />
   <meta property="og:description" content="${ogDescription}" />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="${redirectUrl}" />
   <meta property="og:image" content="${ogImage}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${ogTitle}" />
