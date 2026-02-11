@@ -328,15 +328,15 @@ export default function SharedPracticeLog() {
                 {practiceLog.notes || <span className="text-muted-foreground italic">No notes recorded</span>}
               </p>
             </div>
-            {practiceLog.metronome_used && (
-              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-                <p className="text-sm text-foreground">✓ Used Metronome</p>
-              </div>
-            )}
+            <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+              <p className="text-sm text-foreground">
+                {practiceLog.metronome_used ? '✓' : '○'} Used Metronome Today
+              </p>
+            </div>
             {/* Ear Training */}
-            {practiceLog.ear_training && practiceLog.ear_training.filter(e => e).length > 0 && (
-              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-                <h3 className="font-display text-sm text-muted-foreground mb-3">Ear Training</h3>
+            <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+              <h3 className="font-display text-sm text-muted-foreground mb-3">Ear Training</h3>
+              {practiceLog.ear_training && practiceLog.ear_training.filter(e => e).length > 0 ? (
                 <ul className="space-y-1">
                   {practiceLog.ear_training.filter(e => e).map((item, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-foreground">
@@ -345,12 +345,14 @@ export default function SharedPracticeLog() {
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
+              ) : (
+                <p className="text-muted-foreground italic text-sm">No ear training recorded</p>
+              )}
+            </div>
             {/* Music Listening */}
-            {practiceLog.music_listening && practiceLog.music_listening.filter(m => m).length > 0 && (
-              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-                <h3 className="font-display text-sm text-muted-foreground mb-3">Music Listening</h3>
+            <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+              <h3 className="font-display text-sm text-muted-foreground mb-3">Music Listening</h3>
+              {practiceLog.music_listening && practiceLog.music_listening.filter(m => m).length > 0 ? (
                 <ul className="space-y-1">
                   {practiceLog.music_listening.filter(m => m).map((item, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-foreground">
@@ -359,12 +361,14 @@ export default function SharedPracticeLog() {
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
+              ) : (
+                <p className="text-muted-foreground italic text-sm">No music listening recorded</p>
+              )}
+            </div>
             {/* Additional Tasks */}
-            {practiceLog.additional_tasks && practiceLog.additional_tasks.filter(t => t).length > 0 && (
-              <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-                <h3 className="font-display text-sm text-muted-foreground mb-3">Additional Tasks</h3>
+            <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+              <h3 className="font-display text-sm text-muted-foreground mb-3">Additional Tasks</h3>
+              {practiceLog.additional_tasks && practiceLog.additional_tasks.filter(t => t).length > 0 ? (
                 <ul className="space-y-1">
                   {practiceLog.additional_tasks.filter(t => t).map((task, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-foreground">
@@ -373,8 +377,10 @@ export default function SharedPracticeLog() {
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
+              ) : (
+                <p className="text-muted-foreground italic text-sm">No additional tasks recorded</p>
+              )}
+            </div>
           </div>
         </div>
 
