@@ -1,64 +1,41 @@
 
 
-## Fix: Inconsistent Streak Counter
+## Redesign: Premium Enamel-Pin Style Streak Badges
 
-### Root Cause
+### Overview
 
-The `get_practice_streak` database function starts counting from **today** (`CURRENT_DATE`) and walks backward. If you haven't logged practice **today yet**, it finds no log for today and immediately returns **0** -- even though you have a 12-day streak going through yesterday.
+Replace the current simple circle-and-icon badges with rich, colorful, enamel-pin-inspired badge components built entirely with CSS. Each badge will have a distinct color palette, a hexagonal/shield shape with a gold metallic border, gradient backgrounds, and bold typography -- closely matching the reference images.
 
-The "sometimes 12, sometimes 0" behavior happens because:
-- **Shows 12**: When you view the dashboard on a day you've already logged (or from a cached result)
-- **Shows 0**: When you view it before logging today's practice
+### Design Details
 
-### The Fix
+Each of the 4 streak badges gets a unique color scheme:
 
-Update the database function so that if there's no log for today, it starts counting from **yesterday** instead. This way your streak stays visible all day and only resets if you miss an entire day.
+| Badge | Color Theme | Accent |
+|-------|------------|--------|
+| 10 Days | Teal-to-emerald gradient | Gold border, musical note icon |
+| 30 Days | Coral-to-rose gradient | Gold border, star accents |
+| 50 Days | Purple-to-indigo gradient | Gold border, trophy icon |
+| 100 Days | Amber-to-orange gradient | Gold border, crown icon |
 
-### Technical Details
+Visual features (all CSS, no images):
+- Rounded hexagonal / shield clip-path shape
+- Gold-toned border using `box-shadow` and border gradients
+- Rich gradient backgrounds per badge
+- Bold streak number displayed prominently (like "25" in the reference)
+- Subtle inner shadow for a 3D "enamel" depth effect
+- Unearned badges shown as grayscale/muted silhouettes
+- Earned date shown below in small text
 
-**Database migration** -- Replace the `get_practice_streak` function:
+### Technical Changes
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_practice_streak(p_user_id uuid)
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  streak INTEGER := 0;
-  check_date DATE := CURRENT_DATE;
-  has_log BOOLEAN;
-BEGIN
-  -- Check if there's a log for today
-  SELECT EXISTS (
-    SELECT 1 FROM public.practice_logs
-    WHERE user_id = p_user_id AND log_date = check_date
-  ) INTO has_log;
+**File: `src/components/dashboard/BadgeShelf.tsx`**
+- Replace the current grid of simple circles with new premium badge components
+- Each badge rendered as a `div` with CSS clip-path for the hexagonal shape
+- Use inline styles or Tailwind utilities for the per-badge gradient colors
+- Keep the same data flow: `badges` prop, `earnedMap` lookup, same `BADGE_CONFIG` array
+- Add the streak number (10, 30, 50, 100) as large bold text inside each badge
+- Unearned state: grayscale filter + reduced opacity
+- No new dependencies required -- pure CSS + Tailwind
 
-  -- If no log today, start from yesterday
-  IF NOT has_log THEN
-    check_date := check_date - INTERVAL '1 day';
-  END IF;
-
-  -- Count consecutive days backward
-  LOOP
-    SELECT EXISTS (
-      SELECT 1 FROM public.practice_logs
-      WHERE user_id = p_user_id AND log_date = check_date
-    ) INTO has_log;
-
-    IF NOT has_log THEN
-      EXIT;
-    END IF;
-
-    streak := streak + 1;
-    check_date := check_date - INTERVAL '1 day';
-  END LOOP;
-
-  RETURN streak;
-END;
-$$;
-```
-
-No frontend code changes needed -- the same RPC call will now return the correct value consistently.
+**No other files change.** The `BadgeShelf` props interface, the `useDashboardData` hook, and the Dashboard page remain untouched.
 
