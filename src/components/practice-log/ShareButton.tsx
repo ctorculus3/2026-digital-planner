@@ -32,6 +32,7 @@ export function ShareButton({ practiceLogId, disabled }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [selectedExpiration, setSelectedExpiration] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showLinkView, setShowLinkView] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -45,12 +46,14 @@ export function ShareButton({ practiceLogId, disabled }: ShareButtonProps) {
 
   useEffect(() => {
     if (open && practiceLogId) {
+      setShowLinkView(false);
       fetchExistingShare();
     }
   }, [open, practiceLogId]);
 
   const handleGenerateLink = async () => {
-    await createShare(selectedExpiration);
+    const result = await createShare(selectedExpiration);
+    if (result) setShowLinkView(true);
   };
 
   const handleCopy = async () => {
@@ -67,7 +70,8 @@ export function ShareButton({ practiceLogId, disabled }: ShareButtonProps) {
   };
 
   const handleRevoke = async () => {
-    await revokeShare();
+    const revoked = await revokeShare();
+    if (revoked) setShowLinkView(false);
   };
 
   const shareUrl = getShareUrl();
@@ -93,7 +97,7 @@ export function ShareButton({ practiceLogId, disabled }: ShareButtonProps) {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : shareData ? (
+          ) : showLinkView && shareData ? (
             <>
               <p className="text-sm text-muted-foreground">
                 Anyone with this link can view your practice log:
@@ -142,6 +146,18 @@ export function ShareButton({ practiceLogId, disabled }: ShareButtonProps) {
             </>
           ) : (
             <>
+              {shareData && (
+                <div className="flex items-center justify-between p-3 bg-muted rounded-md border border-border">
+                  <p className="text-sm text-muted-foreground">You already have an active link.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowLinkView(true)}
+                  >
+                    View Link
+                  </Button>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Link expires:
