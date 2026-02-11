@@ -80,10 +80,10 @@ serve(async (req) => {
   <meta name="twitter:title" content="${ogTitle}" />
   <meta name="twitter:description" content="${ogDescription}" />
   <meta name="twitter:image" content="${ogImage}" />
-  <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
 </head>
 <body>
   <p>Redirecting to <a href="${redirectUrl}">Practice Daily</a>...</p>
+  <script>window.location.replace("${redirectUrl}");</script>
 </body>
 </html>`;
 
