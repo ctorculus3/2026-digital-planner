@@ -213,47 +213,47 @@ export function Tuner() {
   });
 
   return (
-    <div className="mt-3 bg-muted/30 rounded-lg p-3 flex flex-col items-center gap-2">
-      {/* Gauge */}
-      <svg viewBox="0 0 240 130" className="w-full max-w-[280px]" aria-hidden>
-        {segments}
-        {/* Center triangle marker at top */}
-        <polygon
-          points={`${gaugeCx - 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx + 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx},${gaugeCy - gaugeRadius + 4}`}
-          fill="hsl(var(--foreground))"
-        />
-        {/* Flat / Sharp labels */}
-        <text x="18" y={gaugeCy + 4} fill="hsl(var(--muted-foreground))" fontSize="13" fontWeight="600">♭</text>
-        <text x="218" y={gaugeCy + 4} fill="hsl(var(--muted-foreground))" fontSize="13" fontWeight="600">♯</text>
-      </svg>
-
-      {/* Note display */}
-      {isListening && detectedNote ? (
-        <div className="text-center -mt-2">
-          <span className="text-3xl font-bold font-display text-foreground">
-            {detectedNote}
-            <span className="text-lg text-muted-foreground">{detectedOctave}</span>
-          </span>
-          <p className="text-sm text-muted-foreground">
-            {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents} cents`}
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground -mt-2">
-          {isListening ? "Listening..." : "Press mic to begin tuning"}
-        </p>
-      )}
-
+    <div className="mt-3 bg-neutral-800 rounded-lg p-2 flex items-center gap-2">
       {/* Mic button */}
       <Button
         type="button"
         size="icon"
         variant={isListening ? "destructive" : "default"}
-        className="rounded-full w-10 h-10"
+        className="rounded-full w-8 h-8 shrink-0"
         onClick={isListening ? stopListening : startListening}
       >
-        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
       </Button>
+
+      {/* Gauge */}
+      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0" aria-hidden>
+        {segments}
+        <polygon
+          points={`${gaugeCx - 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx + 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx},${gaugeCy - gaugeRadius + 4}`}
+          fill="hsl(0 0% 85%)"
+        />
+        <text x="18" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♭</text>
+        <text x="218" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♯</text>
+      </svg>
+
+      {/* Note display */}
+      <div className="shrink-0 min-w-[60px] text-center">
+        {isListening && detectedNote ? (
+          <>
+            <span className="text-2xl font-bold font-display text-white">
+              {detectedNote}
+              <span className="text-sm text-neutral-400">{detectedOctave}</span>
+            </span>
+            <p className="text-xs text-neutral-400">
+              {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents}¢`}
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-neutral-500">
+            {isListening ? "Listening…" : "Tap mic"}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
