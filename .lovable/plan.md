@@ -1,30 +1,22 @@
 
 
-## Use Uploaded Sound for Timer Alarm
+## Fix: Timer Alarm Not Playing
 
-### What changes
+### Problem
+The `new Audio("/audio/timer-alarm.mp3").play()` call happens inside a `setInterval` callback, which browsers don't consider a user gesture. This means `play()` is silently blocked by autoplay policy. The `.catch(() => {})` hides the error.
 
-1. **Copy the uploaded MP3** to `public/audio/timer-alarm.mp3` (public folder is appropriate since it will be loaded at runtime via `Audio()`, not imported as an ES module).
+### Solution
+Preload the audio file when the user clicks Start (a real user gesture), and store it in a ref. When the timer reaches zero, call `.play()` on the already-loaded element. This approach works because the audio element is created and its playback is "primed" during a user interaction.
 
-2. **Update `src/components/practice-log/Timer.tsx`**:
-   - Replace the `playBell` function (which synthesizes a tone via Web Audio API) with a simple `new Audio("/audio/timer-alarm.mp3")` playback.
-   - Remove the `AudioContext` ref and all related setup/cleanup code since `Audio()` elements don't require a pre-unlocked context the same way.
-   - Keep the rest of the timer logic (presets, countdown, start/stop/reset) exactly as-is.
+### Changes to `src/components/practice-log/Timer.tsx`
 
-### Technical detail
+1. Add an `audioRef` using `useRef<HTMLAudioElement | null>(null)`
+2. In the `start` function (runs on user click), create the Audio element, set its `src`, and call `audio.load()` to preload it. Store in `audioRef`.
+3. Replace the `playBell()` call with `audioRef.current?.play()` when the countdown hits zero.
+4. In the `reset` function, clean up the audio ref.
+5. Remove the standalone `playBell` function.
 
-The `playBell(ctx)` function and `audioCtxRef` will be replaced with:
-
-```typescript
-function playBell() {
-  const audio = new Audio("/audio/timer-alarm.mp3");
-  audio.play().catch(() => {});
-}
-```
-
-To ensure the audio plays reliably on mobile browsers (which block autoplay), the `AudioContext` unlock-on-gesture pattern will be kept: create/resume an `AudioContext` on Start click, then when the timer ends, call `audio.play()`. Since the user will have already interacted with the page (clicking Start), the `play()` call should succeed. If extra reliability is needed, a silent `AudioContext` resume on Start can stay as a fallback.
-
-### Files affected
-- `public/audio/timer-alarm.mp3` -- new (copied from upload)
-- `src/components/practice-log/Timer.tsx` -- edited (swap synth bell for MP3 playback)
-
+### What stays the same
+- All timer logic (presets, custom input, countdown, start/stop/reset)
+- All UI and styling
+- The MP3 file itself (`public/audio/timer-alarm.mp3`)
