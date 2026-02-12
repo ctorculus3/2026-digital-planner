@@ -7,15 +7,27 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 // Segment colors from left (very flat) to right (very sharp)
 // 9 segments: 2 red, 2 orange, 2 yellow, 1 green center, then mirror
 const SEGMENT_COLORS = [
-"hsl(0, 80%, 55%)", // far flat - red
-"hsl(20, 90%, 55%)", // flat - orange
-"hsl(40, 95%, 55%)", // slightly flat - amber
-"hsl(55, 95%, 50%)", // almost - yellow
-"hsl(140, 70%, 45%)", // in tune - green
-"hsl(55, 95%, 50%)", // almost - yellow
-"hsl(40, 95%, 55%)", // slightly sharp - amber
-"hsl(20, 90%, 55%)", // sharp - orange
-"hsl(0, 80%, 55%)" // far sharp - red
+"hsl(0, 100%, 60%)", // far flat - bright red
+"hsl(25, 100%, 60%)", // flat - bright orange
+"hsl(45, 100%, 55%)", // slightly flat - bright amber
+"hsl(55, 100%, 55%)", // almost - bright yellow
+"hsl(140, 90%, 50%)", // in tune - bright green
+"hsl(55, 100%, 55%)", // almost - bright yellow
+"hsl(45, 100%, 55%)", // slightly sharp - bright amber
+"hsl(25, 100%, 60%)", // sharp - bright orange
+"hsl(0, 100%, 60%)" // far sharp - bright red
+];
+
+const SEGMENT_GLOWS = [
+"0 0 10px hsl(0, 100%, 60%)",
+"0 0 10px hsl(25, 100%, 60%)",
+"0 0 10px hsl(45, 100%, 55%)",
+"0 0 10px hsl(55, 100%, 55%)",
+"0 0 12px hsl(140, 90%, 50%)",
+"0 0 10px hsl(55, 100%, 55%)",
+"0 0 10px hsl(45, 100%, 55%)",
+"0 0 10px hsl(25, 100%, 60%)",
+"0 0 10px hsl(0, 100%, 60%)"
 ];
 
 const SEGMENT_COUNT = SEGMENT_COLORS.length;
@@ -173,87 +185,59 @@ export function Tuner() {
     };
   }, []);
 
-  // Build SVG gauge arc
-  const gaugeRadius = 90;
-  const gaugeCx = 120;
-  const gaugeCy = 110;
-  const startAngle = Math.PI; // left
-  const endAngle = 0; // right (top semicircle)
-  const gap = 0.03; // gap between segments in radians
-
-  const segments = Array.from({ length: SEGMENT_COUNT }, (_, i) => {
-    const totalArc = Math.PI - gap * (SEGMENT_COUNT - 1);
-    const segArc = totalArc / SEGMENT_COUNT;
-    const a1 = startAngle - i * (segArc + gap);
-    const a2 = a1 - segArc;
-
-    const x1 = gaugeCx + gaugeRadius * Math.cos(a1);
-    const y1 = gaugeCy - gaugeRadius * Math.sin(a1);
-    const x2 = gaugeCx + gaugeRadius * Math.cos(a2);
-    const y2 = gaugeCy - gaugeRadius * Math.sin(a2);
-
-    const innerRadius = gaugeRadius - 18;
-    const x3 = gaugeCx + innerRadius * Math.cos(a2);
-    const y3 = gaugeCy - innerRadius * Math.sin(a2);
-    const x4 = gaugeCx + innerRadius * Math.cos(a1);
-    const y4 = gaugeCy - innerRadius * Math.sin(a1);
-
-    const isActive = activeSegment === i;
-    const dimColor = "hsl(var(--muted))";
-
-    return (
-      <path
-        key={i}
-        d={`M ${x1} ${y1} A ${gaugeRadius} ${gaugeRadius} 0 0 0 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 0 1 ${x4} ${y4} Z`}
-        fill={isActive ? SEGMENT_COLORS[i] : dimColor}
-        opacity={isActive ? 1 : 0.4}
-        style={{ transition: "fill 0.15s, opacity 0.15s" }} />);
-
-
-  });
-
   return (
-    <div className="mt-3 rounded-lg p-2 flex items-center gap-2 mx-0 bg-[#103e84]">
-      {/* Mic button */}
-      <Button
-        type="button"
-        size="icon"
-        variant={isListening ? "destructive" : "default"}
-        className="rounded-full w-8 h-8 shrink-0"
-        onClick={isListening ? stopListening : startListening}>
-
-        {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-      </Button>
-
-      {/* Gauge */}
-      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0 mx-[50px]" aria-hidden>
-        {segments}
-        <polygon
-          points={`${gaugeCx - 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx + 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx},${gaugeCy - gaugeRadius + 4}`}
-          fill="hsl(0 0% 85%)" />
-
-        <text x="18" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♭</text>
-        <text x="218" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♯</text>
-      </svg>
-
-      {/* Note display */}
-      <div className="shrink-0 min-w-[60px] text-center">
-        {isListening && detectedNote ?
-        <>
-            <span className="text-2xl font-bold font-display text-white">
-              {detectedNote}
-              <span className="text-sm text-neutral-400">{detectedOctave}</span>
-            </span>
-            <p className="text-xs text-neutral-400">
-              {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents}¢`}
-            </p>
-          </> :
-
-        <p className="text-xs text-muted px-0 text-left mx-0">
+    <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-2 mx-0 bg-[#103e84]">
+      {/* Mic button + label */}
+      <div className="flex flex-col items-center gap-1">
+        <Button
+          type="button"
+          size="icon"
+          variant={isListening ? "destructive" : "default"}
+          className="rounded-full w-8 h-8 shrink-0"
+          onClick={isListening ? stopListening : startListening}>
+          {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+        </Button>
+        {!detectedNote && (
+          <p className="text-xs text-neutral-400">
             {isListening ? "Listening…" : "Tap mic"}
           </p>
-        }
+        )}
       </div>
+
+      {/* Circle gauge */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm text-neutral-400 font-semibold mr-1">♭</span>
+        {SEGMENT_COLORS.map((color, i) => {
+          const isActive = activeSegment === i;
+          const isCenter = i === 4;
+          const size = isCenter ? "w-5 h-5" : "w-4 h-4";
+          return (
+            <div
+              key={i}
+              className={`rounded-full ${size} transition-all duration-150`}
+              style={{
+                backgroundColor: isActive ? color : "hsl(220, 20%, 30%)",
+                opacity: isActive ? 1 : 0.4,
+                boxShadow: isActive ? SEGMENT_GLOWS[i] : "none",
+              }}
+            />
+          );
+        })}
+        <span className="text-sm text-neutral-400 font-semibold ml-1">♯</span>
+      </div>
+
+      {/* Note display */}
+      {isListening && detectedNote && (
+        <div className="text-center">
+          <span className="text-2xl font-bold font-display text-white">
+            {detectedNote}
+            <span className="text-sm text-neutral-400">{detectedOctave}</span>
+          </span>
+          <p className="text-xs text-neutral-400">
+            {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents}¢`}
+          </p>
+        </div>
+      )}
     </div>);
 
 }
