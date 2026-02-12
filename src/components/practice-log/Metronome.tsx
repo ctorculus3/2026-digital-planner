@@ -13,6 +13,7 @@ export function Metronome({ onStart }: MetronomeProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<number | null>(null);
   const hasStartedRef = useRef(false);
+  const claveBufferRef = useRef<AudioBuffer | null>(null);
 
   const getAudioContext = useCallback(() => {
     if (!audioCtxRef.current) {
@@ -21,50 +22,29 @@ export function Metronome({ onStart }: MetronomeProps) {
     return audioCtxRef.current;
   }, []);
 
-  const playClick = useCallback(() => {
+  const loadClave = useCallback(async () => {
+    if (claveBufferRef.current) return;
     const ctx = getAudioContext();
-    const now = ctx.currentTime;
-
-    // Layer 1: Filtered noise burst for natural percussive attack
-    const bufferSize = Math.floor(ctx.sampleRate * 0.04);
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    const noiseSrc = ctx.createBufferSource();
-    noiseSrc.buffer = noiseBuffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 1500;
-    filter.Q.value = 1.5;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.9, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
-
-    noiseSrc.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noiseSrc.start(now);
-    noiseSrc.stop(now + 0.04);
-
-    // Layer 2: Brief tonal ping for "tap" character
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.frequency.setValueAtTime(1200, now);
-    oscGain.gain.setValueAtTime(0.3, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.02);
+    const response = await fetch("/audio/Clave-4.wav");
+    const arrayBuffer = await response.arrayBuffer();
+    claveBufferRef.current = await ctx.decodeAudioData(arrayBuffer);
   }, [getAudioContext]);
 
-  const startMetronome = useCallback(() => {
+  const playClick = useCallback(() => {
+    if (!claveBufferRef.current) return;
+    const ctx = getAudioContext();
+    const source = ctx.createBufferSource();
+    source.buffer = claveBufferRef.current;
+    source.connect(ctx.destination);
+    source.start();
+  }, [getAudioContext]);
+
+  const startMetronome = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     
+    // Load clave sample if not yet loaded
+    await loadClave();
+
     // Fire onStart callback only on first play
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
@@ -75,7 +55,7 @@ export function Metronome({ onStart }: MetronomeProps) {
     const ms = 60000 / bpm;
     intervalRef.current = window.setInterval(playClick, ms);
     setIsPlaying(true);
-  }, [bpm, playClick, onStart]);
+  }, [bpm, playClick, onStart, loadClave]);
 
   const stopMetronome = useCallback(() => {
     if (intervalRef.current) {
