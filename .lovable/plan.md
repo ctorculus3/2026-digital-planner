@@ -1,37 +1,40 @@
 
 
-## Replace App Mockup with Animated Journal Preview
+## Use Uploaded Image as App Preview on Landing Page
 
 ### What Changes
 
-The placeholder div-based mockup under "See Your Practice Come to Life" will be replaced with an animated WebP image showing a real, filled-in practice journal. This gives visitors an authentic preview of the app experience.
+Replace the div-based placeholder mockup in the "See Your Practice Come to Life" section with the uploaded screenshot image. This serves as a temporary preview until an animated WebP is ready.
 
-### Requirements
+### Steps
 
-- **You upload an animated WebP** (or GIF) of the journal via the chat. It will be saved to the project's public assets.
+1. **Copy the image** to `public/images/practice-daily-preview.png` (public folder since it's a large marketing asset that doesn't benefit from bundling).
 
-### Changes to `src/pages/Landing.tsx`
+2. **Edit `src/pages/Landing.tsx`**: Remove the mock content divs inside the browser chrome card (the placeholder bars, day-letter grid, skeleton lines, and two mini-cards) and replace with a single `<img>` tag pointing to `/images/practice-daily-preview.png`.
 
-1. **Remove** the entire div-based mock content inside the browser chrome card (the placeholder bars, grid of day letters, skeleton lines, etc.).
-2. **Replace** with an `<img>` tag pointing to the uploaded animated WebP file.
-3. **Keep** the browser chrome wrapper (the dots + URL bar) around the image for a polished framing effect.
-4. The image will be wrapped in an aspect-ratio container to prevent layout shift while loading.
+3. **Remove the browser chrome wrapper** entirely -- the uploaded image already shows device frames and context, so wrapping it in a fake browser bar would look redundant. Instead, display the image cleanly with rounded corners and subtle shadow.
 
-### Rough Structure
+### Technical Detail
 
 ```text
-+--------------------------------------+
-|  (o) (o) (o)   practicedaily.app     |   <-- browser chrome (kept)
-+--------------------------------------+
-|                                      |
-|   [Animated WebP of filled journal]  |   <-- new image replaces divs
-|                                      |
-+--------------------------------------+
+Before:
+  <div className="rounded-xl border ...">
+    <div> (browser chrome dots + URL bar) </div>
+    <div> (skeleton placeholder divs) </div>
+  </div>
+
+After:
+  <img
+    src="/images/practice-daily-preview.png"
+    alt="Practice Daily app showing dashboard and journal views"
+    className="rounded-xl shadow-lg w-full"
+    loading="lazy"
+  />
 ```
 
 ### What Stays the Same
 
-- The "See Your Practice Come to Life" heading and subtitle
-- The browser chrome wrapper styling
-- All feature cards below the mockup
+- Section heading "See Your Practice Come to Life" and subtitle
+- All feature cards below the preview
 - Every other section on the landing page
+- This image can later be swapped for an animated WebP with no structural changes
