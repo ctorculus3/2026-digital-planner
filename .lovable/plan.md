@@ -1,21 +1,16 @@
 
 
-## Update Checkout Edge Function with New Stripe Price IDs
+## Fix: Redeploy the checkout function
 
-New products and prices were just created in Stripe. The `create-checkout` edge function needs to reference the new price IDs.
+The issue is clear: the `create-checkout` edge function code was updated with the correct live Stripe price IDs, but the **deployed version** is still running the old code. The logs confirm it's still trying to use `price_1T06ILPp57aypoj4m88umkXc` (the old/invalid price).
 
-### What changes
+### What needs to happen
 
-**File:** `supabase/functions/create-checkout/index.ts`
+1. **Redeploy the `create-checkout` edge function** so the live version uses the updated price IDs:
+   - Monthly: `price_1T06OeLSlNM2EUMkv9O6hItY`
+   - Yearly: `price_1T06OeLSlNM2EUMkNM8T5t8k`
 
-Update the `PRICES` map from the old IDs to the new ones:
+2. **Verify** the checkout flow works after redeployment.
 
-- **Monthly:** `price_1Sx00wPp57aypoj4v8akm2IH` -> `price_1T06ILPp57aypoj4m88umkXc`
-- **Yearly:** `price_1SyhXOPp57aypoj4Hx9fG1zH` -> `price_1T06IZPp57aypoj4XD8OaYyl`
-
-This is a two-line change in the `PRICES` constant at the top of the file. No other files need modification.
-
-### Why
-
-The previous price IDs may have been created in test mode. The new ones were just created in the current Stripe environment so they should appear in your Stripe dashboard under "My Products."
+No code changes are needed -- the code is already correct. This is purely a deployment issue.
 
