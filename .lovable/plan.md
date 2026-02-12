@@ -1,19 +1,26 @@
 
 
-## Replace Animation Ad with Updated Version
+## Increase Animation Frame to 1100 x 768
 
-The user has provided an updated HTML animation file (`practice-daily-ad.html`) already designed for the 1024x768 display area. This is a straightforward file swap.
+### Problem
+The current 1024x768 container is still causing text cutoff in the animated ad.
 
-### What Changes
+### Changes to `src/pages/Landing.tsx`
 
-1. **Overwrite `public/images/practice-daily-ad.html`** with the new uploaded file. The new ad is hardcoded to 1024x768 dimensions, matching the current iframe container (`max-w-5xl` with `4:3` aspect ratio).
+1. **Remove `max-w-5xl`** (which caps at 1024px) and replace with an explicit `max-w-[1100px]` using Tailwind's arbitrary value syntax.
+2. **Update the aspect ratio** from `4 / 3` to `1100 / 768` to match the new dimensions exactly.
+
+### Code Change (lines ~155-157)
+
+```text
+Before:  <div className="mx-auto mt-12 max-w-5xl">
+           <div ... style={{ aspectRatio: '4 / 3' }}>
+
+After:   <div className="mx-auto mt-12 max-w-[1100px]">
+           <div ... style={{ aspectRatio: '1100 / 768' }}>
+```
 
 ### What Stays the Same
-
-- No changes to `src/pages/Landing.tsx` -- the iframe already points to `/images/practice-daily-ad.html` with the correct container size.
-- All other landing page sections remain untouched.
-
-### Technical Detail
-
-The new ad uses a fixed `1024x768` container internally (lines 27-32) instead of viewport units, so it will render crisply within the existing iframe without any text cutoff.
+- The iframe `src`, `sandbox`, `loading`, and class attributes
+- All other landing page sections
 
