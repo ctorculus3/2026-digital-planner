@@ -116,7 +116,8 @@ export function useSharePracticeLog(practiceLogId: string | undefined) {
 
   const getShareUrl = () => {
     if (!shareData?.share_token) return null;
-    return `${window.location.origin}/shared/${shareData.share_token}`;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    return `${supabaseUrl}/functions/v1/og-share?token=${shareData.share_token}`;
   };
 
   return {
