@@ -14,6 +14,7 @@ import { MediaTools } from "./MediaTools";
 import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
 import { Tuner } from "./Tuner";
+import { Timer } from "./Timer";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -553,6 +554,12 @@ export function PracticeLogForm({
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-1 block">Tuner</label>
             <Tuner />
+          </div>
+
+          {/* Timer */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-1 block">Timer</label>
+            <Timer />
           </div>
 
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
