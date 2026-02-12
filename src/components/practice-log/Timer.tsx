@@ -4,8 +4,7 @@ import { Play, Square, RotateCcw } from "lucide-react";
 
 const PRESETS = [15, 20, 30];
 
-function playBell() {
-  const ctx = new AudioContext();
+function playBell(ctx: AudioContext) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = "sine";
@@ -17,7 +16,6 @@ function playBell() {
   gain.connect(ctx.destination);
   osc.start();
   osc.stop(ctx.currentTime + 2);
-  setTimeout(() => ctx.close(), 2500);
 }
 
 function formatTime(totalSeconds: number) {
@@ -32,6 +30,7 @@ export function Timer() {
   const [isRunning, setIsRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -42,6 +41,12 @@ export function Timer() {
 
   const start = useCallback(() => {
     if (secondsLeft <= 0) return;
+    // Create or resume AudioContext on user gesture so it's unlocked for the bell
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    } else if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
     clearTimer();
     setIsRunning(true);
     setHasStarted(true);
@@ -50,7 +55,7 @@ export function Timer() {
         if (prev <= 1) {
           clearTimer();
           setIsRunning(false);
-          playBell();
+          if (audioCtxRef.current) playBell(audioCtxRef.current);
           return 0;
         }
         return prev - 1;
@@ -86,7 +91,13 @@ export function Timer() {
   };
 
   useEffect(() => {
-    return () => clearTimer();
+    return () => {
+      clearTimer();
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
+    };
   }, [clearTimer]);
 
   return (
