@@ -1,36 +1,45 @@
 
 
-## Condense Tuner and Darken Background
+## Update Landing Page with New Features
 
-### Changes to `src/components/practice-log/Tuner.tsx`
+### What's Changing
 
-**Layout**: Switch from a vertical stack to a compact horizontal layout with the mic button in the top-left corner.
+The landing page currently lists 4 feature cards and 6 pricing bullet points. Several features have been added to the app since the landing page was written. This update adds the missing features to both the feature cards section and the pricing checklist.
 
-```text
-Current layout (vertical, spacious):
-+----------------------------------+
-|        [Gauge Arc]               |
-|        [Note + Cents]            |
-|        [Mic Button]              |
-+----------------------------------+
+### Features to Add
 
-New layout (compact, horizontal):
-+----------------------------------+
-| [Mic]  [Gauge Arc]  [Note+Cents] |
-+----------------------------------+
-```
+**New feature cards** (expanding from 4 to 8 cards, grid stays responsive):
 
-**Specific changes:**
+1. **Built-in Metronome** -- "Practice with an authentic clave-sample metronome. Adjustable BPM with fine-tuning controls."  
+   Icon: a music/activity icon (e.g. `Activity` or `Timer`)
 
-1. **Background**: Change from `bg-muted/30` to a darker shade like `bg-gray-800` (or `bg-neutral-800`) so the colored gauge segments pop visually.
+2. **Chromatic Tuner** -- "Tune your instrument in real time using your device microphone with a visual pitch gauge."  
+   Icon: `Mic`
 
-2. **Mic button**: Move from bottom-center to top-left corner, reduce size slightly.
+3. **Community Feed** -- "Connect with fellow musicians. Share thoughts on gear, habits, and practice in a dedicated social space."  
+   Icon: `Users`
 
-3. **Gauge SVG**: Shrink the `max-w` and reduce vertical padding to make the whole component more compact.
+4. **Dashboard & Streaks** -- "Visualize your practice history with calendars, time summaries, badges, and streak tracking."  
+   Icon: `TrendingUp` (or `BarChart3`)
 
-4. **Note display**: Position to the right of or below the gauge in a tighter arrangement, with text colors adjusted for contrast against the dark background.
+**New pricing checklist items** (adding to the existing 6):
 
-5. **Overall padding**: Reduce `p-3` and `gap-2` to tighter spacing.
+- Built-in metronome with clave sample
+- Chromatic tuner with real-time pitch detection
+- Community feed to connect with musicians
+- Dashboard with streaks, badges & practice calendar
 
-Only `Tuner.tsx` is modified. No other files or features are affected.
+### Files Modified
+
+**`src/pages/Landing.tsx`** only:
+
+1. Add new icon imports (`Mic`, `Activity`, `Users` -- some already imported, add missing ones).
+2. Append 4 new entries to the `features` array.
+3. Append 4 new strings to the `pricingFeatures` array.
+4. No layout or structural changes needed -- the existing responsive grid (`sm:grid-cols-2 lg:grid-cols-4`) will naturally accommodate 8 cards across 2 rows.
+
+### What Stays the Same
+
+- All existing feature cards, testimonials, values, hero section, auth section, and footer remain untouched.
+- No other files are modified.
 
