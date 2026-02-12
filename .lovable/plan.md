@@ -1,29 +1,21 @@
 
 
-## Improve Metronome Sound to Be More Percussive
+## Use Uploaded Clave Sound for Metronome
 
-### Problem
-The current metronome uses a single oscillator with a frequency sweep (800Hz to 400Hz), which sounds electronic/synthetic.
+### Change
 
-### Solution
-Replace the single oscillator with a layered approach that produces a warmer, more natural "wood block" click:
+Replace the synthesized Web Audio API click with the uploaded `Clave-4.wav` file.
 
-**File: `src/components/practice-log/Metronome.tsx`**
+### Steps
 
-Update the `playClick` function to use:
+1. **Copy the file** into `public/audio/Clave-4.wav` (public folder is best here since we'll load it via `fetch` into an `AudioBuffer` at runtime, not import it as an ES module).
 
-1. **Noise burst** -- Create a short burst of white noise using an `AudioBuffer` filled with random samples, filtered through a `BiquadFilterNode` (bandpass around 1000-2000Hz). This gives the attack a natural, non-tonal quality.
-2. **Shorter, sharper envelope** -- Reduce the duration from 80ms to around 30-40ms with a steeper gain decay, making it snappier.
-3. **Optional tonal layer** -- A very brief high-frequency ping (1200Hz) at low volume that decays in ~15ms to add a slight "tap" character without sounding electronic.
+2. **Update `src/components/practice-log/Metronome.tsx`**:
+   - On first play, `fetch("/audio/Clave-4.wav")` and decode it into an `AudioBuffer` using `AudioContext.decodeAudioData`. Cache this buffer in a `useRef`.
+   - Replace the current `playClick` function body (noise burst + tonal ping) with a simple `AudioBufferSourceNode` that plays the cached buffer each tick.
+   - All existing functionality (BPM slider, +/- buttons, auto-check "Used Metronome Today", play/stop, cleanup) stays exactly the same.
 
-The result will sound closer to a wooden click or rimshot rather than an electronic beep.
+### Result
 
-### Technical Detail
-
-```text
-Current:  Single oscillator 800->400Hz over 80ms (sounds like a synth boop)
-Proposed: White noise burst (bandpass filtered) + brief tonal ping, both ~30ms
-```
-
-Only the `playClick` function body changes. No other files affected. All existing functionality (BPM control, auto-check, play/stop) remains untouched.
+The metronome will play the real clave sample on every beat -- a warm, authentic percussion sound instead of a synthesized click.
 
