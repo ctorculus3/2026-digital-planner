@@ -7,15 +7,15 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 // Segment colors from left (very flat) to right (very sharp)
 // 9 segments: 2 red, 2 orange, 2 yellow, 1 green center, then mirror
 const SEGMENT_COLORS = [
-  "hsl(0, 80%, 55%)",     // far flat - red
-  "hsl(20, 90%, 55%)",    // flat - orange
-  "hsl(40, 95%, 55%)",    // slightly flat - amber
-  "hsl(55, 95%, 50%)",    // almost - yellow
-  "hsl(140, 70%, 45%)",   // in tune - green
-  "hsl(55, 95%, 50%)",    // almost - yellow
-  "hsl(40, 95%, 55%)",    // slightly sharp - amber
-  "hsl(20, 90%, 55%)",    // sharp - orange
-  "hsl(0, 80%, 55%)",     // far sharp - red
+"hsl(0, 80%, 55%)", // far flat - red
+"hsl(20, 90%, 55%)", // flat - orange
+"hsl(40, 95%, 55%)", // slightly flat - amber
+"hsl(55, 95%, 50%)", // almost - yellow
+"hsl(140, 70%, 45%)", // in tune - green
+"hsl(55, 95%, 50%)", // almost - yellow
+"hsl(40, 95%, 55%)", // slightly sharp - amber
+"hsl(20, 90%, 55%)", // sharp - orange
+"hsl(0, 80%, 55%)" // far sharp - red
 ];
 
 const SEGMENT_COUNT = SEGMENT_COLORS.length;
@@ -34,10 +34,10 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
   let r2 = buffer.length - 1;
   const threshold = 0.2;
   for (let i = 0; i < buffer.length / 2; i++) {
-    if (Math.abs(buffer[i]) < threshold) { r1 = i; break; }
+    if (Math.abs(buffer[i]) < threshold) {r1 = i;break;}
   }
   for (let i = 1; i < buffer.length / 2; i++) {
-    if (Math.abs(buffer[buffer.length - i]) < threshold) { r2 = buffer.length - i; break; }
+    if (Math.abs(buffer[buffer.length - i]) < threshold) {r2 = buffer.length - i;break;}
   }
 
   const buf = buffer.slice(r1, r2);
@@ -79,11 +79,11 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
   return sampleRate / maxPos;
 }
 
-function frequencyToNote(freq: number): { note: string; octave: number; cents: number } {
-  const noteNum = 12 * (Math.log2(freq / 440)) + 69;
+function frequencyToNote(freq: number): {note: string;octave: number;cents: number;} {
+  const noteNum = 12 * Math.log2(freq / 440) + 69;
   const roundedNote = Math.round(noteNum);
   const cents = Math.round((noteNum - roundedNote) * 100);
-  const noteName = NOTE_NAMES[((roundedNote % 12) + 12) % 12];
+  const noteName = NOTE_NAMES[(roundedNote % 12 + 12) % 12];
   const octave = Math.floor(roundedNote / 12) - 1;
   return { note: noteName, octave, cents };
 }
@@ -152,7 +152,7 @@ export function Tuner() {
 
   const stopListening = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
     audioCtxRef.current?.close();
     audioCtxRef.current = null;
     analyserRef.current = null;
@@ -168,7 +168,7 @@ export function Tuner() {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close();
     };
   }, []);
@@ -207,39 +207,39 @@ export function Tuner() {
         d={`M ${x1} ${y1} A ${gaugeRadius} ${gaugeRadius} 0 0 0 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 0 1 ${x4} ${y4} Z`}
         fill={isActive ? SEGMENT_COLORS[i] : dimColor}
         opacity={isActive ? 1 : 0.4}
-        style={{ transition: "fill 0.15s, opacity 0.15s" }}
-      />
-    );
+        style={{ transition: "fill 0.15s, opacity 0.15s" }} />);
+
+
   });
 
   return (
-    <div className="mt-3 bg-neutral-800 rounded-lg p-2 flex items-center gap-2">
+    <div className="mt-3 rounded-lg p-2 flex items-center gap-2 mx-0 bg-[#103e84]">
       {/* Mic button */}
       <Button
         type="button"
         size="icon"
         variant={isListening ? "destructive" : "default"}
         className="rounded-full w-8 h-8 shrink-0"
-        onClick={isListening ? stopListening : startListening}
-      >
+        onClick={isListening ? stopListening : startListening}>
+
         {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
       </Button>
 
       {/* Gauge */}
-      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0" aria-hidden>
+      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0 mx-[35px]" aria-hidden>
         {segments}
         <polygon
           points={`${gaugeCx - 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx + 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx},${gaugeCy - gaugeRadius + 4}`}
-          fill="hsl(0 0% 85%)"
-        />
+          fill="hsl(0 0% 85%)" />
+
         <text x="18" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♭</text>
         <text x="218" y={gaugeCy + 4} fill="hsl(0 0% 60%)" fontSize="13" fontWeight="600">♯</text>
       </svg>
 
       {/* Note display */}
       <div className="shrink-0 min-w-[60px] text-center">
-        {isListening && detectedNote ? (
-          <>
+        {isListening && detectedNote ?
+        <>
             <span className="text-2xl font-bold font-display text-white">
               {detectedNote}
               <span className="text-sm text-neutral-400">{detectedOctave}</span>
@@ -247,13 +247,13 @@ export function Tuner() {
             <p className="text-xs text-neutral-400">
               {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents}¢`}
             </p>
-          </>
-        ) : (
-          <p className="text-xs text-neutral-500">
+          </> :
+
+        <p className="text-xs text-muted mx-0 px-0">
             {isListening ? "Listening…" : "Tap mic"}
           </p>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
