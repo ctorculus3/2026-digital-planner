@@ -226,7 +226,7 @@ export function Tuner() {
       </Button>
 
       {/* Gauge */}
-      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0 mx-[35px]" aria-hidden>
+      <svg viewBox="0 0 240 130" className="w-full max-w-[180px] shrink-0 mx-[50px]" aria-hidden>
         {segments}
         <polygon
           points={`${gaugeCx - 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx + 6},${gaugeCy - gaugeRadius - 6} ${gaugeCx},${gaugeCy - gaugeRadius + 4}`}
@@ -249,7 +249,7 @@ export function Tuner() {
             </p>
           </> :
 
-        <p className="text-xs text-muted mx-0 px-0">
+        <p className="text-xs text-muted px-0 mx-[7px] text-center">
             {isListening ? "Listening…" : "Tap mic"}
           </p>
         }
