@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome, Activity, Mic, Users, BarChart3 } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
+import { PlanToggle } from "@/components/subscription/PlanToggle";
 
 /* ─────────── data ─────────── */
 
@@ -98,6 +99,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const {
     signIn,
     signUp
@@ -336,15 +338,17 @@ export default function Landing() {
             One plan. Everything included. Cancel anytime.
           </p>
 
-          <Card className="mx-auto mt-12 max-w-md border-header-bg/30 shadow-lg">
+          <PlanToggle selectedPlan={selectedPlan} onPlanChange={setSelectedPlan} />
+
+          <Card className="mx-auto mt-8 max-w-md border-header-bg/30 shadow-lg">
             <CardHeader className="text-center pb-2">
               <CardDescription className="text-xs uppercase tracking-widest text-header-bg font-semibold">
-                Monthly
+                {selectedPlan === "monthly" ? "Monthly" : "Yearly"}
               </CardDescription>
               <CardTitle className="text-5xl font-bold mt-2">
-                $3.99
+                {selectedPlan === "monthly" ? "$3.99" : "$39.99"}
                 <span className="text-lg font-normal text-muted-foreground">
-                  /mo
+                  {selectedPlan === "monthly" ? "/mo" : "/yr"}
                 </span>
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
