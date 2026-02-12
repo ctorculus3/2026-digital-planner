@@ -4,11 +4,6 @@ import { Play, Square, RotateCcw } from "lucide-react";
 
 const PRESETS = [15, 20, 30];
 
-function playBell() {
-  const audio = new Audio("/audio/timer-alarm.mp3");
-  audio.play().catch(() => {});
-}
-
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
@@ -21,6 +16,7 @@ export function Timer() {
   const [isRunning, setIsRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -32,6 +28,11 @@ export function Timer() {
   const start = useCallback(() => {
     if (secondsLeft <= 0) return;
     clearTimer();
+    // Preload audio on user gesture so it can play later
+    if (!audioRef.current) {
+      audioRef.current = new Audio("/audio/timer-alarm.mp3");
+      audioRef.current.load();
+    }
     setIsRunning(true);
     setHasStarted(true);
     intervalRef.current = window.setInterval(() => {
@@ -39,7 +40,7 @@ export function Timer() {
         if (prev <= 1) {
           clearTimer();
           setIsRunning(false);
-          playBell();
+          audioRef.current?.play().catch(() => {});
           return 0;
         }
         return prev - 1;
@@ -57,6 +58,7 @@ export function Timer() {
     setIsRunning(false);
     setHasStarted(false);
     setSecondsLeft(durationMin * 60);
+    audioRef.current = null;
   }, [clearTimer, durationMin]);
 
   const selectPreset = (min: number) => {
