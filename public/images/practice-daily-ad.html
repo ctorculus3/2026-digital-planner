@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1024, initial-scale=1.0">
     <title>Practice Daily - Advertisement</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -16,29 +16,34 @@
             font-family: 'DM Sans', sans-serif;
             background: #000;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
         .container {
-            width: 100%;
-            height: 100%;
+            width: 1024px;
+            height: 768px;
             position: relative;
+            overflow: hidden;
         }
 
-        /* Scene base styling */
+        /* Scene base styling - 1024x768 */
         .scene {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 1024px;
+            height: 768px;
             opacity: 0;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             justify-content: center;
             align-items: center;
-            padding: 60px;
+            padding: 40px 50px;
         }
 
         .scene.active {
@@ -59,6 +64,26 @@
             to { opacity: 0; transform: scale(1.05); }
         }
 
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideRight {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideLeft {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
         /* Scene 1: Hero Intro */
         #scene1 {
             background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
@@ -67,10 +92,11 @@
         .hero-content {
             text-align: center;
             color: white;
+            max-width: 900px;
         }
 
         .logo {
-            font-size: 48px;
+            font-size: 40px;
             font-weight: 700;
             margin-bottom: 30px;
             opacity: 0;
@@ -79,27 +105,23 @@
 
         .hero-title {
             font-family: 'Playfair Display', serif;
-            font-size: 72px;
+            font-size: 64px;
             font-weight: 900;
             margin-bottom: 20px;
             opacity: 0;
             animation: slideUp 1s 0.8s forwards;
-            line-height: 1.2;
+            line-height: 1.1;
         }
 
         .hero-subtitle {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 400;
             opacity: 0.95;
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
             opacity: 0;
             animation: slideUp 1s 1.1s forwards;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            line-height: 1.5;
         }
 
         /* Scene 2: Problem Statement */
@@ -109,15 +131,16 @@
 
         .problem-content {
             color: white;
-            max-width: 900px;
-            text-align: center;
+            max-width: 920px;
+            width: 100%;
         }
 
         .problem-title {
             font-family: 'Playfair Display', serif;
-            font-size: 56px;
+            font-size: 44px;
             font-weight: 700;
             margin-bottom: 40px;
+            text-align: center;
             opacity: 0;
             animation: slideUp 1s 0.5s forwards;
         }
@@ -126,16 +149,16 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 30px;
-            margin-top: 50px;
         }
 
         .problem-item {
             background: rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 20px;
+            padding: 35px 25px;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             opacity: 0;
             backdrop-filter: blur(10px);
+            text-align: center;
         }
 
         .problem-item:nth-child(1) {
@@ -151,188 +174,129 @@
         }
 
         .problem-item-icon {
-            font-size: 48px;
+            font-size: 52px;
             margin-bottom: 15px;
         }
 
         .problem-item-text {
-            font-size: 18px;
-            line-height: 1.6;
+            font-size: 17px;
+            line-height: 1.5;
         }
 
-        /* Scene 3: Features Grid */
+        /* Scene 3: Features with Journal Preview */
         #scene3 {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 80px 60px;
         }
 
-        .features-content {
-            max-width: 1200px;
+        .features-split {
+            display: flex;
+            gap: 50px;
+            align-items: center;
+            max-width: 920px;
             width: 100%;
+        }
+
+        .features-left {
+            flex: 1;
+        }
+
+        .features-right {
+            flex: 1;
         }
 
         .features-title {
             font-family: 'Playfair Display', serif;
-            font-size: 56px;
+            font-size: 38px;
             font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 60px;
-            text-align: center;
+            margin-bottom: 30px;
             opacity: 0;
-            animation: slideUp 1s 0.5s forwards;
+            animation: slideRight 1s 0.5s forwards;
         }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 40px;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-            opacity: 0;
-            transform: translateY(30px);
-        }
-
-        .feature-card:nth-child(1) {
-            animation: slideUp 1s 0.8s forwards;
-        }
-
-        .feature-card:nth-child(2) {
-            animation: slideUp 1s 1s forwards;
-        }
-
-        .feature-card:nth-child(3) {
-            animation: slideUp 1s 1.2s forwards;
-        }
-
-        .feature-card:nth-child(4) {
-            animation: slideUp 1s 1.4s forwards;
-        }
-
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
-            border-radius: 15px;
+        .feature-list {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 22px;
         }
 
-        .feature-title {
-            font-size: 24px;
+        .feature-item {
+            opacity: 0;
+        }
+
+        .feature-item:nth-child(1) {
+            animation: slideRight 1s 0.8s forwards;
+        }
+
+        .feature-item:nth-child(2) {
+            animation: slideRight 1s 1s forwards;
+        }
+
+        .feature-item:nth-child(3) {
+            animation: slideRight 1s 1.2s forwards;
+        }
+
+        .feature-item:nth-child(4) {
+            animation: slideRight 1s 1.4s forwards;
+        }
+
+        .feature-item-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .feature-item-title {
+            font-size: 20px;
             font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
 
-        .feature-description {
-            font-size: 16px;
+        .feature-item-description {
+            font-size: 14px;
             color: #666;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        /* Scene 4: Journal Demo */
+        .journal-preview {
+            opacity: 0;
+            animation: slideLeft 1s 0.8s forwards;
+        }
+
+        .journal-preview img {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Scene 4: Full Journal Demo */
         #scene4 {
             background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
-            padding: 60px;
         }
 
-        .journal-content {
-            max-width: 1100px;
+        .journal-demo {
+            max-width: 920px;
             width: 100%;
         }
 
-        .journal-title {
+        .journal-demo-title {
             font-family: 'Playfair Display', serif;
-            font-size: 56px;
+            font-size: 44px;
             font-weight: 700;
             color: white;
-            margin-bottom: 50px;
+            margin-bottom: 35px;
             text-align: center;
             opacity: 0;
             animation: slideUp 1s 0.5s forwards;
         }
 
-        .journal-mockup {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        .journal-full-image {
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
             opacity: 0;
-            animation: slideUp 1s 0.8s forwards;
-        }
-
-        .journal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
-        }
-
-        .journal-date {
-            font-size: 28px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-
-        .journal-sections {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-        }
-
-        .journal-section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
-            opacity: 0;
-        }
-
-        .journal-section:nth-child(1) {
-            animation: slideUp 0.8s 1.2s forwards;
-        }
-
-        .journal-section:nth-child(2) {
-            animation: slideUp 0.8s 1.4s forwards;
-        }
-
-        .journal-section:nth-child(3) {
-            animation: slideUp 0.8s 1.6s forwards;
-        }
-
-        .journal-section:nth-child(4) {
-            animation: slideUp 0.8s 1.8s forwards;
-        }
-
-        .journal-section-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 15px;
-        }
-
-        .journal-section-content {
-            font-size: 14px;
-            color: #666;
-            line-height: 1.8;
-        }
-
-        .journal-input {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            color: #666;
+            animation: scaleIn 1s 0.8s forwards;
         }
 
         /* Scene 5: Benefits */
@@ -342,15 +306,16 @@
 
         .benefits-content {
             color: white;
-            max-width: 1000px;
-            text-align: center;
+            max-width: 920px;
+            width: 100%;
         }
 
         .benefits-title {
             font-family: 'Playfair Display', serif;
-            font-size: 56px;
+            font-size: 44px;
             font-weight: 700;
-            margin-bottom: 60px;
+            margin-bottom: 50px;
+            text-align: center;
             opacity: 0;
             animation: slideUp 1s 0.5s forwards;
         }
@@ -362,6 +327,7 @@
         }
 
         .benefit-item {
+            text-align: center;
             opacity: 0;
         }
 
@@ -377,26 +343,21 @@
             animation: scaleIn 0.8s 1.2s forwards;
         }
 
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
         .benefit-icon {
-            font-size: 72px;
-            margin-bottom: 20px;
+            font-size: 64px;
+            margin-bottom: 18px;
         }
 
         .benefit-title {
             font-size: 24px;
             font-weight: 700;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .benefit-description {
             font-size: 16px;
             opacity: 0.9;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         /* Scene 6: Pricing */
@@ -404,78 +365,95 @@
             background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
         }
 
-        .pricing-content {
+        .pricing-split {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+            max-width: 920px;
+            width: 100%;
+        }
+
+        .pricing-left {
+            flex: 1;
             color: white;
-            text-align: center;
-            max-width: 600px;
+        }
+
+        .pricing-right {
+            flex: 1;
         }
 
         .pricing-badge {
             background: rgba(255, 255, 255, 0.2);
-            padding: 12px 30px;
+            padding: 10px 25px;
             border-radius: 50px;
             display: inline-block;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-weight: 600;
+            font-size: 15px;
             opacity: 0;
-            animation: slideUp 1s 0.5s forwards;
+            animation: slideRight 1s 0.5s forwards;
         }
 
-        .pricing-title {
+        .pricing-amount {
             font-family: 'Playfair Display', serif;
-            font-size: 64px;
+            font-size: 68px;
             font-weight: 900;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             opacity: 0;
-            animation: slideUp 1s 0.8s forwards;
+            animation: slideRight 1s 0.8s forwards;
         }
 
         .pricing-subtitle {
             font-size: 20px;
-            margin-bottom: 50px;
+            margin-bottom: 35px;
             opacity: 0.95;
             opacity: 0;
-            animation: slideUp 1s 1.1s forwards;
-        }
-
-        .pricing-features {
-            text-align: left;
-            margin-bottom: 40px;
-            opacity: 0;
-            animation: slideUp 1s 1.4s forwards;
-        }
-
-        .pricing-feature {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .pricing-feature::before {
-            content: "✓";
-            margin-right: 15px;
-            font-size: 24px;
-            font-weight: 700;
+            animation: slideRight 1s 1.1s forwards;
         }
 
         .cta-button {
             background: white;
             color: #3ECFB0;
-            padding: 20px 60px;
+            padding: 18px 50px;
             border-radius: 50px;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             border: none;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
             opacity: 0;
-            animation: slideUp 1s 1.7s forwards;
+            animation: slideRight 1s 1.4s forwards;
             transition: transform 0.3s ease;
         }
 
         .cta-button:hover {
             transform: scale(1.05);
+        }
+
+        .pricing-features {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 35px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            animation: slideLeft 1s 0.8s forwards;
+        }
+
+        .pricing-feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 14px;
+            color: white;
+        }
+
+        .pricing-feature::before {
+            content: "✓";
+            margin-right: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
         }
 
         /* Scene 7: Final CTA */
@@ -500,8 +478,8 @@
         }
 
         .final-subtitle {
-            font-size: 28px;
-            margin-bottom: 50px;
+            font-size: 26px;
+            margin-bottom: 40px;
             opacity: 0.95;
             opacity: 0;
             animation: slideUp 1s 0.8s forwards;
@@ -510,13 +488,13 @@
         .final-cta {
             background: white;
             color: #1a1a1a;
-            padding: 25px 70px;
+            padding: 22px 60px;
             border-radius: 50px;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             border: none;
             cursor: pointer;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
             opacity: 0;
             animation: slideUp 1s 1.1s forwards;
             transition: transform 0.3s ease;
@@ -527,7 +505,7 @@
         }
 
         .final-logo {
-            margin-top: 60px;
+            margin-top: 50px;
             font-size: 36px;
             font-weight: 700;
             opacity: 0;
@@ -538,36 +516,42 @@
         .progress-bar {
             position: fixed;
             bottom: 0;
-            left: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1024px;
             height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
             background: #3ECFB0;
             width: 0%;
             transition: width 0.3s ease;
-            z-index: 1000;
         }
 
         /* Control buttons */
         .controls {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
             display: flex;
-            gap: 15px;
+            gap: 12px;
             z-index: 1000;
         }
 
         .control-btn {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border: none;
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             transition: transform 0.2s ease;
         }
 
@@ -612,71 +596,47 @@
             </div>
         </div>
 
-        <!-- Scene 3: Features -->
+        <!-- Scene 3: Features with Journal Preview -->
         <div id="scene3" class="scene">
-            <div class="features-content">
-                <h2 class="features-title">Everything You Need to Practice Better</h2>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">📝</div>
-                        <div class="feature-title">Structured Journaling</div>
-                        <div class="feature-description">Set goals, track warm-ups, scales, and exercises with a purpose-built practice planner.</div>
+            <div class="features-split">
+                <div class="features-left">
+                    <h2 class="features-title">Everything You Need to Practice Better</h2>
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-item-icon">📝</div>
+                            <div class="feature-item-title">Structured Journaling</div>
+                            <div class="feature-item-description">Set goals, track warm-ups, scales, and exercises with a purpose-built planner.</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-icon">⏱️</div>
+                            <div class="feature-item-title">Built-in Metronome & Timer</div>
+                            <div class="feature-item-description">Keep tempo and stay focused with integrated practice tools.</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-icon">📊</div>
+                            <div class="feature-item-title">Progress Tracking</div>
+                            <div class="feature-item-description">Visualize sessions and celebrate growth over time.</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-icon">👥</div>
+                            <div class="feature-item-title">Community Support</div>
+                            <div class="feature-item-description">Connect with musicians and stay motivated together.</div>
+                        </div>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">⏱️</div>
-                        <div class="feature-title">Built-in Metronome</div>
-                        <div class="feature-description">Keep tempo and stay focused with integrated practice tools and timers.</div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
-                        <div class="feature-title">Progress Tracking</div>
-                        <div class="feature-description">Visualize your practice sessions and celebrate your growth over time.</div>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">👥</div>
-                        <div class="feature-title">Community</div>
-                        <div class="feature-description">Connect with fellow musicians, share insights, and stay motivated together.</div>
+                </div>
+                <div class="features-right">
+                    <div class="journal-preview">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 560'%3E%3Crect width='420' height='560' fill='%23f8f9fa'/%3E%3Crect x='15' y='15' width='390' height='530' rx='12' fill='white'/%3E%3Crect x='15' y='15' width='390' height='45' rx='12' fill='%233ECFB0'/%3E%3Ctext x='35' y='45' font-family='Arial' font-size='18' fill='white' font-weight='bold'%3EJournal%3C/text%3E%3Crect x='30' y='75' width='360' height='60' rx='8' fill='%23f8f9fa'/%3E%3Ctext x='45' y='95' font-family='Arial' font-size='13' fill='%23333' font-weight='bold'%3EMain Goals%3C/text%3E%3Ctext x='45' y='115' font-family='Arial' font-size='11' fill='%23999'%3EWhat do you want to accomplish%3F%3C/text%3E%3Crect x='30' y='150' width='170' height='85' rx='8' fill='%23f8f9fa'/%3E%3Ctext x='45' y='170' font-family='Arial' font-size='13' fill='%23333' font-weight='bold'%3EWarm-ups%3C/text%3E%3Ctext x='45' y='190' font-family='Arial' font-size='10' fill='%23666'%3E1. Long tones%3C/text%3E%3Ctext x='45' y='207' font-family='Arial' font-size='10' fill='%23666'%3E2. Exercises%3C/text%3E%3Ctext x='45' y='224' font-family='Arial' font-size='10' fill='%23666'%3E3. Breathing%3C/text%3E%3Crect x='220' y='150' width='170' height='85' rx='8' fill='%23f8f9fa'/%3E%3Ctext x='235' y='170' font-family='Arial' font-size='13' fill='%23333' font-weight='bold'%3EScales%3C/text%3E%3Ctext x='235' y='190' font-family='Arial' font-size='10' fill='%23666'%3E1. C Major%3C/text%3E%3Ctext x='235' y='207' font-family='Arial' font-size='10' fill='%23666'%3E2. G Major%3C/text%3E%3Ctext x='235' y='224' font-family='Arial' font-size='10' fill='%23666'%3E3. D Minor%3C/text%3E%3Crect x='30' y='250' width='360' height='85' rx='8' fill='%233ECFB0' opacity='0.12'/%3E%3Ctext x='45' y='270' font-family='Arial' font-size='13' fill='%23333' font-weight='bold'%3EMetronome%3C/text%3E%3Ctext x='180' y='305' font-family='Arial' font-size='28' fill='%23333' font-weight='bold'%3E100%3C/text%3E%3Ctext x='225' y='305' font-family='Arial' font-size='12' fill='%23666'%3EBPM%3C/text%3E%3Crect x='30' y='350' width='360' height='85' rx='8' fill='%23333'/%3E%3Ctext x='45' y='370' font-family='Arial' font-size='13' fill='white' font-weight='bold'%3ETimer%3C/text%3E%3Ccircle cx='210' cy='405' r='28' fill='none' stroke='%23666' stroke-width='3'/%3E%3C/svg%3E" alt="Practice Journal Preview">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Scene 4: Journal Demo -->
+        <!-- Scene 4: Full Journal Demo -->
         <div id="scene4" class="scene">
-            <div class="journal-content">
-                <h2 class="journal-title">See Your Practice Come to Life</h2>
-                <div class="journal-mockup">
-                    <div class="journal-header">
-                        <div class="journal-date">FRIDAY – FEB 20 2026</div>
-                        <div style="color: #3ECFB0; font-weight: 600;">0:00 Total Practice Time</div>
-                    </div>
-                    <div class="journal-sections">
-                        <div class="journal-section">
-                            <div class="journal-section-title">Main Goals</div>
-                            <div class="journal-input">What do you want to accomplish today?</div>
-                        </div>
-                        <div class="journal-section">
-                            <div class="journal-section-title">Warm-ups</div>
-                            <div class="journal-section-content">
-                                <div style="margin-bottom: 8px;">1. Long tones - 10 minutes</div>
-                                <div style="margin-bottom: 8px;">2. Finger exercises</div>
-                                <div>3. Breathing exercises</div>
-                            </div>
-                        </div>
-                        <div class="journal-section">
-                            <div class="journal-section-title">Scales</div>
-                            <div class="journal-section-content">
-                                <div style="margin-bottom: 8px;">1. C Major - 3 octaves</div>
-                                <div style="margin-bottom: 8px;">2. G Major - 2 octaves</div>
-                                <div>3. D Minor harmonic</div>
-                            </div>
-                        </div>
-                        <div class="journal-section">
-                            <div class="journal-section-title">Notes & Focus</div>
-                            <div class="journal-input">Observations, breakthroughs, challenges...</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="journal-demo">
+                <h2 class="journal-demo-title">See Your Practice Come to Life</h2>
+                <img class="journal-full-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 920 580'%3E%3Crect width='920' height='580' fill='white'/%3E%3Crect x='0' y='0' width='920' height='55' fill='%233ECFB0'/%3E%3Ctext x='25' y='35' font-family='Arial' font-size='20' fill='white' font-weight='bold'%3E🎵 Practice Daily%3C/text%3E%3Ctext x='780' y='35' font-family='Arial' font-size='14' fill='white'%3ECalvin 3%3C/text%3E%3Crect x='20' y='70' width='140' height='40' rx='8' fill='%233ECFB0'/%3E%3Ctext x='50' y='95' font-family='Arial' font-size='15' fill='white' font-weight='bold'%3EJournal%3C/text%3E%3Ctext x='460' y='140' font-family='Arial' font-size='24' fill='%23333' font-weight='bold'%3EFRIDAY - FEB 20 2026%3C/text%3E%3Crect x='30' y='165' width='420' height='90' rx='10' fill='%23f8f9fa'/%3E%3Ctext x='45' y='185' font-family='Arial' font-size='14' fill='%23333' font-weight='bold'%3EMain Goals%3C/text%3E%3Ctext x='45' y='207' font-family='Arial' font-size='12' fill='%23999'%3EWhat do you want to accomplish today%3F%3C/text%3E%3Crect x='470' y='165' width='420' height='90' rx='10' fill='%23f8f9fa'/%3E%3Ctext x='485' y='185' font-family='Arial' font-size='14' fill='%23333' font-weight='bold'%3ESubgoals%3C/text%3E%3Ctext x='485' y='207' font-family='Arial' font-size='12' fill='%23999'%3EBreak down your goals...%3C/text%3E%3Crect x='30' y='270' width='420' height='165' rx='10' fill='%23f8f9fa'/%3E%3Ctext x='45' y='290' font-family='Arial' font-size='14' fill='%23333' font-weight='bold'%3EWarm-ups%3C/text%3E%3Ctext x='45' y='315' font-family='Arial' font-size='12' fill='%23666'%3E1. Long tones - 10 minutes%3C/text%3E%3Ctext x='45' y='338' font-family='Arial' font-size='12' fill='%23666'%3E2. Finger exercises%3C/text%3E%3Ctext x='45' y='361' font-family='Arial' font-size='12' fill='%23666'%3E3. Breathing exercises%3C/text%3E%3Ctext x='45' y='384' font-family='Arial' font-size='12' fill='%23666'%3E4. Articulation practice%3C/text%3E%3Crect x='470' y='270' width='420' height='165' rx='10' fill='%23f8f9fa'/%3E%3Ctext x='485' y='290' font-family='Arial' font-size='14' fill='%23333' font-weight='bold'%3EScales%3C/text%3E%3Ctext x='485' y='315' font-family='Arial' font-size='12' fill='%23666'%3E1. C Major - 3 octaves%3C/text%3E%3Ctext x='485' y='338' font-family='Arial' font-size='12' fill='%23666'%3E2. G Major - 2 octaves%3C/text%3E%3Crect x='485' y='348' width='390' height='26' rx='6' fill='%23FF6B35' opacity='0.2'/%3E%3Ctext x='485' y='367' font-family='Arial' font-size='12' fill='%23666'%3E3. D Minor harmonic%3C/text%3E%3Crect x='30' y='450' width='420' height='115' rx='10' fill='%233ECFB0' opacity='0.12'/%3E%3Ctext x='45' y='470' font-family='Arial' font-size='14' fill='%23333' font-weight='bold'%3EMetronome%3C/text%3E%3Ctext x='180' y='525' font-family='Arial' font-size='36' fill='%23333' font-weight='bold'%3E100%3C/text%3E%3Ctext x='245' y='525' font-family='Arial' font-size='16' fill='%23666'%3EBPM%3C/text%3E%3Crect x='470' y='450' width='420' height='115' rx='10' fill='%23333'/%3E%3Ctext x='485' y='470' font-family='Arial' font-size='14' fill='white' font-weight='bold'%3ETimer%3C/text%3E%3Ccircle cx='680' cy='515' r='40' fill='none' stroke='%23666' stroke-width='4'/%3E%3Cpath d='M 680 475 L 680 515' stroke='%23FF6B35' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" alt="Full Journal Interface">
             </div>
         </div>
 
@@ -688,7 +648,7 @@
                     <div class="benefit-item">
                         <div class="benefit-icon">✅</div>
                         <div class="benefit-title">Accountability</div>
-                        <div class="benefit-description">Stay consistent and track your progress</div>
+                        <div class="benefit-description">Stay consistent and track your daily progress</div>
                     </div>
                     <div class="benefit-item">
                         <div class="benefit-icon">📈</div>
@@ -698,7 +658,7 @@
                     <div class="benefit-item">
                         <div class="benefit-icon">🎯</div>
                         <div class="benefit-title">Results</div>
-                        <div class="benefit-description">Monitor improvement and celebrate progress</div>
+                        <div class="benefit-description">Monitor improvement and celebrate milestones</div>
                     </div>
                 </div>
             </div>
@@ -706,19 +666,23 @@
 
         <!-- Scene 6: Pricing -->
         <div id="scene6" class="scene">
-            <div class="pricing-content">
-                <div class="pricing-badge">Simple, Honest Pricing</div>
-                <div class="pricing-title">$3.99/mo</div>
-                <div class="pricing-subtitle">Less than one coffee. Unlimited practice.</div>
-                <div class="pricing-features">
-                    <div class="pricing-feature">Unlimited practice journal entries</div>
-                    <div class="pricing-feature">Built-in metronome & timer</div>
-                    <div class="pricing-feature">Progress tracking & analytics</div>
-                    <div class="pricing-feature">Cloud backup - never lose data</div>
-                    <div class="pricing-feature">Community access & support</div>
-                    <div class="pricing-feature">New features added regularly</div>
+            <div class="pricing-split">
+                <div class="pricing-left">
+                    <div class="pricing-badge">Simple, Honest Pricing</div>
+                    <div class="pricing-amount">$3.99/mo</div>
+                    <div class="pricing-subtitle">Less than one coffee.<br>Unlimited practice.</div>
+                    <button class="cta-button">Start Your Free Trial</button>
                 </div>
-                <button class="cta-button">Start Your Free Trial</button>
+                <div class="pricing-right">
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unlimited practice journal entries</div>
+                        <div class="pricing-feature">Built-in metronome & timer</div>
+                        <div class="pricing-feature">Progress tracking & analytics</div>
+                        <div class="pricing-feature">Cloud backup - never lose data</div>
+                        <div class="pricing-feature">Community access & support</div>
+                        <div class="pricing-feature">New features added regularly</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -733,7 +697,9 @@
         </div>
 
         <!-- Progress Bar -->
-        <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
 
         <!-- Controls -->
         <div class="controls">
@@ -745,7 +711,7 @@
 
     <script>
         const scenes = document.querySelectorAll('.scene');
-        const progressBar = document.getElementById('progressBar');
+        const progressBarFill = document.getElementById('progressBarFill');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
         const playPauseBtn = document.getElementById('playPauseBtn');
@@ -753,7 +719,7 @@
         let currentScene = 0;
         let isPlaying = true;
         let autoPlayInterval;
-        const sceneDuration = 5000; // 5 seconds per scene
+        const sceneDuration = 6000; // 6 seconds per scene
 
         function updateScene() {
             scenes.forEach((scene, index) => {
@@ -767,7 +733,7 @@
 
             // Update progress bar
             const progress = ((currentScene + 1) / scenes.length) * 100;
-            progressBar.style.width = progress + '%';
+            progressBarFill.style.width = progress + '%';
         }
 
         function nextScene() {
@@ -800,7 +766,7 @@
         }
 
         function startAutoPlay() {
-            stopAutoPlay(); // Clear any existing interval
+            stopAutoPlay();
             autoPlayInterval = setInterval(nextScene, sceneDuration);
         }
 
@@ -814,14 +780,14 @@
         nextBtn.addEventListener('click', () => {
             nextScene();
             if (isPlaying) {
-                startAutoPlay(); // Reset timer
+                startAutoPlay();
             }
         });
 
         prevBtn.addEventListener('click', () => {
             prevScene();
             if (isPlaying) {
-                startAutoPlay(); // Reset timer
+                startAutoPlay();
             }
         });
 
@@ -829,8 +795,14 @@
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') nextScene();
-            if (e.key === 'ArrowLeft') prevScene();
+            if (e.key === 'ArrowRight') {
+                nextScene();
+                if (isPlaying) startAutoPlay();
+            }
+            if (e.key === 'ArrowLeft') {
+                prevScene();
+                if (isPlaying) startAutoPlay();
+            }
             if (e.key === ' ') {
                 e.preventDefault();
                 togglePlayPause();
