@@ -1,26 +1,30 @@
 
-## Add Practice Timer
 
-A new `Timer` component will be created and placed directly beneath the Tuner section in the practice log form.
+## Fix: Timer Bell Not Playing
 
-### Features
-- **Preset intervals**: 15 min, 20 min, 30 min buttons for quick selection
-- **Custom time**: An input field where users can enter any number of minutes
-- **Countdown display**: Shows remaining time in MM:SS format
-- **Bell sound**: Plays a bell/chime when the timer reaches zero using the Web Audio API (synthesized tone, no external file needed)
-- **Start / Stop / Reset controls**
+### Problem
+The bell doesn't sound when the timer reaches zero. This is caused by the browser's **autoplay policy** -- creating a new `AudioContext` inside a `setInterval` callback is blocked because it's not a direct user gesture (like a click or tap).
 
-### Technical Details
+### Solution
+Pre-create the `AudioContext` when the user clicks **Start** (which IS a user gesture), and keep a reference to it. When the timer finishes, reuse that already-unlocked context to play the bell.
 
-#### 1. New file: `src/components/practice-log/Timer.tsx`
-- Three preset buttons (15, 20, 30 min) that set the duration on click
-- A small numeric input for custom minutes
-- Start/Pause button toggles the countdown
-- Reset button clears the timer
-- Countdown runs via `setInterval` with 1-second ticks
-- When the timer hits zero, a bell sound is synthesized using the Web Audio API (`OscillatorNode` with a decaying gain envelope to simulate a bell chime)
-- Visual style will match the existing Metronome/Tuner components: dark card background, rounded layout, consistent button sizing
+### Changes to `src/components/practice-log/Timer.tsx`
 
-#### 2. Edit: `src/components/practice-log/PracticeLogForm.tsx`
-- Import `Timer` component
-- Add a new card section immediately after the Tuner block (after line 556), with the label "Timer" and the `<Timer />` component inside
+1. **Add a ref** to hold the `AudioContext`:
+   - `const audioCtxRef = useRef<AudioContext | null>(null);`
+
+2. **Create/resume the context on Start** (inside the `start` function, which runs on a user click):
+   - If no context exists, create one. If it's in a "suspended" state, resume it.
+
+3. **Update `playBell`** to accept an existing `AudioContext` instead of creating a new one:
+   - Change signature to `playBell(ctx: AudioContext)`
+   - Remove the `new AudioContext()` and `ctx.close()` calls from inside `playBell`
+
+4. **Call `playBell(audioCtxRef.current)`** when the countdown hits zero (line 53), passing the pre-unlocked context.
+
+5. **Clean up** the AudioContext in the component's unmount effect.
+
+### What stays the same
+- All timer logic (presets, custom input, countdown, start/stop/reset)
+- The bell sound itself (same oscillator frequency sweep and gain envelope)
+- All UI and styling
