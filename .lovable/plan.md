@@ -1,40 +1,24 @@
 
 
-## Use Uploaded Image as App Preview on Landing Page
+## Make the Animation Frame Larger
 
-### What Changes
+### Problem
+The animated HTML ad is designed for full-screen viewing with large typography and generous padding. The current container (`max-w-3xl` with 16:9 aspect ratio) scales it down too much, causing text to be cut off.
 
-Replace the div-based placeholder mockup in the "See Your Practice Come to Life" section with the uploaded screenshot image. This serves as a temporary preview until an animated WebP is ready.
+### Changes to `src/pages/Landing.tsx`
 
-### Steps
+1. **Widen the container**: Change `max-w-3xl` to `max-w-5xl` to give the iframe more horizontal space.
+2. **Adjust aspect ratio**: Change from `16 / 9` to `4 / 3` to give more vertical room for the content scenes that have stacked layouts (features grid, journal mockup, benefits grid).
 
-1. **Copy the image** to `public/images/practice-daily-preview.png` (public folder since it's a large marketing asset that doesn't benefit from bundling).
-
-2. **Edit `src/pages/Landing.tsx`**: Remove the mock content divs inside the browser chrome card (the placeholder bars, day-letter grid, skeleton lines, and two mini-cards) and replace with a single `<img>` tag pointing to `/images/practice-daily-preview.png`.
-
-3. **Remove the browser chrome wrapper** entirely -- the uploaded image already shows device frames and context, so wrapping it in a fake browser bar would look redundant. Instead, display the image cleanly with rounded corners and subtle shadow.
-
-### Technical Detail
+### Before vs After
 
 ```text
-Before:
-  <div className="rounded-xl border ...">
-    <div> (browser chrome dots + URL bar) </div>
-    <div> (skeleton placeholder divs) </div>
-  </div>
-
-After:
-  <img
-    src="/images/practice-daily-preview.png"
-    alt="Practice Daily app showing dashboard and journal views"
-    className="rounded-xl shadow-lg w-full"
-    loading="lazy"
-  />
+Before:  max-w-3xl, 16:9  (~768px x 432px on desktop)
+After:   max-w-5xl, 4:3   (~1024px x 768px on desktop)
 ```
 
 ### What Stays the Same
+- The iframe `src`, `sandbox`, and `loading` attributes
+- The `rounded-xl shadow-lg overflow-hidden` styling
+- All other sections of the landing page
 
-- Section heading "See Your Practice Come to Life" and subtitle
-- All feature cards below the preview
-- Every other section on the landing page
-- This image can later be swapped for an animated WebP with no structural changes
