@@ -229,12 +229,15 @@ export default function Landing() {
 
         {/* App mockup */}
         <div className="mx-auto mt-12 max-w-3xl">
-        <img
-            src="/images/practice-daily-preview.png"
-            alt="Practice Daily app showing dashboard and journal views"
-            className="rounded-xl shadow-lg w-full"
-            loading="lazy"
-          />
+          <div className="relative w-full rounded-xl shadow-lg overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+            <iframe
+              src="/images/practice-daily-ad.html"
+              title="Practice Daily app preview"
+              className="absolute inset-0 w-full h-full border-0"
+              loading="lazy"
+              sandbox="allow-scripts"
+            />
+          </div>
         </div>
 
         {/* Feature cards */}

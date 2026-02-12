@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Daily - Advertisement</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #000;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Scene base styling */
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+        }
+
+        .scene.active {
+            animation: fadeIn 1s forwards;
+        }
+
+        .scene.exit {
+            animation: fadeOut 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(1.05); }
+        }
+
+        /* Scene 1: Hero Intro */
+        #scene1 {
+            background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
+        }
+
+        .hero-content {
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 72px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: slideUp 1s 0.8s forwards;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 24px;
+            font-weight: 400;
+            opacity: 0.95;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0;
+            animation: slideUp 1s 1.1s forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scene 2: Problem Statement */
+        #scene2 {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+
+        .problem-content {
+            color: white;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        .problem-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .problem-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .problem-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .problem-item:nth-child(1) {
+            animation: slideUp 1s 0.8s forwards;
+        }
+
+        .problem-item:nth-child(2) {
+            animation: slideUp 1s 1s forwards;
+        }
+
+        .problem-item:nth-child(3) {
+            animation: slideUp 1s 1.2s forwards;
+        }
+
+        .problem-item-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .problem-item-text {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        /* Scene 3: Features Grid */
+        #scene3 {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 80px 60px;
+        }
+
+        .features-content {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .features-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 56px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 60px;
+            text-align: center;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .feature-card:nth-child(1) {
+            animation: slideUp 1s 0.8s forwards;
+        }
+
+        .feature-card:nth-child(2) {
+            animation: slideUp 1s 1s forwards;
+        }
+
+        .feature-card:nth-child(3) {
+            animation: slideUp 1s 1.2s forwards;
+        }
+
+        .feature-card:nth-child(4) {
+            animation: slideUp 1s 1.4s forwards;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .feature-description {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Scene 4: Journal Demo */
+        #scene4 {
+            background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
+            padding: 60px;
+        }
+
+        .journal-content {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .journal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 56px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 50px;
+            text-align: center;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .journal-mockup {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            animation: slideUp 1s 0.8s forwards;
+        }
+
+        .journal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .journal-date {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .journal-sections {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .journal-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            opacity: 0;
+        }
+
+        .journal-section:nth-child(1) {
+            animation: slideUp 0.8s 1.2s forwards;
+        }
+
+        .journal-section:nth-child(2) {
+            animation: slideUp 0.8s 1.4s forwards;
+        }
+
+        .journal-section:nth-child(3) {
+            animation: slideUp 0.8s 1.6s forwards;
+        }
+
+        .journal-section:nth-child(4) {
+            animation: slideUp 0.8s 1.8s forwards;
+        }
+
+        .journal-section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+        .journal-section-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .journal-input {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        /* Scene 5: Benefits */
+        #scene5 {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+
+        .benefits-content {
+            color: white;
+            max-width: 1000px;
+            text-align: center;
+        }
+
+        .benefits-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 60px;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .benefit-item {
+            opacity: 0;
+        }
+
+        .benefit-item:nth-child(1) {
+            animation: scaleIn 0.8s 0.8s forwards;
+        }
+
+        .benefit-item:nth-child(2) {
+            animation: scaleIn 0.8s 1s forwards;
+        }
+
+        .benefit-item:nth-child(3) {
+            animation: scaleIn 0.8s 1.2s forwards;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .benefit-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+        }
+
+        .benefit-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .benefit-description {
+            font-size: 16px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        /* Scene 6: Pricing */
+        #scene6 {
+            background: linear-gradient(135deg, #3ECFB0 0%, #2BA98B 100%);
+        }
+
+        .pricing-content {
+            color: white;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .pricing-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 30px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 30px;
+            font-weight: 600;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+        }
+
+        .pricing-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: slideUp 1s 0.8s forwards;
+        }
+
+        .pricing-subtitle {
+            font-size: 20px;
+            margin-bottom: 50px;
+            opacity: 0.95;
+            opacity: 0;
+            animation: slideUp 1s 1.1s forwards;
+        }
+
+        .pricing-features {
+            text-align: left;
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: slideUp 1s 1.4s forwards;
+        }
+
+        .pricing-feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .pricing-feature::before {
+            content: "✓";
+            margin-right: 15px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .cta-button {
+            background: white;
+            color: #3ECFB0;
+            padding: 20px 60px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            animation: slideUp 1s 1.7s forwards;
+            transition: transform 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Scene 7: Final CTA */
+        #scene7 {
+            background: linear-gradient(135deg, #1a1a1a 0%, #3ECFB0 100%);
+        }
+
+        .final-content {
+            color: white;
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .final-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 80px;
+            font-weight: 900;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: slideUp 1s 0.5s forwards;
+            line-height: 1.1;
+        }
+
+        .final-subtitle {
+            font-size: 28px;
+            margin-bottom: 50px;
+            opacity: 0.95;
+            opacity: 0;
+            animation: slideUp 1s 0.8s forwards;
+        }
+
+        .final-cta {
+            background: white;
+            color: #1a1a1a;
+            padding: 25px 70px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            animation: slideUp 1s 1.1s forwards;
+            transition: transform 0.3s ease;
+        }
+
+        .final-cta:hover {
+            transform: scale(1.05);
+        }
+
+        .final-logo {
+            margin-top: 60px;
+            font-size: 36px;
+            font-weight: 700;
+            opacity: 0;
+            animation: slideUp 1s 1.4s forwards;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #3ECFB0;
+            width: 0%;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        /* Control buttons */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Scene 1: Hero -->
+        <div id="scene1" class="scene active">
+            <div class="hero-content">
+                <div class="logo">🎵 Practice Daily</div>
+                <h1 class="hero-title">Your Daily Practice,<br>Elevated.</h1>
+                <p class="hero-subtitle">Join musicians who track, plan, reflect, and grow together. Build disciplined habits with a practice journal designed for serious musicians.</p>
+            </div>
+        </div>
+
+        <!-- Scene 2: Problem -->
+        <div id="scene2" class="scene">
+            <div class="problem-content">
+                <h2 class="problem-title">Every Musician Faces The Same Challenge</h2>
+                <div class="problem-items">
+                    <div class="problem-item">
+                        <div class="problem-item-icon">📉</div>
+                        <div class="problem-item-text">Inconsistent practice without clear tracking</div>
+                    </div>
+                    <div class="problem-item">
+                        <div class="problem-item-icon">🎯</div>
+                        <div class="problem-item-text">No structured way to measure progress</div>
+                    </div>
+                    <div class="problem-item">
+                        <div class="problem-item-icon">💭</div>
+                        <div class="problem-item-text">Lost insights and breakthrough moments</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 3: Features -->
+        <div id="scene3" class="scene">
+            <div class="features-content">
+                <h2 class="features-title">Everything You Need to Practice Better</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📝</div>
+                        <div class="feature-title">Structured Journaling</div>
+                        <div class="feature-description">Set goals, track warm-ups, scales, and exercises with a purpose-built practice planner.</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⏱️</div>
+                        <div class="feature-title">Built-in Metronome</div>
+                        <div class="feature-description">Keep tempo and stay focused with integrated practice tools and timers.</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Progress Tracking</div>
+                        <div class="feature-description">Visualize your practice sessions and celebrate your growth over time.</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-title">Community</div>
+                        <div class="feature-description">Connect with fellow musicians, share insights, and stay motivated together.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 4: Journal Demo -->
+        <div id="scene4" class="scene">
+            <div class="journal-content">
+                <h2 class="journal-title">See Your Practice Come to Life</h2>
+                <div class="journal-mockup">
+                    <div class="journal-header">
+                        <div class="journal-date">FRIDAY – FEB 20 2026</div>
+                        <div style="color: #3ECFB0; font-weight: 600;">0:00 Total Practice Time</div>
+                    </div>
+                    <div class="journal-sections">
+                        <div class="journal-section">
+                            <div class="journal-section-title">Main Goals</div>
+                            <div class="journal-input">What do you want to accomplish today?</div>
+                        </div>
+                        <div class="journal-section">
+                            <div class="journal-section-title">Warm-ups</div>
+                            <div class="journal-section-content">
+                                <div style="margin-bottom: 8px;">1. Long tones - 10 minutes</div>
+                                <div style="margin-bottom: 8px;">2. Finger exercises</div>
+                                <div>3. Breathing exercises</div>
+                            </div>
+                        </div>
+                        <div class="journal-section">
+                            <div class="journal-section-title">Scales</div>
+                            <div class="journal-section-content">
+                                <div style="margin-bottom: 8px;">1. C Major - 3 octaves</div>
+                                <div style="margin-bottom: 8px;">2. G Major - 2 octaves</div>
+                                <div>3. D Minor harmonic</div>
+                            </div>
+                        </div>
+                        <div class="journal-section">
+                            <div class="journal-section-title">Notes & Focus</div>
+                            <div class="journal-input">Observations, breakthroughs, challenges...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 5: Benefits -->
+        <div id="scene5" class="scene">
+            <div class="benefits-content">
+                <h2 class="benefits-title">Built for Musicians Who Show Up Every Day</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">✅</div>
+                        <div class="benefit-title">Accountability</div>
+                        <div class="benefit-description">Stay consistent and track your progress</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">📈</div>
+                        <div class="benefit-title">Insights</div>
+                        <div class="benefit-description">Capture breakthroughs and learn from patterns</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🎯</div>
+                        <div class="benefit-title">Results</div>
+                        <div class="benefit-description">Monitor improvement and celebrate progress</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 6: Pricing -->
+        <div id="scene6" class="scene">
+            <div class="pricing-content">
+                <div class="pricing-badge">Simple, Honest Pricing</div>
+                <div class="pricing-title">$3.99/mo</div>
+                <div class="pricing-subtitle">Less than one coffee. Unlimited practice.</div>
+                <div class="pricing-features">
+                    <div class="pricing-feature">Unlimited practice journal entries</div>
+                    <div class="pricing-feature">Built-in metronome & timer</div>
+                    <div class="pricing-feature">Progress tracking & analytics</div>
+                    <div class="pricing-feature">Cloud backup - never lose data</div>
+                    <div class="pricing-feature">Community access & support</div>
+                    <div class="pricing-feature">New features added regularly</div>
+                </div>
+                <button class="cta-button">Start Your Free Trial</button>
+            </div>
+        </div>
+
+        <!-- Scene 7: Final CTA -->
+        <div id="scene7" class="scene">
+            <div class="final-content">
+                <h2 class="final-title">Ready to<br>Practice?</h2>
+                <p class="final-subtitle">Sign up to elevate your practice now.</p>
+                <button class="final-cta">Get Started Free</button>
+                <div class="final-logo">🎵 Practice Daily</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar" id="progressBar"></div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" id="prevBtn">←</button>
+            <button class="control-btn" id="playPauseBtn">⏸</button>
+            <button class="control-btn" id="nextBtn">→</button>
+        </div>
+    </div>
+
+    <script>
+        const scenes = document.querySelectorAll('.scene');
+        const progressBar = document.getElementById('progressBar');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        
+        let currentScene = 0;
+        let isPlaying = true;
+        let autoPlayInterval;
+        const sceneDuration = 5000; // 5 seconds per scene
+
+        function updateScene() {
+            scenes.forEach((scene, index) => {
+                scene.classList.remove('active', 'exit');
+                if (index === currentScene) {
+                    scene.classList.add('active');
+                } else if (index === currentScene - 1) {
+                    scene.classList.add('exit');
+                }
+            });
+
+            // Update progress bar
+            const progress = ((currentScene + 1) / scenes.length) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+        function nextScene() {
+            if (currentScene < scenes.length - 1) {
+                currentScene++;
+                updateScene();
+            } else {
+                // Loop back to start
+                currentScene = 0;
+                updateScene();
+            }
+        }
+
+        function prevScene() {
+            if (currentScene > 0) {
+                currentScene--;
+                updateScene();
+            }
+        }
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            playPauseBtn.textContent = isPlaying ? '⏸' : '▶';
+            
+            if (isPlaying) {
+                startAutoPlay();
+            } else {
+                stopAutoPlay();
+            }
+        }
+
+        function startAutoPlay() {
+            stopAutoPlay(); // Clear any existing interval
+            autoPlayInterval = setInterval(nextScene, sceneDuration);
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+            }
+        }
+
+        // Event listeners
+        nextBtn.addEventListener('click', () => {
+            nextScene();
+            if (isPlaying) {
+                startAutoPlay(); // Reset timer
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            prevScene();
+            if (isPlaying) {
+                startAutoPlay(); // Reset timer
+            }
+        });
+
+        playPauseBtn.addEventListener('click', togglePlayPause);
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextScene();
+            if (e.key === 'ArrowLeft') prevScene();
+            if (e.key === ' ') {
+                e.preventDefault();
+                togglePlayPause();
+            }
+        });
+
+        // Start autoplay
+        startAutoPlay();
+
+        // Initial update
+        updateScene();
+    </script>
+</body>
+</html>
