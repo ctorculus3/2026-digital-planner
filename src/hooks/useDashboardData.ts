@@ -44,6 +44,7 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
   const [streak, setStreak] = useState(0);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [practiceTime, setPracticeTime] = useState<PracticeTime>({ today: 0, thisWeek: 0, thisMonth: 0, total: 0 });
+  const [practiceLogs, setPracticeLogs] = useState<{ log_date: string; total_time: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -102,8 +103,9 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
         setBadges(updatedBadges as Badge[]);
       }
 
-      // Calculate practice time buckets
+      // Store raw logs and calculate practice time buckets
       if (timeRes.data) {
+        setPracticeLogs(timeRes.data.map((l: any) => ({ log_date: l.log_date, total_time: String(l.total_time ?? "") })));
         const now = new Date();
         const todayStr = now.toISOString().slice(0, 10);
         const weekStart = getStartOfWeek(now);
@@ -132,5 +134,5 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
     fetchData();
   }, [fetchData]);
 
-  return { practicedDates, streak, badges, practiceTime, loading, refetch: fetchData };
+  return { practicedDates, streak, badges, practiceTime, practiceLogs, loading, refetch: fetchData };
 }

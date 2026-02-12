@@ -6,6 +6,7 @@ import { PracticeCalendar } from "@/components/dashboard/PracticeCalendar";
 import { StreakCounter } from "@/components/dashboard/StreakCounter";
 import { PracticeTimeSummary } from "@/components/dashboard/PracticeTimeSummary";
 import { BadgeShelf } from "@/components/dashboard/BadgeShelf";
+import { PracticeTimeGraph } from "@/components/dashboard/PracticeTimeGraph";
 import { UserMenu } from "@/components/practice-log/UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -16,7 +17,7 @@ export default function Dashboard() {
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-indexed
 
-  const { practicedDates, streak, badges, practiceTime, loading } = useDashboardData(viewYear, viewMonth);
+  const { practicedDates, streak, badges, practiceTime, practiceLogs, loading } = useDashboardData(viewYear, viewMonth);
 
   const handlePrevMonth = useCallback(() => {
     setViewMonth((prev) => {
@@ -61,7 +62,6 @@ export default function Dashboard() {
 
         {/* Streak Counter */}
         <StreakCounter streak={streak} loading={loading} />
-        <PracticeTimeSummary practiceTime={practiceTime} loading={loading} />
 
         {/* Practice Calendar */}
         <PracticeCalendar
@@ -72,6 +72,12 @@ export default function Dashboard() {
           onNextMonth={handleNextMonth}
           onDateClick={(dateStr) => navigate(`/journal?date=${dateStr}`)}
         />
+
+        {/* Hours of Practice Summary */}
+        <PracticeTimeSummary practiceTime={practiceTime} loading={loading} />
+
+        {/* Practice Time Graph */}
+        <PracticeTimeGraph practiceLogs={practiceLogs} loading={loading} />
 
         {/* Badge Shelf */}
         <BadgeShelf badges={badges} loading={loading} />
