@@ -4,18 +4,9 @@ import { Play, Square, RotateCcw } from "lucide-react";
 
 const PRESETS = [15, 20, 30];
 
-function playBell(ctx: AudioContext) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(830, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(415, ctx.currentTime + 1.5);
-  gain.gain.setValueAtTime(0.6, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 2);
+function playBell() {
+  const audio = new Audio("/audio/timer-alarm.mp3");
+  audio.play().catch(() => {});
 }
 
 function formatTime(totalSeconds: number) {
@@ -30,7 +21,6 @@ export function Timer() {
   const [isRunning, setIsRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const intervalRef = useRef<number | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -41,12 +31,6 @@ export function Timer() {
 
   const start = useCallback(() => {
     if (secondsLeft <= 0) return;
-    // Create or resume AudioContext on user gesture so it's unlocked for the bell
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
-    } else if (audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume();
-    }
     clearTimer();
     setIsRunning(true);
     setHasStarted(true);
@@ -55,7 +39,7 @@ export function Timer() {
         if (prev <= 1) {
           clearTimer();
           setIsRunning(false);
-          if (audioCtxRef.current) playBell(audioCtxRef.current);
+          playBell();
           return 0;
         }
         return prev - 1;
@@ -93,10 +77,6 @@ export function Timer() {
   useEffect(() => {
     return () => {
       clearTimer();
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close();
-        audioCtxRef.current = null;
-      }
     };
   }, [clearTimer]);
 
