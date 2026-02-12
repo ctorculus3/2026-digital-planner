@@ -1,23 +1,24 @@
 
 
-## Add Monthly/Yearly Toggle to Landing Page Pricing
+## Add Lesson PDFs to Landing Page
 
 ### What Changes
 
-The pricing section on the landing page currently shows only the monthly price ($3.99/mo). This update adds the existing `PlanToggle` component above the pricing card so visitors can switch between Monthly and Yearly, with the price and label updating dynamically.
+The landing page is missing mention of the Lesson PDFs feature. This update adds it to both the feature cards and the pricing checklist.
 
 ### Changes to `src/pages/Landing.tsx`
 
-1. **Import** the `PlanToggle` component from `@/components/subscription/PlanToggle`.
-2. **Add state**: `const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly")`.
-3. **Place `<PlanToggle />`** above the pricing card, inside the pricing section.
-4. **Make the card dynamic**:
-   - Label: shows "Monthly" or "Yearly" based on selection.
-   - Price: shows `$3.99/mo` or `$39.99/yr`.
-   - Trial note stays the same ("7-day free trial included").
-5. No other sections or files are touched.
+1. **Add a new feature card** to the `features` array:
+   - Icon: `FolderOpen` (already imported)
+   - Title: "Lesson PDFs"
+   - Description: "Upload and store lesson PDFs directly in your practice log. View them anytime, anywhere — no more lost sheets."
+
+2. **Add a new pricing checklist item** to the `pricingFeatures` array:
+   - "Lesson PDF uploads with cloud storage & viewing"
+
+3. No layout changes needed -- the grid will accommodate 9 cards (3 rows of 3 on large screens, which may look slightly uneven). Alternatively, we can keep the grid balanced by using `lg:grid-cols-3` instead of `lg:grid-cols-4` for a clean 3x3 layout, or keep `lg:grid-cols-4` and accept a partial last row.
 
 ### What Stays the Same
 
-- All feature cards, testimonials, hero, auth section, and footer remain unchanged.
-- The `PlanToggle` component itself is reused as-is (it already includes the "Save 17%" badge for yearly).
+- All other feature cards, testimonials, hero, pricing toggle, auth section, and footer remain untouched.
+- No other files are modified.
