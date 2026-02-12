@@ -228,8 +228,8 @@ export default function Landing() {
         <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">Everything you need to structure, record, and reflect on your daily practice — in one elegant digital planner.</p>
 
         {/* App mockup */}
-        <div className="mx-auto mt-12 max-w-5xl">
-          <div className="relative w-full rounded-xl shadow-lg overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+        <div className="mx-auto mt-12 max-w-[1100px]">
+          <div className="relative w-full rounded-xl shadow-lg overflow-hidden" style={{ aspectRatio: '1100 / 768' }}>
             <iframe
               src="/images/practice-daily-ad.html"
               title="Practice Daily app preview"
