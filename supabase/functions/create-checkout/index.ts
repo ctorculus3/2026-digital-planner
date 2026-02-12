@@ -8,8 +8,8 @@ const corsHeaders = {
 };
 
 const PRICES: Record<string, string> = {
-  monthly: "price_1Sx00wPp57aypoj4v8akm2IH",
-  yearly: "price_1SyhXOPp57aypoj4Hx9fG1zH",
+  monthly: "price_1T06ILPp57aypoj4m88umkXc",
+  yearly: "price_1T06IZPp57aypoj4XD8OaYyl",
 };
 
 const logStep = (step: string, details?: any) => {
