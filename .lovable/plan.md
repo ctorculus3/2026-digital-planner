@@ -1,19 +1,15 @@
 
 
-## Replace Animation Ad with Updated Version
+## Replace Ad with Responsive Version
 
-The user has provided an updated HTML animation file (`practice-daily-ad.html`) already designed for the 1024x768 display area. This is a straightforward file swap.
+The uploaded file (`practice-daily-ad_2-2.html`) is a responsive update of the animated advertisement. It uses CSS `transform: scale()` with media queries to scale the 1024x768 design down for smaller viewports (tablets, phones), fixing the current issue where the ad doesn't adapt on mobile.
 
 ### What Changes
 
-1. **Overwrite `public/images/practice-daily-ad.html`** with the new uploaded file. The new ad is hardcoded to 1024x768 dimensions, matching the current iframe container (`max-w-5xl` with `4:3` aspect ratio).
+1. **Overwrite `public/images/practice-daily-ad.html`** with the new uploaded file (`practice-daily-ad_2-2.html`).
 
 ### What Stays the Same
 
-- No changes to `src/pages/Landing.tsx` -- the iframe already points to `/images/practice-daily-ad.html` with the correct container size.
-- All other landing page sections remain untouched.
-
-### Technical Detail
-
-The new ad uses a fixed `1024x768` container internally (lines 27-32) instead of viewport units, so it will render crisply within the existing iframe without any text cutoff.
+- No changes to `src/pages/Landing.tsx` -- the iframe reference and container dimensions remain identical.
+- All other landing page sections, routing, and functionality are untouched.
 
