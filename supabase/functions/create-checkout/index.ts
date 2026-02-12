@@ -17,6 +17,22 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Simple in-memory rate limiter (per-user, resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 3; // max checkout attempts per window
+const RATE_WINDOW_MS = 3_600_000; // 1 hour
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,8 +66,17 @@ serve(async (req) => {
     }
 
     const userEmail = userData.user.email;
+    const userId = userData.user.id;
     if (!userEmail) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: userEmail });
+
+    // Rate limit check
+    if (isRateLimited(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Too many checkout attempts. Please try again later." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 429 }
+      );
+    }
 
     // Read selected plan from request body, default to monthly
     let plan = "monthly";

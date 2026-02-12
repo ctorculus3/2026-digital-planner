@@ -84,6 +84,22 @@ async function callModeration(
   }
 }
 
+// Simple in-memory rate limiter (per-user, resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5; // max posts per window
+const RATE_WINDOW_MS = 60_000; // 1 minute
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -124,6 +140,14 @@ serve(async (req) => {
     }
 
     const userId = user.id;
+
+    // Rate limit check
+    if (isRateLimited(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Too many posts. Please wait a minute and try again." }),
+        { status: 429, headers: JSON_HEADERS }
+      );
+    }
 
     // Parse body
     const { content, image_paths } = await req.json();
