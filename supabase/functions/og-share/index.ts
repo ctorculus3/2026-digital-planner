@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     return new Response(html, {
       status: 404,
       headers: {
-        "Content-Type": "text/html; charset=utf-8",
+        "Content-Type": "application/xhtml+xml; charset=utf-8",
         "X-Content-Type-Options": "nosniff",
         ...corsHeaders,
       },
@@ -44,27 +44,19 @@ Deno.serve(async (req) => {
   const row = data[0];
   const name = row.sharer_display_name || "A musician";
 
-  // The preview app origin for redirecting real browsers
-  const appOrigin = SUPABASE_URL.replace(
-    ".supabase.co",
-    ".supabase.co"
-  );
-  // We redirect to the published/preview app origin which is separate from the Supabase URL
-  // Use a relative redirect so it works regardless of deploy domain
-  const redirectPath = `/shared/${token}`;
+  // Absolute redirect URL for real browsers
+  const appOrigin = "https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app";
+  const redirectUrl = `${appOrigin}/shared/${token}`;
 
-  // OG image — use the published app's static asset
-  // Crawlers resolve relative URLs against the page URL (the edge function URL),
-  // so we need an absolute URL. We'll use the Supabase storage or a known app domain.
-  // Since we don't know the app domain at runtime, we use the static asset hosted in public/
-  // We'll construct it from a known preview domain pattern or fall back to a generic approach.
-  const ogImageUrl = `https://id-preview--cd8351fe-3671-4983-92c3-c6d5206bddf5.lovable.app/images/practice-daily-og.jpeg`;
+  // OG image from public storage bucket (accessible to crawlers)
+  const ogImageUrl = `${SUPABASE_URL}/storage/v1/object/public/community-images/og/practice-daily-og.jpeg`;
 
   const title = `Practice Log by ${name}`;
   const description = `Check out this practice session shared on Practice Daily.`;
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
+  const html = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
   <meta charset="utf-8" />
   <title>${title}</title>
@@ -76,7 +68,7 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
   <meta name="twitter:image" content="${ogImageUrl}" />
-  <script>window.location.replace("${redirectPath}");</script>
+  <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
 </head>
 <body>
   <p>Redirecting…</p>
@@ -86,7 +78,7 @@ Deno.serve(async (req) => {
   return new Response(html, {
     status: 200,
     headers: {
-      "Content-Type": "text/html; charset=utf-8",
+      "Content-Type": "application/xhtml+xml; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-cache",
       ...corsHeaders,
