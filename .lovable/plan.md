@@ -1,24 +1,37 @@
 
 
-## Add Lesson PDFs to Landing Page
+## Replace App Mockup with Animated Journal Preview
 
 ### What Changes
 
-The landing page is missing mention of the Lesson PDFs feature. This update adds it to both the feature cards and the pricing checklist.
+The placeholder div-based mockup under "See Your Practice Come to Life" will be replaced with an animated WebP image showing a real, filled-in practice journal. This gives visitors an authentic preview of the app experience.
+
+### Requirements
+
+- **You upload an animated WebP** (or GIF) of the journal via the chat. It will be saved to the project's public assets.
 
 ### Changes to `src/pages/Landing.tsx`
 
-1. **Add a new feature card** to the `features` array:
-   - Icon: `FolderOpen` (already imported)
-   - Title: "Lesson PDFs"
-   - Description: "Upload and store lesson PDFs directly in your practice log. View them anytime, anywhere — no more lost sheets."
+1. **Remove** the entire div-based mock content inside the browser chrome card (the placeholder bars, grid of day letters, skeleton lines, etc.).
+2. **Replace** with an `<img>` tag pointing to the uploaded animated WebP file.
+3. **Keep** the browser chrome wrapper (the dots + URL bar) around the image for a polished framing effect.
+4. The image will be wrapped in an aspect-ratio container to prevent layout shift while loading.
 
-2. **Add a new pricing checklist item** to the `pricingFeatures` array:
-   - "Lesson PDF uploads with cloud storage & viewing"
+### Rough Structure
 
-3. No layout changes needed -- the grid will accommodate 9 cards (3 rows of 3 on large screens, which may look slightly uneven). Alternatively, we can keep the grid balanced by using `lg:grid-cols-3` instead of `lg:grid-cols-4` for a clean 3x3 layout, or keep `lg:grid-cols-4` and accept a partial last row.
+```text
++--------------------------------------+
+|  (o) (o) (o)   practicedaily.app     |   <-- browser chrome (kept)
++--------------------------------------+
+|                                      |
+|   [Animated WebP of filled journal]  |   <-- new image replaces divs
+|                                      |
++--------------------------------------+
+```
 
 ### What Stays the Same
 
-- All other feature cards, testimonials, hero, pricing toggle, auth section, and footer remain untouched.
-- No other files are modified.
+- The "See Your Practice Come to Life" heading and subtitle
+- The browser chrome wrapper styling
+- All feature cards below the mockup
+- Every other section on the landing page
