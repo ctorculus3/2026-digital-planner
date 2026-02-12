@@ -12,6 +12,7 @@ import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
 import { MediaTools } from "./MediaTools";
 import { LessonPdfs } from "./LessonPdfs";
+import { Metronome } from "./Metronome";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -539,6 +540,12 @@ export function PracticeLogForm({
                 Used Metronome Today
               </label>
             </div>
+            <Metronome onStart={() => {
+              if (!metronomeUsed) {
+                setMetronomeUsed(true);
+                markChanged();
+              }
+            }} />
           </div>
 
           {/* Ear Training */}
