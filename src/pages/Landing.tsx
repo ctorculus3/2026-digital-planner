@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome } from "lucide-react";
+import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome, Activity, Mic, Users, BarChart3 } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 
 /* ─────────── data ─────────── */
@@ -27,6 +27,22 @@ const features = [{
   icon: Share2,
   title: "Share With Teachers & Peers",
   desc: "Generate a share link so your teacher or bandmates can see your progress."
+}, {
+  icon: Activity,
+  title: "Built-in Metronome",
+  desc: "Practice with an authentic clave-sample metronome. Adjustable BPM with fine-tuning controls."
+}, {
+  icon: Mic,
+  title: "Chromatic Tuner",
+  desc: "Tune your instrument in real time using your device microphone with a visual pitch gauge."
+}, {
+  icon: Users,
+  title: "Community Feed",
+  desc: "Connect with fellow musicians. Share thoughts on gear, habits, and practice in a dedicated social space."
+}, {
+  icon: BarChart3,
+  title: "Dashboard & Streaks",
+  desc: "Visualize your practice history with calendars, time summaries, badges, and streak tracking."
 }];
 const values = [{
   icon: Target,
@@ -54,7 +70,7 @@ const testimonials = [{
   name: "Dr. Elena R.",
   role: "Piano Instructor"
 }];
-const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches"];
+const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches", "Built-in metronome with clave sample", "Chromatic tuner with real-time pitch detection", "Community feed to connect with musicians", "Dashboard with streaks, badges & practice calendar"];
 
 /* ─────────── helpers ─────────── */
 
