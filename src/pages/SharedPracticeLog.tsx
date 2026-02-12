@@ -392,6 +392,30 @@ export default function SharedPracticeLog() {
           </div>
         </div>
 
+        {/* Lesson PDFs */}
+        {pdfItems.length > 0 && (
+          <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
+            <h3 className="font-display text-sm text-muted-foreground mb-3">Lesson PDF's</h3>
+            <div className="space-y-1">
+              {pdfItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center border border-border rounded-md px-2 py-1.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPdf(item)}
+                    className="flex items-center gap-1.5 text-xs text-foreground hover:text-primary truncate flex-1 min-w-0 text-left"
+                  >
+                    <FileText className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+                    <span className="truncate">{item.file_name}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Media Tools */}
         {mediaItems.length > 0 && (
           <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
@@ -446,30 +470,6 @@ export default function SharedPracticeLog() {
                       <p className="text-xs text-muted-foreground italic">Loading photo...</p>
                     )
                   )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lesson PDFs */}
-        {pdfItems.length > 0 && (
-          <div className="bg-card rounded-lg p-4 shadow-sm border border-border">
-            <h3 className="font-display text-sm text-muted-foreground mb-3">Lesson PDF's</h3>
-            <div className="space-y-1">
-              {pdfItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center border border-border rounded-md px-2 py-1.5"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleOpenPdf(item)}
-                    className="flex items-center gap-1.5 text-xs text-foreground hover:text-primary truncate flex-1 min-w-0 text-left"
-                  >
-                    <FileText className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-                    <span className="truncate">{item.file_name}</span>
-                  </button>
                 </div>
               ))}
             </div>
