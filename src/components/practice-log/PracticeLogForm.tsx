@@ -13,6 +13,7 @@ import { ShareButton } from "./ShareButton";
 import { MediaTools } from "./MediaTools";
 import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
+import { Tuner } from "./Tuner";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -546,9 +547,14 @@ export function PracticeLogForm({
                 markChanged();
               }
             }} />
+           </div>
+
+          {/* Tuner */}
+          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+            <label className="font-display text-sm text-muted-foreground mb-1 block">Tuner</label>
+            <Tuner />
           </div>
 
-          {/* Ear Training */}
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Ear Training</label>
             <div className="space-y-1">
