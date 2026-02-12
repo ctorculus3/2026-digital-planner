@@ -229,7 +229,7 @@ export default function Landing() {
 
         {/* App mockup */}
         <div className="mx-auto mt-12 max-w-5xl">
-          <div className="relative w-full rounded-xl shadow-lg overflow-hidden" style={{ aspectRatio: '4 / 3' }}>
+          <div className="relative w-full rounded-xl shadow-lg overflow-hidden aspect-[3/4] md:aspect-[4/3]">
             <iframe
               src="/images/practice-daily-ad.html"
               title="Practice Daily app preview"

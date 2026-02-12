@@ -600,7 +600,148 @@
         /* Mobile-specific adjustments */
         @media (max-width: 480px) {
             .scene {
-                padding: 3vh 4vw;
+                padding: 2.5vh 3vw;
+            }
+
+            .hero-title {
+                font-size: clamp(24px, 7vw, 36px);
+            }
+
+            .hero-subtitle {
+                font-size: clamp(12px, 3vw, 16px);
+            }
+
+            .logo {
+                font-size: clamp(20px, 5vw, 28px);
+                margin-bottom: 12px;
+            }
+
+            .problem-title,
+            .benefits-title,
+            .journal-demo-title {
+                font-size: clamp(20px, 5.5vw, 32px);
+                margin-bottom: 15px;
+            }
+
+            .problem-items {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .problem-item {
+                padding: 12px 10px;
+            }
+
+            .problem-item-icon {
+                font-size: 28px;
+                margin-bottom: 6px;
+            }
+
+            .problem-item-text {
+                font-size: 12px;
+            }
+
+            .features-title {
+                font-size: clamp(20px, 5vw, 28px);
+                margin-bottom: 12px;
+            }
+
+            .feature-list {
+                gap: 10px;
+            }
+
+            .feature-item-icon {
+                font-size: 20px;
+                margin-bottom: 3px;
+            }
+
+            .feature-item-title {
+                font-size: 14px;
+                margin-bottom: 2px;
+            }
+
+            .feature-item-description {
+                font-size: 11px;
+            }
+
+            .journal-preview img {
+                max-width: 200px;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .benefit-icon {
+                font-size: 32px;
+                margin-bottom: 6px;
+            }
+
+            .benefit-title {
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+            .benefit-description {
+                font-size: 12px;
+            }
+
+            .pricing-amount {
+                font-size: clamp(36px, 9vw, 52px);
+            }
+
+            .pricing-subtitle {
+                font-size: clamp(13px, 3vw, 16px);
+            }
+
+            .pricing-features {
+                padding: 15px;
+            }
+
+            .pricing-feature {
+                font-size: 11px;
+                margin-bottom: 8px;
+            }
+
+            .final-title {
+                font-size: clamp(32px, 9vw, 52px);
+            }
+
+            .final-subtitle {
+                font-size: clamp(14px, 3.5vw, 18px);
+            }
+
+            .final-cta {
+                padding: 12px 30px;
+                font-size: 15px;
+            }
+
+            .final-logo {
+                font-size: clamp(18px, 4vw, 24px);
+                margin-top: 20px;
+            }
+
+            .controls {
+                bottom: 8px;
+                right: 8px;
+                gap: 6px;
+            }
+
+            .control-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+
+            .cta-button {
+                padding: 10px 25px;
+                font-size: 14px;
+            }
+
+            .pricing-badge {
+                font-size: 12px;
+                padding: 6px 14px;
             }
         }
     </style>
