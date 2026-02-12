@@ -249,7 +249,7 @@ export function Tuner() {
             </p>
           </> :
 
-        <p className="text-xs text-muted px-0 text-center mx-0">
+        <p className="text-xs text-muted px-0 text-left mx-0">
             {isListening ? "Listening…" : "Tap mic"}
           </p>
         }
