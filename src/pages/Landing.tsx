@@ -41,6 +41,10 @@ const features = [{
   title: "Community Feed",
   desc: "Connect with fellow musicians. Share thoughts on gear, habits, and practice in a dedicated social space."
 }, {
+  icon: FolderOpen,
+  title: "Lesson PDFs",
+  desc: "Upload and store lesson PDFs directly in your practice log. View them anytime, anywhere — no more lost sheets."
+}, {
   icon: BarChart3,
   title: "Dashboard & Streaks",
   desc: "Visualize your practice history with calendars, time summaries, badges, and streak tracking."
@@ -71,7 +75,7 @@ const testimonials = [{
   name: "Dr. Elena R.",
   role: "Piano Instructor"
 }];
-const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches", "Built-in metronome with clave sample", "Chromatic tuner with real-time pitch detection", "Community feed to connect with musicians", "Dashboard with streaks, badges & practice calendar"];
+const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Lesson PDF uploads with cloud storage & viewing", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches", "Built-in metronome with clave sample", "Chromatic tuner with real-time pitch detection", "Community feed to connect with musicians", "Dashboard with streaks, badges & practice calendar"];
 
 /* ─────────── helpers ─────────── */
 
