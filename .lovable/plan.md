@@ -1,25 +1,49 @@
 
 
-## Fix OAuth "redirect_uri is not allowed" Error
+## Fix Google Sign-In Redirecting Back to Landing Page
 
 ### Problem
 
-The Google and Apple sign-in buttons pass `redirect_uri: window.location.origin + "?from=oauth"` to the Lovable Cloud OAuth system. Even though the base published URL is listed as allowed, the `?from=oauth` query parameter makes the full URI not match exactly, causing the "redirect_uri is not allowed" error.
+After completing Google sign-in, the user lands back on the app but the session hasn't been established yet. The AuthContext tries to detect OAuth returns by checking for URL parameters like `access_token` or `code=`, but the Lovable Cloud OAuth system may not include these for Google. Without detection, loading finishes immediately, the app sees no user, and redirects to the landing page. Apple works because its flow has different timing or URL parameters.
 
 ### Solution
 
-Remove the `?from=oauth` query parameter from the redirect URI in both the Google and Apple sign-in calls. The AuthContext already detects OAuth returns via `access_token` and `code=` in the URL (which the auth system adds automatically), so the `?from=oauth` hint is redundant.
+Use a `sessionStorage` flag to reliably detect OAuth returns regardless of URL parameters.
 
 ### Technical Details
 
-**File:** `src/pages/Landing.tsx`
+**File: `src/pages/Landing.tsx`**
 
-Two changes:
+Before calling `lovable.auth.signInWithOAuth` for both Google and Apple, store a flag:
 
-1. **Google sign-in** (around line 127): Change `redirect_uri` from  
-   `${window.location.origin}?from=oauth` to `${window.location.origin}`
+```typescript
+sessionStorage.setItem("oauth_in_progress", "true");
+```
 
-2. **Apple sign-in** (around line 247): Same change -- remove `?from=oauth`
+**File: `src/contexts/AuthContext.tsx`**
 
-No other files need to change. The `AuthContext.tsx` detection logic for `search.includes('from=oauth')` can stay since it's just one of several checks and doesn't cause harm.
+Add the sessionStorage flag to the `isAuthRedirect` detection (around line 103):
+
+```typescript
+const isAuthRedirect =
+  hash.includes('access_token') ||
+  hash.includes('refresh_token') ||
+  search.includes('code=') ||
+  search.includes('from=oauth') ||
+  hash.includes('type=signup') ||
+  hash.includes('type=recovery') ||
+  sessionStorage.getItem('oauth_in_progress') === 'true';
+```
+
+Then clear the flag once a session is successfully established (inside the `onAuthStateChange` callback, after setting the user):
+
+```typescript
+if (newSession) {
+  sessionStorage.removeItem('oauth_in_progress');
+}
+```
+
+Also clear it in the fallback timeout to prevent it from persisting on failed attempts.
+
+This ensures the app keeps `loading=true` long enough for the OAuth session to be processed, without relying on URL parameters.
 
