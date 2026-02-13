@@ -85,6 +85,9 @@ export function HowToManual() {
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Ear Training, Additional Tasks & Music Listening</h4>
               <p>Each of these sections provides rows with checkboxes. Use them to log ear training exercises, extra tasks your teacher assigned, or pieces you're actively listening to for study.</p>
+
+              <h4 className="font-medium text-foreground mt-3 mb-1">Media Tools</h4>
+              <p>The Media Tools section is located in the left column, below Repertoire & Exercises. You can upload or drag-and-drop audio files (MP3, WAV, M4A), video files (MP4, MOV), and photos (JPG, PNG, WebP, GIF) directly into your practice log. You can also paste a YouTube URL to embed a video — great for referencing listening sessions or performances. Up to 5 media items can be attached per day. Each item can be played back, viewed, or deleted right from the journal.</p>
             </section>
 
             {/* 5. Built-in Tools */}
