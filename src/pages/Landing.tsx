@@ -241,6 +241,13 @@ export default function Landing() {
         </p>
       </section>
 
+      {/* ───── Decorative Divider ───── */}
+      <div className="flex items-center justify-center gap-4 py-2">
+        <div className="h-px w-16 bg-header-bg/20" />
+        <Music2 className="h-5 w-5 text-header-bg/30" />
+        <div className="h-px w-16 bg-header-bg/20" />
+      </div>
+
       {/* ───── App Preview / Features ───── */}
       <section id="features" className="container mx-auto px-4 py-20 md:py-28">
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center">
