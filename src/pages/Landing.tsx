@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,6 +112,17 @@ export default function Landing() {
     toast
   } = useToast();
   const authRef = useRef<HTMLDivElement>(null);
+  const [searchParams] = useSearchParams();
+
+  // Show toast if user arrives after email verification in a different browser
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast({
+        title: "Email verified!",
+        description: "Please sign in to continue.",
+      });
+    }
+  }, [searchParams, toast]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
