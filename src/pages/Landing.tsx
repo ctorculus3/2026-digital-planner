@@ -151,6 +151,7 @@ export default function Landing() {
 
   const handleGoogleSignIn = async () => {
     setFormLoading(true);
+    sessionStorage.setItem("oauth_in_progress", "true");
     try {
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
@@ -437,6 +438,7 @@ export default function Landing() {
               </Button>
               <Button type="button" variant="outline" className="w-full" disabled={formLoading} onClick={async () => {
                 setFormLoading(true);
+                sessionStorage.setItem("oauth_in_progress", "true");
                 try {
                   const { error } = await lovable.auth.signInWithOAuth("apple", {
                     redirect_uri: window.location.origin,

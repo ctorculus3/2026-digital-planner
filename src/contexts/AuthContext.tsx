@@ -106,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       search.includes('code=') ||
       search.includes('from=oauth') ||
       hash.includes('type=signup') ||
-      hash.includes('type=recovery');
+      hash.includes('type=recovery') ||
+      sessionStorage.getItem('oauth_in_progress') === 'true';
 
     // For auth redirects, use a longer timeout to give the session time to establish
     const fallbackMs = isAuthRedirect ? 8000 : 5000;
@@ -119,6 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setLoading(false);
+
+        if (newSession) {
+          sessionStorage.removeItem('oauth_in_progress');
+        }
 
         // Only fetch subscription if initial session has already been loaded
         // This prevents duplicate calls during initialization
@@ -162,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fallback timeout
     const timeout = setTimeout(() => {
       if (mounted && loading) {
+        sessionStorage.removeItem('oauth_in_progress');
         setLoading(false);
         setSubscription(prev => prev.status === 'loading' 
           ? { ...prev, status: 'inactive' } 
