@@ -104,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hash.includes('access_token') ||
       hash.includes('refresh_token') ||
       search.includes('code=') ||
+      search.includes('from=oauth') ||
       hash.includes('type=signup') ||
       hash.includes('type=recovery');
 
