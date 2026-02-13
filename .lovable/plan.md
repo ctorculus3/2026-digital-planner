@@ -1,26 +1,25 @@
 
 
-## Add Media Tools Section to the How To Manual
+## Fix OAuth "redirect_uri is not allowed" Error
 
-### What
+### Problem
 
-Add a new subsection under "Filling Out Your Practice Log" (Section 4) in the How To manual that explains the Media Tools feature -- how to upload files, drop media, and paste YouTube URLs.
+The Google and Apple sign-in buttons pass `redirect_uri: window.location.origin + "?from=oauth"` to the Lovable Cloud OAuth system. Even though the base published URL is listed as allowed, the `?from=oauth` query parameter makes the full URI not match exactly, causing the "redirect_uri is not allowed" error.
 
-### Content to Add
+### Solution
 
-A new **Media Tools** heading after the existing "Ear Training, Additional Tasks & Music Listening" subsection, covering:
-
-- The Media Tools section lives in the left column below Repertoire & Exercises
-- Users can upload or drag-and-drop audio files (MP3, WAV, M4A), video files (MP4, MOV), and photos (JPG, PNG, WebP, GIF)
-- Users can paste YouTube URLs to embed videos for listening sessions or reference
-- Up to 5 media items can be attached per practice log entry
-- Each item can be played back, viewed, or deleted directly in the journal
+Remove the `?from=oauth` query parameter from the redirect URI in both the Google and Apple sign-in calls. The AuthContext already detects OAuth returns via `access_token` and `code=` in the URL (which the auth system adds automatically), so the `?from=oauth` hint is redundant.
 
 ### Technical Details
 
-**File:** `src/components/HowToManual.tsx`
+**File:** `src/pages/Landing.tsx`
 
-- Add a new `<h4>` + `<p>` block for "Media Tools" inside Section 4, after the "Ear Training, Additional Tasks & Music Listening" subsection (around line 89)
-- Uses the same styling as the other subsections (`font-medium text-foreground mt-3 mb-1` for the heading)
-- No new files, components, or dependencies needed
+Two changes:
+
+1. **Google sign-in** (around line 127): Change `redirect_uri` from  
+   `${window.location.origin}?from=oauth` to `${window.location.origin}`
+
+2. **Apple sign-in** (around line 247): Same change -- remove `?from=oauth`
+
+No other files need to change. The `AuthContext.tsx` detection logic for `search.includes('from=oauth')` can stay since it's just one of several checks and doesn't cause harm.
 
