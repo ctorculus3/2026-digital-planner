@@ -6,8 +6,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DialogTrigger } from
+"@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function HowToManual() {
@@ -91,7 +91,7 @@ export function HowToManual() {
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">5. Built-in Tools</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Metronome</strong> — A built-in click track. Set your tempo and time signature right inside the journal.</li>
+                <li><strong>Metronome</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal.</li>
                 <li><strong>Tuner</strong> — Uses your device's microphone to help you tune your instrument.</li>
                 <li><strong>Timer</strong> — Set a countdown timer for focused practice blocks. An alarm sounds when time is up.</li>
                 <li><strong>Audio Recorder</strong> — Record yourself directly in the app. Recordings are saved to your practice log.</li>
@@ -128,6 +128,6 @@ export function HowToManual() {
           </div>
         </ScrollArea>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 }
