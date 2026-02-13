@@ -1,27 +1,31 @@
 
 
-## Add a "What Is This?" Statement to the Landing Page
+## Add a Decorative Divider Between "What Is This?" and Features Sections
 
 ### What
 
-Add a concise, clear statement that explains exactly what Practice Daily is -- placed prominently between the Hero section and the Features section so first-time visitors immediately understand the product.
+Add a subtle visual separator between the "What is Practice Daily?" section and the "See Your Practice Come to Life" features section to break up the empty space and create a smoother visual flow.
 
-### Proposed Copy
+### Approach
 
-> **What is Practice Daily?**
-> Practice Daily is a digital practice journal for musicians. It helps you plan your sessions, log what you worked on, track your progress over time, and share updates with teachers or peers -- all from one place. Think of it as a planner, notebook, and progress tracker built specifically for daily music practice.
+Insert a decorative divider after the "What is Practice Daily?" section. Rather than reusing the `ScallopDivider` (which transitions from the teal header background), this will be a simple centered ornamental element -- a short horizontal rule with a music note icon in the middle. This keeps the design clean and on-brand without adding visual weight.
 
-### Where It Goes
+### Visual
 
-The statement will sit as a new section between the Hero (with the scallop divider) and the existing "See Your Practice Come to Life" features section. It will be a simple, centered text block with a heading and a short paragraph -- no cards or icons, just clear communication.
+```text
+   What is Practice Daily?
+   [paragraph text...]
+
+        ———  ♪  ———        <-- decorative divider
+
+   See Your Practice Come to Life
+```
 
 ### Technical Details
 
 **File:** `src/pages/Landing.tsx`
 
-- Insert a new `<section>` element after the Hero/ScallopDivider and before the `#features` section (around line 210)
-- Simple layout: centered container with an `h2` heading ("What is Practice Daily?") and a `p` description
-- Styled consistently with existing sections using `container`, `mx-auto`, `px-4`, `py-16` spacing and `text-muted-foreground` for the body text
-
-No new files, components, or dependencies needed.
+- Add a decorative divider `<div>` between the closing `</section>` of "What Is This?" and the opening of the `#features` section (around line 240)
+- Layout: a flex row with two short border lines and a `Music2` icon centered between them, using existing `text-header-bg/30` and `border-header-bg/20` colors for a subtle, cohesive look
+- No new components or dependencies needed -- just a small inline element using the already-imported `Music2` icon
 
