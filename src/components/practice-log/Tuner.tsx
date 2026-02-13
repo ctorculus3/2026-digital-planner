@@ -199,7 +199,7 @@ export function Tuner() {
         </Button>
         {!detectedNote && (
           <p className="text-xs text-neutral-400">
-            {isListening ? "Listening…" : "Tap mic"}
+            {isListening ? "Listening…" : "Tap mic to begin tuning"}
           </p>
         )}
       </div>
