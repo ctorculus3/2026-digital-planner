@@ -9,6 +9,7 @@ import { BadgeShelf } from "@/components/dashboard/BadgeShelf";
 import { PracticeTimeGraph } from "@/components/dashboard/PracticeTimeGraph";
 import { UserMenu } from "@/components/practice-log/UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
+import { HowToManual } from "@/components/HowToManual";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
@@ -48,6 +49,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between px-4">
           <DashboardNav />
           <div className="flex items-center gap-2">
+            <HowToManual />
             <ManageSubscription />
             <UserMenu />
           </div>
