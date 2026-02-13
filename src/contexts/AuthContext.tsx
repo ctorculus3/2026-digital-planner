@@ -96,6 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Detect if we're returning from an OAuth redirect or email verification
+    // In that case, keep loading=true longer to let onAuthStateChange process the session
+    const hash = window.location.hash;
+    const search = window.location.search;
+    const isAuthRedirect =
+      hash.includes('access_token') ||
+      hash.includes('refresh_token') ||
+      search.includes('code=') ||
+      hash.includes('type=signup') ||
+      hash.includes('type=recovery');
+
+    // For auth redirects, use a longer timeout to give the session time to establish
+    const fallbackMs = isAuthRedirect ? 8000 : 5000;
+
     // Set up auth state listener FIRST
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
@@ -128,11 +142,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
-      setLoading(false);
 
       if (existingSession) {
+        // Session found — stop loading and fetch subscription
+        setLoading(false);
         await fetchSubscription(existingSession);
+      } else if (isAuthRedirect) {
+        // No session yet but we're on an auth redirect — keep loading=true
+        // and let onAuthStateChange handle it (the fallback timeout will catch failures)
+        console.log("Auth redirect detected, waiting for session...");
       } else {
+        // No session, no redirect — stop loading
+        setLoading(false);
         setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
       }
     });
@@ -146,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : prev
         );
       }
-    }, 5000);
+    }, fallbackMs);
 
     return () => {
       mounted = false;
