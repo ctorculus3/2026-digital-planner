@@ -75,13 +75,13 @@ export function HowToManual() {
               <p>Log your warm-up exercises and scales in the dedicated fields.</p>
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Repertoire & Exercises</h4>
-              <p>The left column starts with rows for your repertoire pieces and exercises. Each row has a circular checkbox — check it off when you've completed that item. You can also attach audio recordings to individual rows to track your progress over time.</p>
+              <p>The left column starts with rows for your repertoire pieces and exercises. Each row has a circular checkbox — check it off when you've completed that item. You can also make repertoire & exercise audio recordings for each individual rows to track your progress over time. Play the recordings back or down load them to your device.</p>
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Notes & Focus</h4>
               <p>Use the Notes section for observations, reflections, or anything you want to remember. The Focus/Musicianship field is great for logging technique-specific work.</p>
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Lesson PDFs</h4>
-              <p>Upload PDF files from your teacher's lessons. These are stored with your practice log for the day so you can reference them anytime.</p>
+              <p>Upload PDF files from your teacher's lessons or PDF's from your collection. These are stored with your practice log for the day so you can reference them anytime.</p>
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Ear Training, Additional Tasks & Music Listening</h4>
               <p>Each of these sections provides rows with checkboxes. Use them to log ear training exercises, extra tasks your teacher assigned, or pieces you're actively listening to for study.</p>
@@ -91,7 +91,7 @@ export function HowToManual() {
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">5. Built-in Tools</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Metronome</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal.</li>
+                <li><strong>Metronome</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
                 <li><strong>Tuner</strong> — Uses your device's microphone to help you tune your instrument.</li>
                 <li><strong>Timer</strong> — Set a countdown timer for focused practice blocks. An alarm sounds when time is up.</li>
                 <li><strong>Audio Recorder</strong> — Record yourself directly in the app. Recordings are saved to your practice log.</li>
