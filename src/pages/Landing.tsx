@@ -231,6 +231,16 @@ export default function Landing() {
         <ScallopDivider />
       </section>
 
+      {/* ───── What Is This? ───── */}
+      <section className="container mx-auto px-4 py-16 md:py-20 text-center">
+        <h2 className="font-display text-3xl md:text-4xl font-bold">
+          What is Practice Daily?
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground text-lg leading-relaxed">
+          Practice Daily is a digital practice journal for musicians. It helps you plan your sessions, log what you worked on, track your progress over time, and share updates with teachers or peers — all from one place. Think of it as a planner, notebook, and progress tracker built specifically for daily music practice.
+        </p>
+      </section>
+
       {/* ───── App Preview / Features ───── */}
       <section id="features" className="container mx-auto px-4 py-20 md:py-28">
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center">
