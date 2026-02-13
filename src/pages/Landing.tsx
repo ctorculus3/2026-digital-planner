@@ -153,7 +153,7 @@ export default function Landing() {
     setFormLoading(true);
     try {
       const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}?from=oauth`,
+        redirect_uri: window.location.origin,
       });
       if (error) throw error;
     } catch (error: any) {
@@ -439,7 +439,7 @@ export default function Landing() {
                 setFormLoading(true);
                 try {
                   const { error } = await lovable.auth.signInWithOAuth("apple", {
-                    redirect_uri: `${window.location.origin}?from=oauth`,
+                    redirect_uri: window.location.origin,
                   });
                   if (error) throw error;
                 } catch (error: any) {
