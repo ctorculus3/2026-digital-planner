@@ -1,33 +1,27 @@
 
 
-## Fix: OAuth Redirect Loop for Apple (and Google)
+## Add a "What Is This?" Statement to the Landing Page
 
-### Root Cause
+### What
 
-The current `isAuthRedirect` detection in `AuthContext.tsx` looks for URL hash fragments like `#access_token` or query params like `?code=`. However, Lovable Cloud OAuth works differently:
+Add a concise, clear statement that explains exactly what Practice Daily is -- placed prominently between the Hero section and the Features section so first-time visitors immediately understand the product.
 
-1. User clicks "Continue with Apple/Google"
-2. Browser goes to the OAuth provider
-3. Provider redirects to Lovable's `/~oauth` handler
-4. `/~oauth` processes the tokens and redirects to `redirect_uri`
-5. The app loads at `redirect_uri` with **no auth-related URL params**
+### Proposed Copy
 
-Because there are no hash fragments, `isAuthRedirect` is `false`, so `AuthContext` doesn't hold the `loading` state long enough for the session to be retrieved. The `ProtectedRoute` sees `loading=false` + `user=null` and kicks the user back to `/auth` (the landing page).
+> **What is Practice Daily?**
+> Practice Daily is a digital practice journal for musicians. It helps you plan your sessions, log what you worked on, track your progress over time, and share updates with teachers or peers -- all from one place. Think of it as a planner, notebook, and progress tracker built specifically for daily music practice.
 
-### Solution
+### Where It Goes
 
-Add a `?from=oauth` query parameter to the `redirect_uri` in both the Google and Apple sign-in handlers. Then update `AuthContext.tsx` to recognize this as an auth redirect, keeping `loading=true` until the session is confirmed.
+The statement will sit as a new section between the Hero (with the scallop divider) and the existing "See Your Practice Come to Life" features section. It will be a simple, centered text block with a heading and a short paragraph -- no cards or icons, just clear communication.
 
-### Changes
+### Technical Details
 
-**`src/pages/Landing.tsx`** (2 changes)
-- Google sign-in handler (line 156): Change `redirect_uri` from `window.location.origin` to `` `${window.location.origin}?from=oauth` ``
-- Apple sign-in handler (line 425): Change `redirect_uri` from `window.location.origin` to `` `${window.location.origin}?from=oauth` ``
+**File:** `src/pages/Landing.tsx`
 
-**`src/contexts/AuthContext.tsx`** (1 change)
-- Add `search.includes('from=oauth')` to the `isAuthRedirect` condition (line 103-108)
+- Insert a new `<section>` element after the Hero/ScallopDivider and before the `#features` section (around line 210)
+- Simple layout: centered container with an `h2` heading ("What is Practice Daily?") and a `p` description
+- Styled consistently with existing sections using `container`, `mx-auto`, `px-4`, `py-16` spacing and `text-muted-foreground` for the body text
 
-### Why This Works
-
-When the user returns from Apple/Google OAuth, the URL will be `https://yourapp.com?from=oauth`. The `AuthContext` will detect this, keep `loading=true` for up to 8 seconds, and wait for `getSession()` or `onAuthStateChange` to establish the session before any routing decisions are made.
+No new files, components, or dependencies needed.
 
