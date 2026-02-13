@@ -6,6 +6,7 @@ import { PracticeLogForm } from "./PracticeLogForm";
 import { DateNavigator } from "./DateNavigator";
 import { UserMenu } from "./UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
+import { HowToManual } from "@/components/HowToManual";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { addDays, getDay, subDays, format, parseISO } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -66,6 +67,7 @@ export function PracticeLogCalendar() {
         <div className="flex items-center justify-between px-4">
           <DashboardNav />
           <div className="flex items-center gap-2">
+            <HowToManual />
             <ManageSubscription />
             <UserMenu />
           </div>
