@@ -1,34 +1,31 @@
 
 
-## Unify Remaining Journal Section Backgrounds
+## Add Music AI Assistant to Landing Page and How To Manual
 
-### What Changes
+### Overview
 
-Apply the same unified `--time-section-bg` background to the four sections that were missed: **Music AI**, **Media Tools**, **Metronome**, and **Tuner**.
+Promote the Music AI Assistant as a key feature on both the Landing page and the in-app How To manual, highlighting that users get an AI music theory tutor built right into their journal.
 
-### Files to Change
+### Changes
 
-**1. `src/components/practice-log/MusicAI.tsx`** (line 147)
-- Change `bg-[#d6e8c5]` to `bg-[hsl(var(--time-section-bg))]` on the collapsed card
+**1. `src/pages/Landing.tsx`** -- 2 additions:
 
-**2. `src/components/practice-log/MediaTools.tsx`** (line 122)
-- Change `bg-[#c8ddc0]` to `bg-[hsl(var(--time-section-bg))]` on the container
+- Add a new entry to the `features` array (using the `Sparkles` icon from lucide-react):
+  - Title: "Music AI Assistant"
+  - Description: "Ask music theory questions, get practice advice, and receive personalized coaching — all powered by AI, right inside your journal."
+- Add `Sparkles` to the lucide-react import
+- Add a line to the `pricingFeatures` array: "Music AI assistant for theory questions & practice coaching"
 
-**3. `src/components/practice-log/Metronome.tsx`** (line 90)
-- Change `bg-muted/30` to `bg-[hsl(var(--time-section-bg))]` on the container
+**2. `src/components/HowToManual.tsx`** -- 1 addition:
 
-**4. `src/components/practice-log/Tuner.tsx`** (line 189)
-- Change `bg-[#103e84]` to `bg-[hsl(var(--time-section-bg))]` on the container
-- Update text colors from white/neutral-400 to foreground/muted-foreground so they remain readable on the lighter background:
-  - Line 201: `text-neutral-400` to `text-muted-foreground`
-  - Line 209: `text-neutral-400` to `text-muted-foreground`
-  - Line 226: `text-neutral-400` to `text-muted-foreground`
-  - Line 232: `text-white` to `text-foreground`
-  - Line 234: `text-neutral-400` to `text-muted-foreground`
-  - Line 236: `text-neutral-400` to `text-muted-foreground`
-- Update the inactive segment dot color from `hsl(220, 20%, 30%)` to use a border-compatible neutral (e.g., `hsl(0, 0%, 75%)` light / will still look fine in dark mode via opacity)
+- Add a new section (Section 5.5 or renumber to fit) between "Built-in Tools" and "Sharing" titled **"Music AI Assistant"** with content explaining:
+  - Located in the right column of the journal
+  - Ask any music theory question (circle of fifths, scales, chords, etc.)
+  - Get personalized practice advice based on your current goals, repertoire, and notes
+  - Starter prompts are provided to get you going
+  - Conversation resets each session (no history stored)
 
 ### No Existing Features Affected
 
-All changes are purely cosmetic -- background and text colors only. No logic, layout, or functionality is modified.
+All changes are purely additive -- new array entries and a new manual section. No existing content is modified or removed.
 
