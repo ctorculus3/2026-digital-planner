@@ -1,49 +1,61 @@
 
 
-## Fix Google Sign-In Redirecting Back to Landing Page
+## Add AI Music Assistant to the Practice Journal
 
-### Problem
+### Overview
 
-After completing Google sign-in, the user lands back on the app but the session hasn't been established yet. The AuthContext tries to detect OAuth returns by checking for URL parameters like `access_token` or `code=`, but the Lovable Cloud OAuth system may not include these for Google. Without detection, loading finishes immediately, the app sees no user, and redirects to the landing page. Apple works because its flow has different timing or URL parameters.
+Add a collapsible AI chat panel inside the journal that serves as a music theory tutor and practice helper. Users can ask questions like "What is the circle of fifths?" or "Suggest warm-ups for trumpet" and get streaming AI responses -- all powered by Lovable AI (already configured, no API key needed).
 
-### Solution
+### How It Works
 
-Use a `sessionStorage` flag to reliably detect OAuth returns regardless of URL parameters.
+- A "Music AI" button appears in the journal toolbar area (near the How To and other controls)
+- Clicking it opens a slide-out chat panel on the right side of the journal
+- Users type questions and get streaming, markdown-rendered responses
+- The AI has context about music theory, practice techniques, and can also see the user's current journal entries (goals, repertoire, notes) to give personalized advice
+- Conversation resets per session (no database storage needed)
+
+### What Gets Built
+
+1. **Backend function** (`supabase/functions/music-ai/index.ts`)
+   - Receives the user's message plus optional journal context (goals, repertoire, notes)
+   - Calls Lovable AI gateway with a music-focused system prompt using `google/gemini-3-flash-preview`
+   - Streams the response back via SSE
+   - Handles rate limit (429) and payment (402) errors
+
+2. **AI Chat component** (`src/components/practice-log/MusicAI.tsx`)
+   - Collapsible chat panel with a message list and input field
+   - Streams AI responses token-by-token with markdown rendering
+   - Sends current journal context (goals, repertoire, notes) alongside questions so the AI can give personalized help
+   - Shows a few starter prompts like "What is the circle of fifths?" to guide users
+
+3. **Integration into `PracticeLogForm.tsx`**
+   - Add the MusicAI component to the right column of the journal, between the Notes section and the tools
+   - Pass current journal state (goals, repertoire, notes) as context props
+   - No changes to any existing features -- purely additive
 
 ### Technical Details
 
-**File: `src/pages/Landing.tsx`**
+**Edge Function** (`supabase/functions/music-ai/index.ts`):
+- System prompt: "You are a knowledgeable music theory tutor and practice coach. Answer questions about music theory, scales, chords, ear training, technique, and practice strategies. Keep answers clear and practical. If the user shares their practice context, reference it in your advice."
+- Model: `google/gemini-3-flash-preview`
+- Streaming enabled
+- CORS headers included
+- Rate limit / payment error handling
 
-Before calling `lovable.auth.signInWithOAuth` for both Google and Apple, store a flag:
+**Config** (`supabase/config.toml`):
+- Add `[functions.music-ai]` with `verify_jwt = false`
 
-```typescript
-sessionStorage.setItem("oauth_in_progress", "true");
-```
+**New dependency**:
+- `react-markdown` for rendering AI responses with proper formatting
 
-**File: `src/contexts/AuthContext.tsx`**
+**MusicAI Component**:
+- Toggle button with a sparkle/brain icon in a card styled consistently with other journal sections
+- Chat messages displayed in a scroll area
+- Input field at the bottom with send button
+- Starter suggestion chips for common questions
+- Receives `journalContext` prop with current goals, repertoire, and notes to send to the AI
 
-Add the sessionStorage flag to the `isAuthRedirect` detection (around line 103):
-
-```typescript
-const isAuthRedirect =
-  hash.includes('access_token') ||
-  hash.includes('refresh_token') ||
-  search.includes('code=') ||
-  search.includes('from=oauth') ||
-  hash.includes('type=signup') ||
-  hash.includes('type=recovery') ||
-  sessionStorage.getItem('oauth_in_progress') === 'true';
-```
-
-Then clear the flag once a session is successfully established (inside the `onAuthStateChange` callback, after setting the user):
-
-```typescript
-if (newSession) {
-  sessionStorage.removeItem('oauth_in_progress');
-}
-```
-
-Also clear it in the fallback timeout to prevent it from persisting on failed attempts.
-
-This ensures the app keeps `loading=true` long enough for the OAuth session to be processed, without relying on URL parameters.
+**PracticeLogForm changes**:
+- Import and render `<MusicAI />` in the right column
+- Pass current form state as context -- minimal, targeted addition with no impact on existing features
 
