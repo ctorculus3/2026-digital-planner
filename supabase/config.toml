@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.moderate-and-post]
 verify_jwt = false
+
+[functions.music-ai]
+verify_jwt = false

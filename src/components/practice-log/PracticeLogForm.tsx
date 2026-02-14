@@ -15,6 +15,7 @@ import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
 import { Tuner } from "./Tuner";
 import { Timer } from "./Timer";
+import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
   date: Date;
@@ -528,6 +529,13 @@ export function PracticeLogForm({
             adjustTextareaHeight(e.target);
           }} className="min-h-[80px] bg-transparent border-none resize-none focus-visible:ring-0 p-0" placeholder="Observations, breakthroughs, challenges..." />
           </div>
+
+          {/* Music AI Assistant */}
+          <MusicAI journalContext={{
+            goals: mainGoals,
+            repertoire: repertoire.filter(r => r.trim()),
+            notes,
+          }} />
 
           {/* Lesson PDFs */}
           {user && <LessonPdfs practiceLogId={practiceLog?.id} userId={user.id} logDate={dateString} onPracticeLogCreated={() => queryClient.invalidateQueries({ queryKey: ["practice-log", dateString] })} />}
