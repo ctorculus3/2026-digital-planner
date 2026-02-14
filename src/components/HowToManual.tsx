@@ -102,21 +102,33 @@ export function HowToManual() {
               </ul>
             </section>
 
-            {/* 6. Sharing */}
+            {/* 6. Music AI Assistant */}
             <section>
-              <h3 className="text-base font-semibold text-foreground mb-2">6. Sharing Your Practice Log</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">6. Music AI Assistant</h3>
+              <p className="mb-2">Your journal includes a built-in AI music tutor, located in the right column of the practice log. Use it to:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Ask any music theory question — circle of fifths, scales, chord progressions, intervals, and more.</li>
+                <li>Get personalized practice advice based on your current goals, repertoire, and notes.</li>
+                <li>Explore starter prompts to get the conversation going quickly.</li>
+              </ul>
+              <p className="mt-2 text-muted-foreground text-xs">Note: Conversations reset each session — no history is stored.</p>
+            </section>
+
+            {/* 7. Sharing */}
+            <section>
+              <h3 className="text-base font-semibold text-foreground mb-2">7. Sharing Your Practice Log</h3>
               <p>Want to show your teacher or a friend what you worked on? Use the <strong>Share</strong> button to generate a unique link to a read-only view of your practice log for that day. Anyone with the link can see it — no account required.</p>
             </section>
 
-            {/* 7. Community */}
+            {/* 8. Community */}
             <section>
-              <h3 className="text-base font-semibold text-foreground mb-2">7. Community</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">8. Community</h3>
               <p>The Community page is a simple feed where you can post updates about your practice. Share milestones, ask questions, or cheer on fellow musicians. You need an active practice streak to post.</p>
             </section>
 
-            {/* 8. Best Practices */}
+            {/* 9. Best Practices */}
             <section>
-              <h3 className="text-base font-semibold text-foreground mb-2">8. Best Practices</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">9. Best Practices</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Set a goal every session</strong> — Even a simple one like "work on measure 12-16" gives your session direction.</li>
                 <li><strong>Use the timer</strong> — Short, focused blocks (15-25 minutes) are more effective than long, unfocused sessions.</li>
