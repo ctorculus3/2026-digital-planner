@@ -1,31 +1,32 @@
 
 
-## Add Music AI Assistant to Landing Page and How To Manual
+## Add Music AI Highlight Badge to Hero Section
 
-### Overview
+### What Changes
 
-Promote the Music AI Assistant as a key feature on both the Landing page and the in-app How To manual, highlighting that users get an AI music theory tutor built right into their journal.
+Add a small eye-catching badge/pill directly beneath the hero subtitle (and above the CTA buttons) that highlights the Music AI Assistant as a key differentiator. This draws immediate attention without cluttering the hero layout.
 
-### Changes
+### Design
 
-**1. `src/pages/Landing.tsx`** -- 2 additions:
+A centered pill-shaped badge with the Sparkles icon and text: **"Includes Music AI Assistant -- theory questions & practice coaching built in"**
 
-- Add a new entry to the `features` array (using the `Sparkles` icon from lucide-react):
-  - Title: "Music AI Assistant"
-  - Description: "Ask music theory questions, get practice advice, and receive personalized coaching — all powered by AI, right inside your journal."
-- Add `Sparkles` to the lucide-react import
-- Add a line to the `pricingFeatures` array: "Music AI assistant for theory questions & practice coaching"
+Styled with a semi-transparent white background to stand out against the header-bg, similar to a "featured badge" pattern.
 
-**2. `src/components/HowToManual.tsx`** -- 1 addition:
+### File to Change
 
-- Add a new section (Section 5.5 or renumber to fit) between "Built-in Tools" and "Sharing" titled **"Music AI Assistant"** with content explaining:
-  - Located in the right column of the journal
-  - Ask any music theory question (circle of fifths, scales, chords, etc.)
-  - Get personalized practice advice based on your current goals, repertoire, and notes
-  - Starter prompts are provided to get you going
-  - Conversation resets each session (no history stored)
+**`src/pages/Landing.tsx`** -- 1 addition (between lines 220 and 221, after the subtitle paragraph and before the CTA buttons):
+
+- Add a `div` containing a pill/badge element:
+  ```
+  <div className="mt-6 flex justify-center">
+    <div className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 border border-primary-foreground/25 px-4 py-2 text-sm text-primary-foreground">
+      <Sparkles className="h-4 w-4" />
+      <span>Includes Music AI Assistant — theory questions & practice coaching built in</span>
+    </div>
+  </div>
+  ```
 
 ### No Existing Features Affected
 
-All changes are purely additive -- new array entries and a new manual section. No existing content is modified or removed.
+Purely additive -- one new element inserted into the hero section. No existing content is modified or removed.
 
