@@ -6,7 +6,7 @@ import { Sparkles, Send, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = {role: "user" | "assistant";content: string;};
 
 interface MusicAIProps {
   journalContext?: {
@@ -17,11 +17,11 @@ interface MusicAIProps {
 }
 
 const SUGGESTIONS = [
-  "What is the circle of fifths?",
-  "Explain a whole tone scale",
-  "Suggest warm-up exercises",
-  "How do I practice sight-reading?",
-];
+"What is the circle of fifths?",
+"Explain a whole tone scale",
+"Suggest warm-up exercises",
+"How do I practice sight-reading?"];
+
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/music-ai`;
 
@@ -54,7 +54,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
           return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+          i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
           );
         }
         return [...prev, { role: "assistant", content: assistantSoFar }];
@@ -66,12 +66,12 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
         },
         body: JSON.stringify({
           messages: allMessages,
-          journalContext,
-        }),
+          journalContext
+        })
       });
 
       if (!resp.ok) {
@@ -79,7 +79,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         toast({
           title: resp.status === 429 ? "Rate Limited" : resp.status === 402 ? "Credits Exhausted" : "Error",
           description: err.error || "Something went wrong",
-          variant: "destructive",
+          variant: "destructive"
         });
         setIsLoading(false);
         return;
@@ -136,7 +136,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
       toast({
         title: "Error",
         description: "Failed to get AI response",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
     setIsLoading(false);
@@ -144,17 +144,17 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
   if (!open) {
     return (
-      <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+      <div className="rounded-lg p-3 shadow-sm border border-border bg-[#d6e8c5]">
         <Button
           variant="ghost"
           onClick={() => setOpen(true)}
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-        >
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground">
+
           <Sparkles className="w-4 h-4" />
           <span className="font-display text-sm">Music AI Assistant</span>
         </Button>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -172,47 +172,47 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
-        {messages.length === 0 && (
-          <div className="space-y-2">
+        {messages.length === 0 &&
+        <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Ask me anything about music theory or practice!</p>
             <div className="flex flex-wrap gap-1.5">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="text-xs px-2 py-1 rounded-full border border-border bg-background text-foreground hover:bg-accent transition-colors"
-                >
+              {SUGGESTIONS.map((s) =>
+            <button
+              key={s}
+              onClick={() => send(s)}
+              className="text-xs px-2 py-1 rounded-full border border-border bg-background text-foreground hover:bg-accent transition-colors">
+
                   {s}
                 </button>
-              ))}
+            )}
+            </div>
+          </div>
+        }
+        {messages.map((m, i) =>
+        <div key={i} className={m.role === "user" ? "text-right" : ""}>
+            <div
+            className={`inline-block text-sm rounded-lg px-3 py-2 max-w-[90%] text-left ${
+            m.role === "user" ?
+            "bg-primary text-primary-foreground" :
+            "bg-muted/30 text-foreground"}`
+            }>
+
+              {m.role === "assistant" ?
+            <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                </div> :
+
+            m.content
+            }
             </div>
           </div>
         )}
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <div
-              className={`inline-block text-sm rounded-lg px-3 py-2 max-w-[90%] text-left ${
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/30 text-foreground"
-              }`}
-            >
-              {m.role === "assistant" ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
-                </div>
-              ) : (
-                m.content
-              )}
-            </div>
-          </div>
-        ))}
-        {isLoading && messages[messages.length - 1]?.role === "user" && (
-          <div className="flex items-center gap-1 text-muted-foreground">
+        {isLoading && messages[messages.length - 1]?.role === "user" &&
+        <div className="flex items-center gap-1 text-muted-foreground">
             <Loader2 className="w-3 h-3 animate-spin" />
             <span className="text-xs">Thinking...</span>
           </div>
-        )}
+        }
       </div>
 
       {/* Input */}
@@ -222,20 +222,20 @@ export function MusicAI({ journalContext }: MusicAIProps) {
             e.preventDefault();
             send(input);
           }}
-          className="flex gap-2"
-        >
+          className="flex gap-2">
+
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about music theory..."
             className="flex-1 h-8 text-sm"
-            disabled={isLoading}
-          />
+            disabled={isLoading} />
+
           <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={isLoading || !input.trim()}>
             <Send className="w-3.5 h-3.5" />
           </Button>
         </form>
       </div>
-    </div>
-  );
+    </div>);
+
 }
