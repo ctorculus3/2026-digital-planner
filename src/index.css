@@ -73,7 +73,7 @@ All colors MUST be HSL.
     --ring-color: 30 60% 45%;
 
     /* Time tracking section - light green */
-    --time-section-bg: 120 40% 95%;
+    --time-section-bg: 40 30% 93%;
 
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 0 0% 9%;
@@ -136,7 +136,7 @@ All colors MUST be HSL.
     --header-bg: 168 55% 35%;
     --header-dark: 168 55% 28%;
     --ring-color: 30 50% 35%;
-    --time-section-bg: 140 30% 25%;
+    --time-section-bg: 40 10% 18%;
     --sidebar-background: 220 20% 8%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 27 95% 60%;
