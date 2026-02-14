@@ -218,6 +218,12 @@ export default function Landing() {
             disciplined habits with a practice journal designed for serious
             musicians.
           </p>
+          <div className="mt-6 flex justify-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 border border-primary-foreground/25 px-4 py-2 text-sm text-primary-foreground">
+              <Sparkles className="h-4 w-4" />
+              <span>Includes Music AI Assistant — theory questions & practice coaching built in</span>
+            </div>
+          </div>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="bg-primary-foreground text-header-bg hover:bg-primary-foreground/90 font-semibold text-base px-8" onClick={() => {
             setIsLogin(false);
