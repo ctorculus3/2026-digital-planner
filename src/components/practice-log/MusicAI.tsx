@@ -1,8 +1,11 @@
+// Web Speech API - use `any` to avoid missing TS types for webkit prefix
+
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Send, X, Loader2 } from "lucide-react";
+import { Sparkles, Send, X, Loader2, Mic } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
@@ -30,8 +33,38 @@ export function MusicAI({ journalContext }: MusicAIProps) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SpeechRecognitionAPI = typeof window !== "undefined"
+    ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    if (!SpeechRecognitionAPI) return;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        send(transcript);
+      }
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -231,6 +264,17 @@ export function MusicAI({ journalContext }: MusicAIProps) {
             className="flex-1 h-8 text-sm"
             disabled={isLoading} />
 
+          {SpeechRecognitionAPI && (
+            <Button
+              type="button"
+              size="icon"
+              variant={isListening ? "default" : "ghost"}
+              className={`h-8 w-8 shrink-0 ${isListening ? "animate-pulse bg-destructive hover:bg-destructive/90" : ""}`}
+              onClick={toggleListening}
+              disabled={isLoading}>
+              <Mic className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={isLoading || !input.trim()}>
             <Send className="w-3.5 h-3.5" />
           </Button>
