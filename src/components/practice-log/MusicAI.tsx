@@ -144,7 +144,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
   if (!open) {
     return (
-      <div className="rounded-lg p-3 shadow-sm border border-border bg-[#d6e8c5]">
+      <div className="rounded-lg p-3 shadow-sm border border-border bg-[hsl(var(--time-section-bg))]">
         <Button
           variant="ghost"
           onClick={() => setOpen(true)}

@@ -119,7 +119,7 @@ export function MediaTools({
     }
   }, [handleAddYouTube]);
   const isFull = itemCount >= maxItems;
-  return <div className="rounded-lg p-3 shadow-sm border border-border bg-[#c8ddc0]">
+  return <div className="rounded-lg p-3 shadow-sm border border-border bg-[hsl(var(--time-section-bg))]">
       <div className="flex items-center justify-between mb-2">
         <label className="font-display text-sm text-muted-foreground">Media Tools</label>
         <span className="text-xs text-muted-foreground">{itemCount}/{maxItems}</span>

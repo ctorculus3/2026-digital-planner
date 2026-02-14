@@ -87,7 +87,7 @@ export function Metronome({ onStart }: MetronomeProps) {
   };
 
   return (
-    <div className="mt-3 bg-muted/30 rounded-lg p-3 space-y-3">
+    <div className="mt-3 bg-[hsl(var(--time-section-bg))] rounded-lg p-3 space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <span className="text-3xl font-bold font-display text-foreground">{bpm}</span>

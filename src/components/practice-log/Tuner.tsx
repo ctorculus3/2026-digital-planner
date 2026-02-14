@@ -186,7 +186,7 @@ export function Tuner() {
   }, []);
 
   return (
-    <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-2 mx-0 bg-[#103e84]">
+    <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-2 mx-0 bg-[hsl(var(--time-section-bg))]">
       {/* Mic button + label */}
       <div className="flex flex-col items-center gap-1">
         <Button
@@ -198,7 +198,7 @@ export function Tuner() {
           {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
         </Button>
         {!detectedNote && (
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             {isListening ? "Listening…" : "Tap mic to begin tuning"}
           </p>
         )}
@@ -206,7 +206,7 @@ export function Tuner() {
 
       {/* Circle gauge */}
       <div className="flex items-center gap-1.5">
-        <span className="text-sm text-neutral-400 font-semibold mr-1">♭</span>
+        <span className="text-sm text-muted-foreground font-semibold mr-1">♭</span>
         {SEGMENT_COLORS.map((color, i) => {
           const isActive = activeSegment === i;
           const isCenter = i === 4;
@@ -216,24 +216,24 @@ export function Tuner() {
               key={i}
               className={`rounded-full ${size} transition-all duration-150`}
               style={{
-                backgroundColor: isActive ? color : "hsl(220, 20%, 30%)",
+                backgroundColor: isActive ? color : "hsl(0, 0%, 75%)",
                 opacity: isActive ? 1 : 0.4,
                 boxShadow: isActive ? SEGMENT_GLOWS[i] : "none",
               }}
             />
           );
         })}
-        <span className="text-sm text-neutral-400 font-semibold ml-1">♯</span>
+        <span className="text-sm text-muted-foreground font-semibold ml-1">♯</span>
       </div>
 
       {/* Note display */}
       {isListening && detectedNote && (
         <div className="text-center">
-          <span className="text-2xl font-bold font-display text-white">
+          <span className="text-2xl font-bold font-display text-foreground">
             {detectedNote}
-            <span className="text-sm text-neutral-400">{detectedOctave}</span>
+            <span className="text-sm text-muted-foreground">{detectedOctave}</span>
           </span>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             {cents === 0 ? "In tune ✓" : `${cents > 0 ? "+" : ""}${cents}¢`}
           </p>
         </div>
