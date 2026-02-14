@@ -445,7 +445,7 @@ export function PracticeLogForm({
       </div>
 
       {/* Time Tracking */}
-      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border bg-[#e4f2e3]">
+      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
@@ -511,7 +511,7 @@ export function PracticeLogForm({
                 <AudioRecorder practiceLogId={practiceLog?.id} userId={user.id} index={index} existingRecordingPath={repertoireRecordings[index] || null} onRecordingComplete={(path) => handleRecordingComplete(index, path)} onRecordingDeleted={() => handleRecordingDeleted(index)} />
               </div>)}
           </div>
-           {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[#ebf9eb]">
+           {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[hsl(var(--time-section-bg))]">
               <Plus className="w-4 h-4 mr-1" />
               Add
             </Button>}

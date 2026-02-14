@@ -83,7 +83,7 @@ export function Timer() {
   }, [clearTimer]);
 
   return (
-    <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-3 bg-[#103e84]">
+    <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-3 bg-[hsl(var(--time-section-bg))]">
       {/* Presets */}
       <div className="flex items-center gap-2">
         {PRESETS.map((min) => (
@@ -106,12 +106,12 @@ export function Timer() {
           value={durationMin}
           onChange={handleCustomChange}
           disabled={isRunning}
-          className="w-14 h-7 rounded-md bg-background/20 text-white text-center text-xs border border-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-14 h-7 rounded-md bg-background/20 text-foreground text-center text-xs border border-border focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
       {/* Countdown */}
-      <span className="text-3xl font-bold font-display text-white tabular-nums">
+      <span className="text-3xl font-bold font-display text-foreground tabular-nums">
         {formatTime(secondsLeft)}
       </span>
 
