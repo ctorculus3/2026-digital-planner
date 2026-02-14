@@ -61,8 +61,8 @@ const normalizeTime = (time: string | null): string => {
     const minutes = parts[1];
     if (isNaN(hours)) return time;
     const period = hours >= 12 ? "PM" : "AM";
-    if (hours === 0) hours = 12;
-    else if (hours > 12) hours -= 12;
+    if (hours === 0) hours = 12;else
+    if (hours > 12) hours -= 12;
     return `${hours}:${minutes} ${period}`;
   }
   return time;
@@ -329,17 +329,17 @@ export function PracticeLogForm({
   };
   const addWarmup = () => {
     if (warmupCount < 10) {
-      setWarmupCount(prev => prev + 1);
+      setWarmupCount((prev) => prev + 1);
     }
   };
   const addScale = () => {
     if (scaleCount < 10) {
-      setScaleCount(prev => prev + 1);
+      setScaleCount((prev) => prev + 1);
     }
   };
   const addRepertoire = () => {
     if (repertoireCount < 15) {
-      setRepertoireCount(prev => prev + 1);
+      setRepertoireCount((prev) => prev + 1);
     }
   };
 
@@ -358,7 +358,7 @@ export function PracticeLogForm({
   };
   const addAdditionalTask = () => {
     if (additionalTaskCount < 10) {
-      setAdditionalTaskCount(prev => prev + 1);
+      setAdditionalTaskCount((prev) => prev + 1);
     }
   };
 
@@ -377,7 +377,7 @@ export function PracticeLogForm({
   };
   const addEarTraining = () => {
     if (earTrainingCount < 10) {
-      setEarTrainingCount(prev => prev + 1);
+      setEarTrainingCount((prev) => prev + 1);
     }
   };
 
@@ -396,7 +396,7 @@ export function PracticeLogForm({
   };
   const addMusicListening = () => {
     if (musicListeningCount < 10) {
-      setMusicListeningCount(prev => prev + 1);
+      setMusicListeningCount((prev) => prev + 1);
     }
   };
   if (!user) {
@@ -428,7 +428,7 @@ export function PracticeLogForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Main Goals</label>
-          <Textarea ref={mainGoalsRef} value={mainGoals} onChange={e => {
+          <Textarea ref={mainGoalsRef} value={mainGoals} onChange={(e) => {
           setMainGoals(e.target.value);
           markChanged();
           adjustTextareaHeight(e.target);
@@ -436,7 +436,7 @@ export function PracticeLogForm({
         </div>
         <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
           <label className="font-display text-sm text-muted-foreground mb-2 block">Subgoals</label>
-          <Textarea ref={subgoalsRef} value={subgoals} onChange={e => {
+          <Textarea ref={subgoalsRef} value={subgoals} onChange={(e) => {
           setSubgoals(e.target.value);
           markChanged();
           adjustTextareaHeight(e.target);
@@ -445,18 +445,18 @@ export function PracticeLogForm({
       </div>
 
       {/* Time Tracking */}
-      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border bg-[#cfe4c8]">
+      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border bg-[#e4f2e3]">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
-            <Input type="text" value={startTime} onChange={e => {
+            <Input type="text" value={startTime} onChange={(e) => {
             setStartTime(e.target.value);
             markChanged();
           }} placeholder="e.g. 12:30 PM" className="bg-transparent border-b border-border rounded-none px-0" />
           </div>
           <div>
             <label className="font-display text-sm text-muted-foreground block mb-1">Stop:</label>
-            <Input type="text" value={stopTime} onChange={e => {
+            <Input type="text" value={stopTime} onChange={(e) => {
             setStopTime(e.target.value);
             markChanged();
           }} placeholder="e.g. 2:30 PM" className="bg-transparent border-b border-border rounded-none px-0" />
@@ -477,7 +477,7 @@ export function PracticeLogForm({
           <div className="space-y-2">
             {warmups.slice(0, warmupCount).map((warmup, index) => <div key={index} className="flex items-center gap-2">
                 <span className="text-muted-foreground text-sm w-4">{index + 1}</span>
-                <Input value={warmup} onChange={e => updateWarmup(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1" />
+                <Input value={warmup} onChange={(e) => updateWarmup(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1" />
               </div>)}
           </div>
           {warmupCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addWarmup} className="mt-2 text-muted-foreground hover:text-foreground">
@@ -490,7 +490,7 @@ export function PracticeLogForm({
           <div className="space-y-2">
             {scales.slice(0, scaleCount).map((scale, index) => <div key={index} className="flex items-center gap-2">
                 <span className="text-muted-foreground text-sm w-4">{index + 1}</span>
-                <Input value={scale} onChange={e => updateScale(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1" />
+                <Input value={scale} onChange={(e) => updateScale(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1" />
               </div>)}
           </div>
           {scaleCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addScale} className="mt-2 text-muted-foreground hover:text-foreground">
@@ -506,9 +506,9 @@ export function PracticeLogForm({
           <label className="font-display text-sm text-muted-foreground mb-2 block">Repertoire & Exercises</label>
           <div className="space-y-1">
             {repertoire.slice(0, repertoireCount).map((item, index) => <div key={index} className="flex items-center gap-2">
-                <Checkbox checked={repertoireCompleted[index] || false} onCheckedChange={checked => updateRepertoireCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
-                <Input value={item} onChange={e => updateRepertoire(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
-                <AudioRecorder practiceLogId={practiceLog?.id} userId={user.id} index={index} existingRecordingPath={repertoireRecordings[index] || null} onRecordingComplete={path => handleRecordingComplete(index, path)} onRecordingDeleted={() => handleRecordingDeleted(index)} />
+                <Checkbox checked={repertoireCompleted[index] || false} onCheckedChange={(checked) => updateRepertoireCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                <Input value={item} onChange={(e) => updateRepertoire(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                <AudioRecorder practiceLogId={practiceLog?.id} userId={user.id} index={index} existingRecordingPath={repertoireRecordings[index] || null} onRecordingComplete={(path) => handleRecordingComplete(index, path)} onRecordingDeleted={() => handleRecordingDeleted(index)} />
               </div>)}
           </div>
            {repertoireCount < 15 && <Button type="button" variant="ghost" size="sm" onClick={addRepertoire} className="mt-2 text-muted-foreground hover:text-foreground bg-[#ebf9eb]">
@@ -523,7 +523,7 @@ export function PracticeLogForm({
         <div className="space-y-4">
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <label className="font-display text-sm text-muted-foreground mb-2 block">Notes & Focus</label>
-            <Textarea ref={notesRef} value={notes} onChange={e => {
+            <Textarea ref={notesRef} value={notes} onChange={(e) => {
             setNotes(e.target.value);
             markChanged();
             adjustTextareaHeight(e.target);
@@ -532,17 +532,17 @@ export function PracticeLogForm({
 
           {/* Music AI Assistant */}
           <MusicAI journalContext={{
-            goals: mainGoals,
-            repertoire: repertoire.filter(r => r.trim()),
-            notes,
-          }} />
+          goals: mainGoals,
+          repertoire: repertoire.filter((r) => r.trim()),
+          notes
+        }} />
 
           {/* Lesson PDFs */}
           {user && <LessonPdfs practiceLogId={practiceLog?.id} userId={user.id} logDate={dateString} onPracticeLogCreated={() => queryClient.invalidateQueries({ queryKey: ["practice-log", dateString] })} />}
 
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
             <div className="flex items-center gap-3">
-              <Checkbox id="metronome" checked={metronomeUsed} onCheckedChange={checked => {
+              <Checkbox id="metronome" checked={metronomeUsed} onCheckedChange={(checked) => {
               setMetronomeUsed(!!checked);
               markChanged();
             }} />
@@ -551,11 +551,11 @@ export function PracticeLogForm({
               </label>
             </div>
             <Metronome onStart={() => {
-              if (!metronomeUsed) {
-                setMetronomeUsed(true);
-                markChanged();
-              }
-            }} />
+            if (!metronomeUsed) {
+              setMetronomeUsed(true);
+              markChanged();
+            }
+          }} />
            </div>
 
           {/* Tuner */}
@@ -574,8 +574,8 @@ export function PracticeLogForm({
             <label className="font-display text-sm text-muted-foreground mb-2 block">Ear Training</label>
             <div className="space-y-1">
               {earTraining.slice(0, earTrainingCount).map((item, index) => <div key={index} className="flex items-center gap-2">
-                  <Checkbox checked={earTrainingCompleted[index] || false} onCheckedChange={checked => updateEarTrainingCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
-                  <Input value={item} onChange={e => updateEarTraining(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                  <Checkbox checked={earTrainingCompleted[index] || false} onCheckedChange={(checked) => updateEarTrainingCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={item} onChange={(e) => updateEarTraining(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
                 </div>)}
             </div>
             {earTrainingCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addEarTraining} className="mt-2 text-muted-foreground hover:text-foreground">
@@ -589,8 +589,8 @@ export function PracticeLogForm({
             <label className="font-display text-sm text-muted-foreground mb-2 block">Additional Task</label>
             <div className="space-y-1">
               {additionalTasks.slice(0, additionalTaskCount).map((task, index) => <div key={index} className="flex items-center gap-2">
-                  <Checkbox checked={additionalTasksCompleted[index] || false} onCheckedChange={checked => updateAdditionalTaskCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
-                  <Input value={task} onChange={e => updateAdditionalTask(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                  <Checkbox checked={additionalTasksCompleted[index] || false} onCheckedChange={(checked) => updateAdditionalTaskCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={task} onChange={(e) => updateAdditionalTask(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
                 </div>)}
             </div>
             {additionalTaskCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addAdditionalTask} className="mt-2 text-muted-foreground hover:text-foreground">
@@ -604,8 +604,8 @@ export function PracticeLogForm({
             <label className="font-display text-sm text-muted-foreground mb-2 block">Music Listening</label>
             <div className="space-y-1">
               {musicListening.slice(0, musicListeningCount).map((item, index) => <div key={index} className="flex items-center gap-2">
-                  <Checkbox checked={musicListeningCompleted[index] || false} onCheckedChange={checked => updateMusicListeningCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
-                  <Input value={item} onChange={e => updateMusicListening(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
+                  <Checkbox checked={musicListeningCompleted[index] || false} onCheckedChange={(checked) => updateMusicListeningCompleted(index, !!checked)} className="rounded-full w-4 h-4 border-muted-foreground/30" />
+                  <Input value={item} onChange={(e) => updateMusicListening(index, e.target.value)} className="bg-transparent border-b border-border rounded-none px-1 flex-1 h-7" />
                 </div>)}
             </div>
             {musicListeningCount < 10 && <Button type="button" variant="ghost" size="sm" onClick={addMusicListening} className="mt-2 text-muted-foreground hover:text-foreground">
