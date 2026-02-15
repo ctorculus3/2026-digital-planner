@@ -10,6 +10,7 @@ import { PracticeTimeGraph } from "@/components/dashboard/PracticeTimeGraph";
 import { UserMenu } from "@/components/practice-log/UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
 import { HowToManual } from "@/components/HowToManual";
+import { ContactDialog } from "@/components/ContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
@@ -50,6 +51,7 @@ export default function Dashboard() {
           <DashboardNav />
           <div className="flex items-center gap-2">
             <HowToManual />
+            <ContactDialog />
             <ManageSubscription />
             <UserMenu />
           </div>
