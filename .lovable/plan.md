@@ -1,36 +1,49 @@
 
 
-## Add Voice Input to Music AI Assistant
+## Add Contact Support Dialog to Landing Page and Dashboard
 
 ### What It Does
 
-Adds a microphone button next to the send button in the Music AI chat. Tap it to speak your question -- the browser converts your speech to text and sends it automatically.
+Adds a "Contact" button that opens a popup dialog with the support email (`support@practicedaily.app`) and a friendly message. It will appear in two places:
 
-### How It Works
+1. **Landing page footer** -- next to "Privacy" and "Terms" links
+2. **Dashboard top bar** -- next to the existing controls (How-To Manual, Manage Subscription, User Menu)
 
-Uses the browser's built-in Speech Recognition API (Web Speech API) -- no extra dependencies or API keys needed. Supported in Chrome, Edge, Safari, and most mobile browsers.
+### Design
 
-- Tap the mic icon to start listening
-- The mic icon pulses/animates while recording
-- Speech is transcribed into the input field
-- When you stop speaking, the message sends automatically
-- If the browser doesn't support speech recognition, the mic button simply won't appear
+The dialog popup shows:
+- A mail icon and "Contact Support" title
+- The message: "Have a question, issue, or feedback? Reach out and we'll get back to you as soon as we can."
+- A clickable email link (`support@practicedaily.app`)
 
-### File to Change
+### Files to Change
 
-**`src/components/practice-log/MusicAI.tsx`**
+**1. New file: `src/components/ContactDialog.tsx`**
 
-1. Add a `Mic` icon import from lucide-react
-2. Add state for `isListening` (boolean)
-3. Add a `SpeechRecognition` ref and a `toggleListening` function that:
-   - Creates a `webkitSpeechRecognition` / `SpeechRecognition` instance
-   - Sets language to `"en-US"` and `interimResults = false`
-   - On result: sets the input text and calls `send()`
-   - On end: sets `isListening` to false
-4. Add a mic button between the text input and the send button, styled with a pulse animation when active
-5. Only render the mic button if `SpeechRecognition` is available in the browser
+A reusable component containing the Dialog with trigger button, so it can be dropped into both the Landing page and Dashboard without duplicating code.
+
+- Uses the existing `Dialog` UI components and `Mail` icon from lucide-react
+- Accepts an optional `variant` prop to style the trigger differently in each context (e.g., ghost button on Dashboard, text link in footer)
+
+**2. `src/pages/Landing.tsx`** -- 1 addition
+
+- Import `ContactDialog`
+- Add it to the footer section alongside "Privacy" and "Terms" links, styled as a text link to match the existing footer style
+
+**3. `src/pages/Dashboard.tsx`** -- 1 addition
+
+- Import `ContactDialog`
+- Add it to the top bar controls area, between `HowToManual` and `ManageSubscription`, styled as a small ghost button to match the existing controls
+
+**4. `src/components/practice-log/PracticeLogCalendar.tsx`** -- 1 addition
+
+- Same change as Dashboard -- add `ContactDialog` to the Journal page's top bar for consistency across all logged-in pages
+
+### About the Support Email
+
+The email `support@practicedaily.app` is referenced in the Terms page already. To receive mail at that address, you will need to set up email forwarding or hosting with your domain provider (e.g., Cloudflare Email Routing, Google Workspace, or Zoho Mail) outside of Lovable.
 
 ### No Existing Features Affected
 
-The existing text input and send button remain unchanged. The mic button is purely additive.
+All changes are purely additive. No existing content, layout, or functionality is modified or removed.
 
