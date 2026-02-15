@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome, Activity, Mic, Users, BarChart3, Sparkles } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import { PlanToggle } from "@/components/subscription/PlanToggle";
+import { ContactDialog } from "@/components/ContactDialog";
 
 /* ─────────── data ─────────── */
 
@@ -485,6 +486,7 @@ export default function Landing() {
             <Link to="/terms" className="hover:text-foreground transition-colors">
               Terms
             </Link>
+            <ContactDialog variant="footer" />
           </div>
         </div>
       </footer>
