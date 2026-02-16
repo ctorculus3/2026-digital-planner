@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { notifySubscriberEvent } from "@/lib/notifySubscriberEvent";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,6 +143,19 @@ export default function Landing() {
         toast({
           title: "Check your email",
           description: "We've sent you a confirmation link to verify your account."
+        });
+        // Fire-and-forget: notify n8n of signup
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          notifySubscriberEvent(session, {
+            event: "signup",
+            email,
+            name: displayName || undefined,
+            trial_start: now.toISOString(),
+            trial_end: trialEnd.toISOString(),
+            marketing_opt_in: false,
+          });
         });
       }
     } catch (error: any) {

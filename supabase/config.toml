@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.music-ai]
 verify_jwt = false
+
+[functions.notify-subscriber-event]
+verify_jwt = false

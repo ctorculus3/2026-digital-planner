@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { notifySubscriberEvent } from "@/lib/notifySubscriberEvent";
 
 type SubscriptionStatus = 'loading' | 'active' | 'inactive';
 
@@ -37,7 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initialSessionLoaded = useRef(false);
   // Generation counter to prevent stale subscription results from racing calls
   const fetchIdRef = useRef(0);
-
+  // Track previous subscription status to detect cancellation
+  const prevSubStatusRef = useRef<SubscriptionStatus>('loading');
   const fetchSubscription = useCallback(async (currentSession: Session | null) => {
     const myId = ++fetchIdRef.current;
 
@@ -67,8 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return false;
         }
 
+        const newStatus: SubscriptionStatus = data?.subscribed ? 'active' : 'inactive';
+
+        // Detect cancellation: active -> inactive
+        if (prevSubStatusRef.current === 'active' && newStatus === 'inactive') {
+          const userEmail = currentSession.user?.email;
+          if (userEmail) {
+            notifySubscriberEvent(currentSession, {
+              event: "cancel",
+              email: userEmail,
+            });
+          }
+        }
+        prevSubStatusRef.current = newStatus;
+
         setSubscription({
-          status: data?.subscribed ? 'active' : 'inactive',
+          status: newStatus,
           isTrialing: data?.is_trialing || false,
           endDate: data?.subscription_end || null,
         });

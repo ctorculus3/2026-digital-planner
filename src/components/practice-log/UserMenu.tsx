@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { notifySubscriberEvent } from "@/lib/notifySubscriberEvent";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +31,7 @@ function getInitials(name: string | null | undefined, email: string | undefined)
 }
 
 export function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -75,6 +76,12 @@ export function UserMenu() {
       setDisplayName(trimmed);
       setEditingName(false);
       toast({ title: "Name updated!" });
+      // Fire-and-forget: notify n8n of profile update
+      notifySubscriberEvent(session, {
+        event: "update",
+        email: user.email!,
+        name: trimmed,
+      });
     } catch (err) {
       console.error("Name update error:", err);
       toast({ title: "Could not update name", variant: "destructive" });
