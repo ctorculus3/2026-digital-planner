@@ -1,56 +1,38 @@
 
 
-## Add Transposition and Match Sound to the Tuner
+## Fix Match Sound: Make It Actually Play and Sound Softer
 
-### Feature 1: Transposition Buttons
+### Problem
+The Match Sound feature never triggers because pitch detection naturally fluctuates between adjacent MIDI notes frame-by-frame. The current code resets its 1-second timer every time the detected note changes even by 1 semitone, so the threshold is never reached.
 
-Four toggle buttons (C, Bb, Eb, F) will appear above the tuner gauge. Tapping one selects that instrument key. The detected note name will be transposed accordingly so players of Bb, Eb, or F instruments see note names in their written key.
+### Solution
 
-**Transposition offsets (semitones added to detected MIDI note):**
-- C: 0 (concert pitch -- default)
-- Bb: +2 (clarinet, trumpet, tenor sax, bass clarinet)
-- Eb: +9 (alto sax, alto clarinet, baritone sax)
-- F: +5 (French horn)
+Three targeted changes in `src/components/practice-log/Tuner.tsx`:
 
-For example, if the tuner detects a concert Bb, a Bb instrument player will see "C" displayed.
+### Change 1: Allow pitch tolerance (plus/minus 1 semitone)
+In the `detect()` callback (around line 185), change the stable pitch check from exact match to a tolerance of 1 semitone:
+- Current: `stablePitchRef.current.midiNote === midiNote`
+- New: `Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1`
 
-### Feature 2: Match Sound Button
+When the tone starts, it still uses the originally detected note's frequency, so the reference pitch is accurate.
 
-A "Match Sound" toggle button below the gauge. When active:
-- The tuner tracks the detected pitch over time
-- If the same note (same MIDI note number) is sustained for more than 1 second, the tuner plays back a pure sine wave at that note's exact in-tune frequency through the Web Audio API
-- The sine tone plays continuously while the pitch is held, giving the player an audible reference to tune against
-- If the pitch changes or signal drops, the sine tone stops
-- This lets the user both see (flat/sharp gauge) and hear (reference tone) whether they are in tune
+### Change 2: Reduce wait time from 1000ms to 500ms
+On line 187, change the sustain threshold:
+- Current: `now - stablePitchRef.current.since > 1000`
+- New: `now - stablePitchRef.current.since > 500`
 
-### Technical Changes
+This means the reference tone kicks in after half a second of holding a note, which feels much more responsive.
 
-#### `src/components/practice-log/Tuner.tsx`
+### Change 3: Use a softer waveform
+On line 192, change the oscillator type for a warmer, less harsh sound:
+- Current: `osc.type = "sine"`
+- New: `osc.type = "triangle"`
 
-**New state and refs:**
-- `transposition` state: `"C" | "Bb" | "Eb" | "F"` (default "C")
-- `matchSoundEnabled` state: boolean toggle
-- `stablePitchRef`: tracks the last detected MIDI note number and timestamp to detect 1-second sustain
-- `oscillatorRef`: holds the active OscillatorNode for the reference sine tone
+Triangle waves have a gentler, more "relaxed" timbre compared to a pure sine.
 
-**Transposition logic:**
-- After `frequencyToNote(freq)` computes the concert-pitch note, apply the semitone offset to get the transposed note name
-- The cents and gauge remain based on the raw detected frequency (tuning accuracy is always relative to concert pitch)
-- Only the displayed note name changes
-
-**Match Sound logic:**
-- In the `detect()` loop, after computing the MIDI note number, compare it with `stablePitchRef.current.note`
-- If the same note for over 1 second and `matchSoundEnabled` is true:
-  - Create an OscillatorNode at the exact in-tune frequency for that note (440 * 2^((midi-69)/12))
-  - Connect through a GainNode with gentle fade-in to avoid clicks
-  - Store in `oscillatorRef` so it can be stopped when pitch changes
-- If pitch changes or signal drops, stop and disconnect the oscillator
-
-**UI additions:**
-- A row of 4 toggle buttons (C, Bb, Eb, F) using the existing ToggleGroup component, placed above the mic button
-- A "Match Sound" toggle button below the gauge, styled as a small outline button that highlights when active
-
-**Cleanup:**
-- Stop oscillator on unmount and when tuner stops listening
-- All existing tuner functionality (mic, gauge, note display) preserved exactly as-is
+### What stays the same
+- All existing tuner features (mic, gauge, transposition, note display) are untouched
+- The tone still fades in smoothly via the GainNode
+- The tone still stops when pitch changes significantly or signal drops
+- Cleanup on unmount is unchanged
 
