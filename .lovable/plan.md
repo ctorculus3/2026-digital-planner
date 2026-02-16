@@ -1,38 +1,56 @@
 
 
-## Add Upgrade Webhook Event
+## Add Transposition and Match Sound to the Tuner
 
-### Overview
+### Feature 1: Transposition Buttons
 
-Fire an "upgrade" event to the n8n webhook when a user transitions from a trial subscription to a paid subscription. This is detected client-side in the same place where cancellation is already detected.
+Four toggle buttons (C, Bb, Eb, F) will appear above the tuner gauge. Tapping one selects that instrument key. The detected note name will be transposed accordingly so players of Bb, Eb, or F instruments see note names in their written key.
 
-### How It Works
+**Transposition offsets (semitones added to detected MIDI note):**
+- C: 0 (concert pitch -- default)
+- Bb: +2 (clarinet, trumpet, tenor sax, bass clarinet)
+- Eb: +9 (alto sax, alto clarinet, baritone sax)
+- F: +5 (French horn)
 
-The `check-subscription` edge function already returns an `is_trialing` flag. By tracking the previous trialing state alongside the existing status ref, we can detect the moment a user goes from `active + trialing` to `active + not trialing` -- that is the upgrade moment.
+For example, if the tuner detects a concert Bb, a Bb instrument player will see "C" displayed.
 
-### Changes
+### Feature 2: Match Sound Button
 
-#### 1. `src/contexts/AuthContext.tsx`
+A "Match Sound" toggle button below the gauge. When active:
+- The tuner tracks the detected pitch over time
+- If the same note (same MIDI note number) is sustained for more than 1 second, the tuner plays back a pure sine wave at that note's exact in-tune frequency through the Web Audio API
+- The sine tone plays continuously while the pitch is held, giving the player an audible reference to tune against
+- If the pitch changes or signal drops, the sine tone stops
+- This lets the user both see (flat/sharp gauge) and hear (reference tone) whether they are in tune
 
-- Add a `prevIsTrialingRef` (similar to the existing `prevSubStatusRef`) to track the previous trialing state
-- After `fetchSubscription` resolves, check: if previous status was `active` AND `prevIsTrialing` was `true`, and new status is `active` AND `is_trialing` is `false`, fire the upgrade event
-- The notify call follows the same fire-and-forget pattern as the existing cancel event
+### Technical Changes
 
-Detection logic (pseudocode):
-```text
-if prevStatus === 'active'
-   AND prevIsTrialing === true
-   AND newStatus === 'active'
-   AND newIsTrialing === false
-   -> fire { event: "upgrade", email: user.email }
-```
+#### `src/components/practice-log/Tuner.tsx`
 
-#### 2. `src/lib/notifySubscriberEvent.ts`
+**New state and refs:**
+- `transposition` state: `"C" | "Bb" | "Eb" | "F"` (default "C")
+- `matchSoundEnabled` state: boolean toggle
+- `stablePitchRef`: tracks the last detected MIDI note number and timestamp to detect 1-second sustain
+- `oscillatorRef`: holds the active OscillatorNode for the reference sine tone
 
-- Add `"upgrade"` to the `event` union type in `SubscriberEventPayload`
+**Transposition logic:**
+- After `frequencyToNote(freq)` computes the concert-pitch note, apply the semitone offset to get the transposed note name
+- The cents and gauge remain based on the raw detected frequency (tuning accuracy is always relative to concert pitch)
+- Only the displayed note name changes
 
-### No Other Changes Needed
+**Match Sound logic:**
+- In the `detect()` loop, after computing the MIDI note number, compare it with `stablePitchRef.current.note`
+- If the same note for over 1 second and `matchSoundEnabled` is true:
+  - Create an OscillatorNode at the exact in-tune frequency for that note (440 * 2^((midi-69)/12))
+  - Connect through a GainNode with gentle fade-in to avoid clicks
+  - Store in `oscillatorRef` so it can be stopped when pitch changes
+- If pitch changes or signal drops, stop and disconnect the oscillator
 
-- The edge function already forwards any event type to the webhook, so no backend changes are required
-- The `SubscriptionGate` polling after checkout will naturally trigger the subscription check, which will detect the trial-to-paid transition
+**UI additions:**
+- A row of 4 toggle buttons (C, Bb, Eb, F) using the existing ToggleGroup component, placed above the mic button
+- A "Match Sound" toggle button below the gauge, styled as a small outline button that highlights when active
+
+**Cleanup:**
+- Stop oscillator on unmount and when tuner stops listening
+- All existing tuner functionality (mic, gauge, note display) preserved exactly as-is
 
