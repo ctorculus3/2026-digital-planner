@@ -1,49 +1,72 @@
 
 
-## Add Contact Support Dialog to Landing Page and Dashboard
+## Add n8n Subscriber Webhook Integration
 
-### What It Does
+### Overview
 
-Adds a "Contact" button that opens a popup dialog with the support email (`support@practicedaily.app`) and a friendly message. It will appear in two places:
+Create a backend function that forwards subscriber lifecycle events (signup, profile update, cancellation) to an external n8n webhook. The webhook call is fire-and-forget so it never blocks the user experience.
 
-1. **Landing page footer** -- next to "Privacy" and "Terms" links
-2. **Dashboard top bar** -- next to the existing controls (How-To Manual, Manage Subscription, User Menu)
+### Secret Required
 
-### Design
+You will be asked to provide the **N8N_SUBSCRIBER_WEBHOOK_URL** secret -- this is the n8n webhook URL that will receive the event payloads.
 
-The dialog popup shows:
-- A mail icon and "Contact Support" title
-- The message: "Have a question, issue, or feedback? Reach out and we'll get back to you as soon as we can."
-- A clickable email link (`support@practicedaily.app`)
+### Changes
 
-### Files to Change
+#### 1. New edge function: `supabase/functions/notify-subscriber-event/index.ts`
 
-**1. New file: `src/components/ContactDialog.tsx`**
+- Accepts a JSON body with fields: `event`, `email`, `name`, `trial_start`, `trial_end`, `marketing_opt_in`
+- Reads `N8N_SUBSCRIBER_WEBHOOK_URL` from secrets
+- POSTs the payload to that URL with `Content-Type: application/json`
+- Returns success even if the n8n call fails (logs the error but responds 200)
+- Uses `verify_jwt = false` in `config.toml` but validates the auth token in code (same pattern as other functions)
 
-A reusable component containing the Dialog with trigger button, so it can be dropped into both the Landing page and Dashboard without duplicating code.
+#### 2. Update `supabase/config.toml`
 
-- Uses the existing `Dialog` UI components and `Mail` icon from lucide-react
-- Accepts an optional `variant` prop to style the trigger differently in each context (e.g., ghost button on Dashboard, text link in footer)
+- Add `[functions.notify-subscriber-event]` with `verify_jwt = false`
 
-**2. `src/pages/Landing.tsx`** -- 1 addition
+#### 3. Create a helper: `src/lib/notifySubscriberEvent.ts`
 
-- Import `ContactDialog`
-- Add it to the footer section alongside "Privacy" and "Terms" links, styled as a text link to match the existing footer style
+A small async helper function that wraps the edge function call. It catches all errors silently (console.warn only) so callers don't need try/catch and the user flow is never interrupted.
 
-**3. `src/pages/Dashboard.tsx`** -- 1 addition
+```text
+notifySubscriberEvent(session, payload) -> Promise<void>
+```
 
-- Import `ContactDialog`
-- Add it to the top bar controls area, between `HowToManual` and `ManageSubscription`, styled as a small ghost button to match the existing controls
+#### 4. Update `src/pages/Landing.tsx` -- signup event
 
-**4. `src/components/practice-log/PracticeLogCalendar.tsx`** -- 1 addition
+After a successful `signUp()` call (line ~139), fire:
 
-- Same change as Dashboard -- add `ContactDialog` to the Journal page's top bar for consistency across all logged-in pages
+```text
+event: "signup"
+email, name (from form fields)
+trial_start: now
+trial_end: now + 7 days
+marketing_opt_in: false (no opt-in checkbox exists yet)
+```
 
-### About the Support Email
+This call is non-blocking -- it runs in the background after the success toast.
 
-The email `support@practicedaily.app` is referenced in the Terms page already. To receive mail at that address, you will need to set up email forwarding or hosting with your domain provider (e.g., Cloudflare Email Routing, Google Workspace, or Zoho Mail) outside of Lovable.
+#### 5. Update `src/components/practice-log/UserMenu.tsx` -- update event
+
+After a successful name change (inside `handleSaveName`, line ~75), fire:
+
+```text
+event: "update"
+email: user.email
+name: new trimmed name
+```
+
+#### 6. Add cancel event -- two options
+
+Cancellation happens via the Stripe Customer Portal (external), so the app doesn't directly know when it occurs. The simplest approach: fire a "cancel" event when the subscription status transitions from active/trialing to inactive.
+
+- **In `src/contexts/AuthContext.tsx`**: After `fetchSubscription` resolves with `subscribed: false` and the previous status was `active`, call the notify function with `event: "cancel"`. This detects cancellation regardless of how it happened (portal, Stripe dashboard, trial expiry).
+
+### Marketing Opt-In Note
+
+There is currently no marketing opt-in checkbox in the signup form. The `marketing_opt_in` field will default to `false`. If you'd like to add an opt-in checkbox to the signup form, that can be done as a follow-up.
 
 ### No Existing Features Affected
 
-All changes are purely additive. No existing content, layout, or functionality is modified or removed.
+All changes are additive. The webhook calls are fire-and-forget and will not affect auth flow, subscription checking, or any existing UI behavior.
 
