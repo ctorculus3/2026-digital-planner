@@ -2,7 +2,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SubscriberEventPayload {
-  event: "signup" | "update" | "cancel";
+  event: "signup" | "update" | "cancel" | "upgrade";
   email: string;
   name?: string;
   trial_start?: string;
