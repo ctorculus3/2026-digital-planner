@@ -136,6 +136,7 @@ export function Tuner() {
 
   // Match sound refs
   const stablePitchRef = useRef<{ midiNote: number; since: number } | null>(null);
+  const lockedMidiNoteRef = useRef<number | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const outputCtxRef = useRef<AudioContext | null>(null);
@@ -156,6 +157,7 @@ export function Tuner() {
     }
     oscillatorRef.current = null;
     gainNodeRef.current = null;
+    lockedMidiNoteRef.current = null;
   }, []);
 
   const detect = useCallback(() => {
@@ -181,12 +183,19 @@ export function Tuner() {
       setCents(c);
       setActiveSegment(centsToSegmentIndex(c));
 
-      // Match sound logic
+      // Match sound logic with lock-on behavior
       const now = performance.now();
-      if (stablePitchRef.current && Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1) {
-        // Same note sustained (±1 semitone tolerance)
+
+      // If we have a locked note and new pitch is 2+ semitones away, reset
+      if (lockedMidiNoteRef.current !== null && Math.abs(midiNote - lockedMidiNoteRef.current) >= 2) {
+        stopOscillator(); // also clears lockedMidiNoteRef
+        stablePitchRef.current = { midiNote, since: now };
+      } else if (lockedMidiNoteRef.current !== null) {
+        // Locked — ignore fluctuations, keep playing locked tone
+      } else if (stablePitchRef.current && Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1) {
+        // Same note sustained (±1 semitone tolerance), not yet locked
         if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
-          // Start reference tone using dedicated output context
+          // Start reference tone and lock onto this note
           const ctx = outputCtxRef.current;
           if (ctx) {
             if (ctx.state === 'suspended') ctx.resume();
@@ -201,13 +210,11 @@ export function Tuner() {
             osc.start();
             oscillatorRef.current = osc;
             gainNodeRef.current = gain;
+            lockedMidiNoteRef.current = midiNote;
           }
         }
       } else {
-        // Pitch changed — update oscillator frequency instead of stopping
-        if (oscillatorRef.current) {
-          oscillatorRef.current.frequency.value = midiToFrequency(midiNote);
-        }
+        // Pitch changed but no lock yet — restart sustain timer
         stablePitchRef.current = { midiNote, since: now };
       }
     } else {
