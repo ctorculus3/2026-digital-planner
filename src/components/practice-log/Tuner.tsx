@@ -182,14 +182,14 @@ export function Tuner() {
 
       // Match sound logic
       const now = performance.now();
-      if (stablePitchRef.current && stablePitchRef.current.midiNote === midiNote) {
-        // Same note sustained
-        if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 1000)) {
+      if (stablePitchRef.current && Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1) {
+        // Same note sustained (±1 semitone tolerance)
+        if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
           // Start reference tone
           const ctx = audioCtxRef.current!;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = "sine";
+          osc.type = "triangle";
           osc.frequency.value = midiToFrequency(midiNote);
           gain.gain.value = 0;
           gain.gain.setTargetAtTime(0.15, ctx.currentTime, 0.08);
