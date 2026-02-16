@@ -1,72 +1,34 @@
 
 
-## Add n8n Subscriber Webhook Integration
+## Fix Signup Webhook to Work Without a Session
 
-### Overview
+### Problem
 
-Create a backend function that forwards subscriber lifecycle events (signup, profile update, cancellation) to an external n8n webhook. The webhook call is fire-and-forget so it never blocks the user experience.
+After signup, the user has no active session (email confirmation is required first), so `notifySubscriberEvent` exits early at the `if (!session) return` check and never calls the edge function.
 
-### Secret Required
+### Solution
 
-You will be asked to provide the **N8N_SUBSCRIBER_WEBHOOK_URL** secret -- this is the n8n webhook URL that will receive the event payloads.
+For the **signup event only**, skip the session requirement and call the edge function using just the anon key (which the Supabase client includes automatically). The edge function also needs to allow unauthenticated requests specifically for the "signup" event.
 
 ### Changes
 
-#### 1. New edge function: `supabase/functions/notify-subscriber-event/index.ts`
+#### 1. `src/lib/notifySubscriberEvent.ts` -- add unauthenticated overload
 
-- Accepts a JSON body with fields: `event`, `email`, `name`, `trial_start`, `trial_end`, `marketing_opt_in`
-- Reads `N8N_SUBSCRIBER_WEBHOOK_URL` from secrets
-- POSTs the payload to that URL with `Content-Type: application/json`
-- Returns success even if the n8n call fails (logs the error but responds 200)
-- Uses `verify_jwt = false` in `config.toml` but validates the auth token in code (same pattern as other functions)
+- Add a new exported function `notifySubscriberEventUnauthenticated(payload)` that calls the edge function **without** an Authorization header
+- The existing `notifySubscriberEvent(session, payload)` stays unchanged for update/cancel events that have a session
 
-#### 2. Update `supabase/config.toml`
+#### 2. `supabase/functions/notify-subscriber-event/index.ts` -- allow signup without auth
 
-- Add `[functions.notify-subscriber-event]` with `verify_jwt = false`
+- Change the auth check: if the event is `"signup"`, skip token validation and proceed directly to forwarding
+- For `"update"` and `"cancel"` events, keep the existing auth validation
+- This is safe because the signup event only sends data the user just typed into the form (email, name) and the webhook URL is secret
 
-#### 3. Create a helper: `src/lib/notifySubscriberEvent.ts`
+#### 3. `src/pages/Landing.tsx` -- use the unauthenticated helper
 
-A small async helper function that wraps the edge function call. It catches all errors silently (console.warn only) so callers don't need try/catch and the user flow is never interrupted.
-
-```text
-notifySubscriberEvent(session, payload) -> Promise<void>
-```
-
-#### 4. Update `src/pages/Landing.tsx` -- signup event
-
-After a successful `signUp()` call (line ~139), fire:
-
-```text
-event: "signup"
-email, name (from form fields)
-trial_start: now
-trial_end: now + 7 days
-marketing_opt_in: false (no opt-in checkbox exists yet)
-```
-
-This call is non-blocking -- it runs in the background after the success toast.
-
-#### 5. Update `src/components/practice-log/UserMenu.tsx` -- update event
-
-After a successful name change (inside `handleSaveName`, line ~75), fire:
-
-```text
-event: "update"
-email: user.email
-name: new trimmed name
-```
-
-#### 6. Add cancel event -- two options
-
-Cancellation happens via the Stripe Customer Portal (external), so the app doesn't directly know when it occurs. The simplest approach: fire a "cancel" event when the subscription status transitions from active/trialing to inactive.
-
-- **In `src/contexts/AuthContext.tsx`**: After `fetchSubscription` resolves with `subscribed: false` and the previous status was `active`, call the notify function with `event: "cancel"`. This detects cancellation regardless of how it happened (portal, Stripe dashboard, trial expiry).
-
-### Marketing Opt-In Note
-
-There is currently no marketing opt-in checkbox in the signup form. The `marketing_opt_in` field will default to `false`. If you'd like to add an opt-in checkbox to the signup form, that can be done as a follow-up.
+- Replace the `supabase.auth.getSession().then(...)` block with a direct call to `notifySubscriberEventUnauthenticated(payload)`
+- Remove the unnecessary session fetch entirely
 
 ### No Existing Features Affected
 
-All changes are additive. The webhook calls are fire-and-forget and will not affect auth flow, subscription checking, or any existing UI behavior.
-
+- Update and cancel events continue to require authentication
+- The change is minimal and only affects the signup path
