@@ -188,20 +188,20 @@ export function Tuner() {
         if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
           // Start reference tone using dedicated output context
           const ctx = outputCtxRef.current;
-          if (!ctx) return;
-          if (ctx.state === 'suspended') ctx.resume();
-          // Reference tone started
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = "triangle";
-          osc.frequency.value = midiToFrequency(midiNote);
-          gain.gain.value = 0;
-          gain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.08);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          oscillatorRef.current = osc;
-          gainNodeRef.current = gain;
+          if (ctx) {
+            if (ctx.state === 'suspended') ctx.resume();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = midiToFrequency(midiNote);
+            gain.gain.value = 0;
+            gain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.08);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            oscillatorRef.current = osc;
+            gainNodeRef.current = gain;
+          }
         }
       } else {
         // Pitch changed — update oscillator frequency instead of stopping
