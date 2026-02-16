@@ -19,6 +19,9 @@ export function Metronome({ onStart }: MetronomeProps) {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new AudioContext();
     }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
     return audioCtxRef.current;
   }, []);
 
