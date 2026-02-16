@@ -14,6 +14,7 @@ export function Metronome({ onStart }: MetronomeProps) {
   const intervalRef = useRef<number | null>(null);
   const hasStartedRef = useRef(false);
   const claveBufferRef = useRef<AudioBuffer | null>(null);
+  const isPlayingRef = useRef(false);
 
   const getAudioContext = useCallback(async () => {
     if (!audioCtxRef.current) {
@@ -64,11 +65,15 @@ export function Metronome({ onStart }: MetronomeProps) {
   const startMetronome = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     
+    isPlayingRef.current = true;
+    
     // Initialize AudioContext on user gesture
     await getAudioContext();
+    if (!isPlayingRef.current) return;
     
     // Load clave sample if not yet loaded
     await loadClave();
+    if (!isPlayingRef.current) return;
 
     // Fire onStart callback only on first play
     if (!hasStartedRef.current) {
@@ -83,6 +88,7 @@ export function Metronome({ onStart }: MetronomeProps) {
   }, [bpm, playClick, onStart, loadClave]);
 
   const stopMetronome = useCallback(() => {
+    isPlayingRef.current = false;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -97,6 +103,12 @@ export function Metronome({ onStart }: MetronomeProps) {
       const ms = 60000 / bpm;
       intervalRef.current = window.setInterval(playClick, ms);
     }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [bpm, isPlaying, playClick]);
 
   // Cleanup on unmount
