@@ -39,8 +39,9 @@ export function Metronome({ onStart }: MetronomeProps) {
     }
   }, [getAudioContext]);
 
-  const playClick = useCallback(async () => {
-    const ctx = await getAudioContext();
+  const playClick = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
     if (claveBufferRef.current) {
       const source = ctx.createBufferSource();
       source.buffer = claveBufferRef.current;
@@ -58,10 +59,13 @@ export function Metronome({ onStart }: MetronomeProps) {
       osc.start();
       osc.stop(ctx.currentTime + 0.03);
     }
-  }, [getAudioContext]);
+  }, []);
 
   const startMetronome = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    
+    // Initialize AudioContext on user gesture
+    await getAudioContext();
     
     // Load clave sample if not yet loaded
     await loadClave();
