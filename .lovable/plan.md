@@ -1,44 +1,80 @@
 
 
-## Fix Metronome Sound + Tuner "Lock-On" Behavior
+## Fix Metronome Sound + Tuner Sustained Tone
 
-### Issue 1: Metronome Silent
+### Problem 1: Metronome Still Silent
 
-The Metronome code has no error handling around the audio loading. If `fetch("/audio/Clave-4.wav")` or `decodeAudioData` fails for any reason, the entire `startMetronome` function silently fails -- no sound, no error message. The `loadClave` function also has a guard (`if (claveBufferRef.current) return`) that prevents retrying after a failed load.
+The `playClick` function was made `async` to await `getAudioContext()`. However, `setInterval(playClick, ms)` fires an async function without awaiting it, and the AudioContext promise resolution introduces timing issues that cause silent failures on some browsers.
 
-Additionally, the `getAudioContext` helper creates a new AudioContext but never explicitly calls `resume()` as a returned promise -- iOS requires awaiting it.
+**Fix:** Initialize the AudioContext once during `startMetronome` (which runs in a user gesture) and make `playClick` synchronous again. Store a resolved context reference so `playClick` can use it directly without awaiting.
 
-**Fix:**
-- Add try/catch error handling inside `loadClave` so failures are logged and retryable (reset `claveBufferRef.current` to null on failure)
-- Await `audioCtxRef.current.resume()` to ensure iOS Safari actually unlocks the context
-- Add a fallback oscillator click if the clave sample fails to load, so the metronome always produces some sound
+### Problem 2: Tuner Tone Keeps Cutting Out
 
-### Issue 2: Tuner "Lock-On" Behavior
+When the microphone briefly loses the pitch (even for a split second between breaths or during volume dips), the code immediately stops the oscillator (line 220-223). When pitch returns, the 500ms sustain timer restarts from scratch before the tone can play again, creating a rapid on/off beeping effect.
 
-Currently, the Match Sound feature updates the oscillator frequency whenever the detected pitch changes. The user wants the tuner to **lock onto the first detected note** and keep playing that reference tone, ignoring mic fluctuations, until a distinctly new pitch (2+ semitones away) is introduced.
-
-**Fix -- changes to the `detect()` function in Tuner.tsx:**
-- Add a `lockedMidiNote` ref that stores the note the oscillator is currently playing
-- Once the oscillator starts, set `lockedMidiNote` to the current MIDI note
-- On subsequent frames, keep displaying the detected pitch visually (gauge + note name) but do NOT update the oscillator frequency unless the detected note is 2+ semitones away from the locked note
-- When a new note is 2+ semitones away, stop the current oscillator, reset `lockedMidiNote`, and let the 500ms sustain timer restart for the new note
-- When sound stops (no pitch detected), stop the oscillator and clear the lock
+**Fix:** Add a grace period (e.g., 500ms) before stopping the oscillator when pitch is lost. If pitch returns within that window, cancel the stop and keep playing.
 
 ### Technical Changes
 
 **File: `src/components/practice-log/Metronome.tsx`**
 
-1. Wrap `loadClave` internals in try/catch; log errors; allow retry by not guarding on a failed load
-2. Change `getAudioContext` to return a promise and await `resume()`
-3. Add a fallback beep using an oscillator if the clave buffer is null when `playClick` runs
+1. Remove `async` from `playClick` -- make it synchronous
+2. Instead of calling `getAudioContext()` inside `playClick`, use `audioCtxRef.current` directly (it will already be initialized)
+3. In `startMetronome`, await `getAudioContext()` once at the start (this is the user gesture) to ensure the context is created and resumed
+4. Keep `loadClave` as-is (it already awaits properly)
+
+Key change -- `playClick` becomes:
+```
+const playClick = useCallback(() => {
+  const ctx = audioCtxRef.current;
+  if (!ctx) return;
+  if (claveBufferRef.current) {
+    const source = ctx.createBufferSource();
+    source.buffer = claveBufferRef.current;
+    source.connect(ctx.destination);
+    source.start();
+  } else {
+    // fallback beep
+    ...
+  }
+}, []);
+```
+
+And `startMetronome` adds `await getAudioContext()` before loading clave.
 
 **File: `src/components/practice-log/Tuner.tsx`**
 
-1. Add a new ref: `lockedMidiNoteRef = useRef<number | null>(null)`
-2. When the oscillator starts (line ~196), set `lockedMidiNoteRef.current = midiNote`
-3. In the "pitch changed" branch (line ~206), check if `|midiNote - lockedMidiNoteRef| >= 2`:
-   - If yes: stop oscillator, clear lock, reset `stablePitchRef` for the new note
-   - If no: do nothing (ignore the fluctuation, keep playing the locked tone)
-4. When pitch is lost (line ~213), clear `lockedMidiNoteRef`
-5. On `stopOscillator`, also clear `lockedMidiNoteRef`
+1. Add a `silenceTimeoutRef = useRef<number | null>(null)` for the grace period
+2. When pitch is detected (freq > 0), clear any pending silence timeout
+3. When pitch is lost (the `else` branch at line 220), instead of immediately calling `stopOscillator()`, set a 500ms timeout that will stop it
+4. If pitch returns before the timeout fires, cancel it -- the tone keeps playing uninterrupted
+5. Clean up the timeout on unmount and in `stopListening`
+
+Key change in the `detect()` function:
+```
+} else {
+  // Pitch lost — give a grace period before stopping
+  setActiveSegment(null);
+  if (oscillatorRef.current && !silenceTimeoutRef.current) {
+    silenceTimeoutRef.current = window.setTimeout(() => {
+      stopOscillator();
+      stablePitchRef.current = null;
+      silenceTimeoutRef.current = null;
+    }, 500);
+  } else if (!oscillatorRef.current) {
+    stablePitchRef.current = null;
+  }
+}
+```
+
+When pitch is detected again, clear the timeout:
+```
+if (freq > 0 && freq < 5000) {
+  // Cancel any pending silence timeout
+  if (silenceTimeoutRef.current) {
+    clearTimeout(silenceTimeoutRef.current);
+    silenceTimeoutRef.current = null;
+  }
+  ...
+```
 
