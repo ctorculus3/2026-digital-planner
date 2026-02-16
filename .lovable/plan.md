@@ -1,38 +1,39 @@
 
 
-## Fix Match Sound: Make It Actually Play and Sound Softer
+## Fix Match Sound: Ensure Audio Actually Plays
 
-### Problem
-The Match Sound feature never triggers because pitch detection naturally fluctuates between adjacent MIDI notes frame-by-frame. The current code resets its 1-second timer every time the detected note changes even by 1 semitone, so the threshold is never reached.
+### Root Causes
 
-### Solution
+1. **AudioContext suspension** -- On mobile browsers (especially iOS Safari), the AudioContext can become suspended. The oscillator is created inside a `requestAnimationFrame` callback, which is NOT a user gesture, so the browser may block audio output. The fix is to explicitly call `ctx.resume()` before starting the oscillator.
 
-Three targeted changes in `src/components/practice-log/Tuner.tsx`:
+2. **Volume too low** -- A gain of `0.15` with a `triangle` waveform is very quiet, borderline inaudible on many devices. Increase to `0.25` for a comfortable but noticeable level.
 
-### Change 1: Allow pitch tolerance (plus/minus 1 semitone)
-In the `detect()` callback (around line 185), change the stable pitch check from exact match to a tolerance of 1 semitone:
-- Current: `stablePitchRef.current.midiNote === midiNote`
-- New: `Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1`
+### Changes in `src/components/practice-log/Tuner.tsx`
 
-When the tone starts, it still uses the originally detected note's frequency, so the reference pitch is accurate.
+#### Fix 1: Resume AudioContext before playing oscillator (line ~189)
+Before creating and starting the oscillator, add `await`-free resume call:
 
-### Change 2: Reduce wait time from 1000ms to 500ms
-On line 187, change the sustain threshold:
-- Current: `now - stablePitchRef.current.since > 1000`
-- New: `now - stablePitchRef.current.since > 500`
+```typescript
+// Before: just creates oscillator
+const ctx = audioCtxRef.current!;
 
-This means the reference tone kicks in after half a second of holding a note, which feels much more responsive.
+// After: resume context first
+const ctx = audioCtxRef.current!;
+if (ctx.state === 'suspended') ctx.resume();
+```
 
-### Change 3: Use a softer waveform
-On line 192, change the oscillator type for a warmer, less harsh sound:
-- Current: `osc.type = "sine"`
-- New: `osc.type = "triangle"`
+#### Fix 2: Increase gain volume (line ~194)
+```typescript
+// Before
+gain.gain.setTargetAtTime(0.15, ctx.currentTime, 0.08);
 
-Triangle waves have a gentler, more "relaxed" timbre compared to a pure sine.
+// After
+gain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.08);
+```
 
 ### What stays the same
-- All existing tuner features (mic, gauge, transposition, note display) are untouched
-- The tone still fades in smoothly via the GainNode
-- The tone still stops when pitch changes significantly or signal drops
-- Cleanup on unmount is unchanged
+- All pitch detection, transposition, gauge, and UI unchanged
+- Triangle waveform stays (softer sound as requested)
+- 500ms threshold and 1-semitone tolerance unchanged
+- Cleanup/unmount logic unchanged
 
