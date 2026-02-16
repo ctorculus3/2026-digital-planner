@@ -1,61 +1,71 @@
 
 
-## Fix Match Sound: Use Separate Audio Output Context
+## Fix Match Sound Audio + Button Styling
 
-### Root Cause
+### Problem 1: No Audible Sound
+Console logs prove oscillators ARE being created, but they're immediately destroyed. Here's what happens each cycle:
+1. User holds a note for 500ms -- oscillator created
+2. Next frame: natural pitch fluctuation exceeds 1-semitone tolerance -- else branch fires, `stopOscillator()` kills it
+3. Timer resets, wait another 500ms, repeat
 
-The real problem is that on mobile browsers (especially iOS Safari), an `AudioContext` created with `getUserMedia` for microphone input often cannot simultaneously output sound. The browser ties that context to the input routing and blocks or silences audio output through it. All previous fixes (resume, volume) were applied to this same blocked context.
+Each oscillator lives only ~16ms (one animation frame), far too short to hear.
 
-### Solution: Dedicated Output AudioContext
+### Fix: Keep oscillator alive during pitch changes
+Once an oscillator is playing, only stop it when there's **silence** (no pitch detected), not when the pitch shifts. The reference tone should persist as long as the user is playing any note. When the detected note changes significantly, update the oscillator's frequency instead of destroying and recreating it.
 
-Create a **separate AudioContext** specifically for sound output, initialized on the "Match Sound" button tap (which is a user gesture, satisfying browser autoplay policies). The mic input continues using its own context. The oscillator plays through the output context.
+**In the `detect()` callback:**
+- When pitch is detected and an oscillator is already playing: update `oscillatorRef.current.frequency.value` to the new note instead of stopping
+- Only stop the oscillator in the "no pitch detected" branch (the outer else on line 211-215)
+- Remove `stopOscillator()` from the "pitch changed" inner else branch (line 208)
 
-### Changes in `src/components/practice-log/Tuner.tsx`
+### Problem 2: Button styling mismatch
+The mic button uses `variant="destructive"` (red) when on and `variant="default"` when off. The Match Sound button uses `variant="default"` when on and `variant="outline"` when off -- inconsistent.
 
-#### 1. Add a new ref for the output AudioContext
-```typescript
-const outputCtxRef = useRef<AudioContext | null>(null);
+### Fix: Match the mic button pattern
+- On state: `variant="destructive"` (red, like mic-off)
+- Off state: `variant="default"` (primary color, like mic-on)
+- Make it a round icon-style button like the mic button for visual consistency
+
+### Technical Details
+
+**File: `src/components/practice-log/Tuner.tsx`**
+
+**Change 1 -- Keep oscillator alive (lines 186-210):**
 ```
-
-#### 2. Create output context on Match Sound button click (user gesture)
-When the user taps "Match Sound" to enable it, create the output AudioContext immediately. This satisfies iOS Safari's requirement that audio contexts are created/resumed from a user gesture:
-```typescript
-onClick={() => {
-  if (matchSoundEnabled) {
-    stopOscillator();
-    outputCtxRef.current?.close();
-    outputCtxRef.current = null;
-  } else {
-    // Create output context on user gesture - critical for iOS
-    const outCtx = new AudioContext();
-    outputCtxRef.current = outCtx;
+if (stablePitchRef.current && Math.abs(...) <= 1) {
+  if (matchSoundEnabledRef.current && !oscillatorRef.current && ...) {
+    // create oscillator (unchanged)
   }
-  setMatchSoundEnabled(!matchSoundEnabled);
-}}
+} else {
+  // REMOVE: stopOscillator();
+  // KEEP: stablePitchRef.current = { midiNote, since: now };
+  // ADD: if oscillator exists, update its frequency to new note
+  if (oscillatorRef.current) {
+    oscillatorRef.current.frequency.value = midiToFrequency(midiNote);
+  }
+}
 ```
 
-#### 3. Use the output context for the oscillator (in detect loop)
-Change the oscillator creation (around line 189) to use `outputCtxRef.current` instead of `audioCtxRef.current`:
-```typescript
-const ctx = outputCtxRef.current;
-if (!ctx) return; // safety check
-if (ctx.state === 'suspended') ctx.resume();
-const osc = ctx.createOscillator();
-// ... rest stays the same
+The oscillator only stops when:
+- No pitch detected (silence) -- line 213
+- User disables Match Sound -- button onClick
+- User stops listening -- stopListening()
+
+**Change 2 -- Button styling (lines 334-354):**
+```
+<Button
+  type="button"
+  variant={matchSoundEnabled ? "destructive" : "default"}
+  size="sm"
+  className="text-xs h-7 gap-1"
+  ...
+>
 ```
 
-#### 4. Clean up output context on stop/unmount
-- In `stopListening`: close `outputCtxRef.current` and set to null
-- In the cleanup `useEffect`: close `outputCtxRef.current`
-
-#### 5. Add console.log for debugging (temporary)
-Add a log when the oscillator starts so we can verify the code path is reached:
-```typescript
-console.log("Match Sound: playing reference tone at", midiToFrequency(midiNote), "Hz");
-```
+**Change 3 -- Remove debug console.log (line 193)**
 
 ### What stays the same
-- All pitch detection logic, transposition, gauge, UI layout unchanged
-- Triangle waveform, 500ms threshold, 1-semitone tolerance unchanged
-- The mic input AudioContext (`audioCtxRef`) is untouched
-
+- All pitch detection, transposition, gauge, note display unchanged
+- Triangle waveform, 500ms initial threshold, 1-semitone tolerance unchanged
+- Dedicated output AudioContext approach unchanged
+- All cleanup/unmount logic unchanged
