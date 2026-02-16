@@ -29,3 +29,19 @@ export async function notifySubscriberEvent(
     console.warn("[notifySubscriberEvent] failed:", err);
   }
 }
+
+/**
+ * Unauthenticated variant for signup events where no session exists yet.
+ * The edge function allows signup events without a Bearer token.
+ */
+export async function notifySubscriberEventUnauthenticated(
+  payload: SubscriberEventPayload
+): Promise<void> {
+  try {
+    await supabase.functions.invoke("notify-subscriber-event", {
+      body: payload,
+    });
+  } catch (err) {
+    console.warn("[notifySubscriberEventUnauthenticated] failed:", err);
+  }
+}
