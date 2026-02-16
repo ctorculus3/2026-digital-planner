@@ -1,34 +1,38 @@
 
 
-## Fix Signup Webhook to Work Without a Session
+## Add Upgrade Webhook Event
 
-### Problem
+### Overview
 
-After signup, the user has no active session (email confirmation is required first), so `notifySubscriberEvent` exits early at the `if (!session) return` check and never calls the edge function.
+Fire an "upgrade" event to the n8n webhook when a user transitions from a trial subscription to a paid subscription. This is detected client-side in the same place where cancellation is already detected.
 
-### Solution
+### How It Works
 
-For the **signup event only**, skip the session requirement and call the edge function using just the anon key (which the Supabase client includes automatically). The edge function also needs to allow unauthenticated requests specifically for the "signup" event.
+The `check-subscription` edge function already returns an `is_trialing` flag. By tracking the previous trialing state alongside the existing status ref, we can detect the moment a user goes from `active + trialing` to `active + not trialing` -- that is the upgrade moment.
 
 ### Changes
 
-#### 1. `src/lib/notifySubscriberEvent.ts` -- add unauthenticated overload
+#### 1. `src/contexts/AuthContext.tsx`
 
-- Add a new exported function `notifySubscriberEventUnauthenticated(payload)` that calls the edge function **without** an Authorization header
-- The existing `notifySubscriberEvent(session, payload)` stays unchanged for update/cancel events that have a session
+- Add a `prevIsTrialingRef` (similar to the existing `prevSubStatusRef`) to track the previous trialing state
+- After `fetchSubscription` resolves, check: if previous status was `active` AND `prevIsTrialing` was `true`, and new status is `active` AND `is_trialing` is `false`, fire the upgrade event
+- The notify call follows the same fire-and-forget pattern as the existing cancel event
 
-#### 2. `supabase/functions/notify-subscriber-event/index.ts` -- allow signup without auth
+Detection logic (pseudocode):
+```text
+if prevStatus === 'active'
+   AND prevIsTrialing === true
+   AND newStatus === 'active'
+   AND newIsTrialing === false
+   -> fire { event: "upgrade", email: user.email }
+```
 
-- Change the auth check: if the event is `"signup"`, skip token validation and proceed directly to forwarding
-- For `"update"` and `"cancel"` events, keep the existing auth validation
-- This is safe because the signup event only sends data the user just typed into the form (email, name) and the webhook URL is secret
+#### 2. `src/lib/notifySubscriberEvent.ts`
 
-#### 3. `src/pages/Landing.tsx` -- use the unauthenticated helper
+- Add `"upgrade"` to the `event` union type in `SubscriberEventPayload`
 
-- Replace the `supabase.auth.getSession().then(...)` block with a direct call to `notifySubscriberEventUnauthenticated(payload)`
-- Remove the unnecessary session fetch entirely
+### No Other Changes Needed
 
-### No Existing Features Affected
+- The edge function already forwards any event type to the webhook, so no backend changes are required
+- The `SubscriptionGate` polling after checkout will naturally trigger the subscription check, which will detect the trial-to-paid transition
 
-- Update and cancel events continue to require authentication
-- The change is minimal and only affects the signup path
