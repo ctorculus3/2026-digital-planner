@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchIdRef = useRef(0);
   // Track previous subscription status to detect cancellation
   const prevSubStatusRef = useRef<SubscriptionStatus>('loading');
+  // Track previous trialing state to detect upgrade (trial -> paid)
+  const prevIsTrialingRef = useRef(false);
   const fetchSubscription = useCallback(async (currentSession: Session | null) => {
     const myId = ++fetchIdRef.current;
 
@@ -81,7 +83,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
         }
+
+        // Detect upgrade: active+trialing -> active+not trialing
+        const newIsTrialing = data?.is_trialing || false;
+        if (
+          prevSubStatusRef.current === 'active' &&
+          prevIsTrialingRef.current === true &&
+          newStatus === 'active' &&
+          newIsTrialing === false
+        ) {
+          const userEmail = currentSession.user?.email;
+          if (userEmail) {
+            notifySubscriberEvent(currentSession, {
+              event: "upgrade",
+              email: userEmail,
+            });
+          }
+        }
+
         prevSubStatusRef.current = newStatus;
+        prevIsTrialingRef.current = newIsTrialing;
 
         setSubscription({
           status: newStatus,
