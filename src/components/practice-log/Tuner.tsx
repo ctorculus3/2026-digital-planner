@@ -138,6 +138,7 @@ export function Tuner() {
   const stablePitchRef = useRef<{ midiNote: number; since: number } | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const outputCtxRef = useRef<AudioContext | null>(null);
   const matchSoundEnabledRef = useRef(false);
   const transpositionRef = useRef("C");
 
@@ -185,9 +186,11 @@ export function Tuner() {
       if (stablePitchRef.current && Math.abs(stablePitchRef.current.midiNote - midiNote) <= 1) {
         // Same note sustained (±1 semitone tolerance)
         if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
-          // Start reference tone
-          const ctx = audioCtxRef.current!;
+          // Start reference tone using dedicated output context
+          const ctx = outputCtxRef.current;
+          if (!ctx) return;
           if (ctx.state === 'suspended') ctx.resume();
+          console.log("Match Sound: playing reference tone at", midiToFrequency(midiNote), "Hz");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "triangle";
@@ -243,6 +246,8 @@ export function Tuner() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     audioCtxRef.current?.close();
     audioCtxRef.current = null;
+    outputCtxRef.current?.close();
+    outputCtxRef.current = null;
     analyserRef.current = null;
     streamRef.current = null;
     bufferRef.current = null;
@@ -259,6 +264,7 @@ export function Tuner() {
       stopOscillator();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close();
+      outputCtxRef.current?.close();
     };
   }, [stopOscillator]);
 
@@ -331,7 +337,15 @@ export function Tuner() {
         size="sm"
         className="text-xs h-7 gap-1"
         onClick={() => {
-          if (matchSoundEnabled) stopOscillator();
+          if (matchSoundEnabled) {
+            stopOscillator();
+            outputCtxRef.current?.close();
+            outputCtxRef.current = null;
+          } else {
+            // Create output context on user gesture - critical for iOS
+            const outCtx = new AudioContext();
+            outputCtxRef.current = outCtx;
+          }
           setMatchSoundEnabled(!matchSoundEnabled);
         }}
       >
