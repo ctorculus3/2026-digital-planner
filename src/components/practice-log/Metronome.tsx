@@ -15,31 +15,49 @@ export function Metronome({ onStart }: MetronomeProps) {
   const hasStartedRef = useRef(false);
   const claveBufferRef = useRef<AudioBuffer | null>(null);
 
-  const getAudioContext = useCallback(() => {
+  const getAudioContext = useCallback(async () => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new AudioContext();
     }
     if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+      await audioCtxRef.current.resume();
     }
     return audioCtxRef.current;
   }, []);
 
   const loadClave = useCallback(async () => {
     if (claveBufferRef.current) return;
-    const ctx = getAudioContext();
-    const response = await fetch("/audio/Clave-4.wav");
-    const arrayBuffer = await response.arrayBuffer();
-    claveBufferRef.current = await ctx.decodeAudioData(arrayBuffer);
+    try {
+      const ctx = await getAudioContext();
+      const response = await fetch("/audio/Clave-4.wav");
+      if (!response.ok) throw new Error(`Failed to fetch clave: ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      claveBufferRef.current = await ctx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      console.error("Failed to load clave sample, will use fallback beep:", err);
+      claveBufferRef.current = null;
+    }
   }, [getAudioContext]);
 
-  const playClick = useCallback(() => {
-    if (!claveBufferRef.current) return;
-    const ctx = getAudioContext();
-    const source = ctx.createBufferSource();
-    source.buffer = claveBufferRef.current;
-    source.connect(ctx.destination);
-    source.start();
+  const playClick = useCallback(async () => {
+    const ctx = await getAudioContext();
+    if (claveBufferRef.current) {
+      const source = ctx.createBufferSource();
+      source.buffer = claveBufferRef.current;
+      source.connect(ctx.destination);
+      source.start();
+    } else {
+      // Fallback oscillator beep
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.value = 1000;
+      gain.gain.value = 0.3;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.03);
+    }
   }, [getAudioContext]);
 
   const startMetronome = useCallback(async () => {
