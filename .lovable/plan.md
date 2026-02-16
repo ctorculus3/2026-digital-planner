@@ -1,39 +1,61 @@
 
 
-## Fix Match Sound: Ensure Audio Actually Plays
+## Fix Match Sound: Use Separate Audio Output Context
 
-### Root Causes
+### Root Cause
 
-1. **AudioContext suspension** -- On mobile browsers (especially iOS Safari), the AudioContext can become suspended. The oscillator is created inside a `requestAnimationFrame` callback, which is NOT a user gesture, so the browser may block audio output. The fix is to explicitly call `ctx.resume()` before starting the oscillator.
+The real problem is that on mobile browsers (especially iOS Safari), an `AudioContext` created with `getUserMedia` for microphone input often cannot simultaneously output sound. The browser ties that context to the input routing and blocks or silences audio output through it. All previous fixes (resume, volume) were applied to this same blocked context.
 
-2. **Volume too low** -- A gain of `0.15` with a `triangle` waveform is very quiet, borderline inaudible on many devices. Increase to `0.25` for a comfortable but noticeable level.
+### Solution: Dedicated Output AudioContext
+
+Create a **separate AudioContext** specifically for sound output, initialized on the "Match Sound" button tap (which is a user gesture, satisfying browser autoplay policies). The mic input continues using its own context. The oscillator plays through the output context.
 
 ### Changes in `src/components/practice-log/Tuner.tsx`
 
-#### Fix 1: Resume AudioContext before playing oscillator (line ~189)
-Before creating and starting the oscillator, add `await`-free resume call:
-
+#### 1. Add a new ref for the output AudioContext
 ```typescript
-// Before: just creates oscillator
-const ctx = audioCtxRef.current!;
-
-// After: resume context first
-const ctx = audioCtxRef.current!;
-if (ctx.state === 'suspended') ctx.resume();
+const outputCtxRef = useRef<AudioContext | null>(null);
 ```
 
-#### Fix 2: Increase gain volume (line ~194)
+#### 2. Create output context on Match Sound button click (user gesture)
+When the user taps "Match Sound" to enable it, create the output AudioContext immediately. This satisfies iOS Safari's requirement that audio contexts are created/resumed from a user gesture:
 ```typescript
-// Before
-gain.gain.setTargetAtTime(0.15, ctx.currentTime, 0.08);
+onClick={() => {
+  if (matchSoundEnabled) {
+    stopOscillator();
+    outputCtxRef.current?.close();
+    outputCtxRef.current = null;
+  } else {
+    // Create output context on user gesture - critical for iOS
+    const outCtx = new AudioContext();
+    outputCtxRef.current = outCtx;
+  }
+  setMatchSoundEnabled(!matchSoundEnabled);
+}}
+```
 
-// After
-gain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.08);
+#### 3. Use the output context for the oscillator (in detect loop)
+Change the oscillator creation (around line 189) to use `outputCtxRef.current` instead of `audioCtxRef.current`:
+```typescript
+const ctx = outputCtxRef.current;
+if (!ctx) return; // safety check
+if (ctx.state === 'suspended') ctx.resume();
+const osc = ctx.createOscillator();
+// ... rest stays the same
+```
+
+#### 4. Clean up output context on stop/unmount
+- In `stopListening`: close `outputCtxRef.current` and set to null
+- In the cleanup `useEffect`: close `outputCtxRef.current`
+
+#### 5. Add console.log for debugging (temporary)
+Add a log when the oscillator starts so we can verify the code path is reached:
+```typescript
+console.log("Match Sound: playing reference tone at", midiToFrequency(midiNote), "Hz");
 ```
 
 ### What stays the same
-- All pitch detection, transposition, gauge, and UI unchanged
-- Triangle waveform stays (softer sound as requested)
-- 500ms threshold and 1-semitone tolerance unchanged
-- Cleanup/unmount logic unchanged
+- All pitch detection logic, transposition, gauge, UI layout unchanged
+- Triangle waveform, 500ms threshold, 1-semitone tolerance unchanged
+- The mic input AudioContext (`audioCtxRef`) is untouched
 
