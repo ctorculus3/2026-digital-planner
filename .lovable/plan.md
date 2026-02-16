@@ -1,71 +1,58 @@
 
 
-## Fix Match Sound Audio + Button Styling
+## Fix Match Sound: Stop Early Return from Killing the Detection Loop
 
-### Problem 1: No Audible Sound
-Console logs prove oscillators ARE being created, but they're immediately destroyed. Here's what happens each cycle:
-1. User holds a note for 500ms -- oscillator created
-2. Next frame: natural pitch fluctuation exceeds 1-semitone tolerance -- else branch fires, `stopOscillator()` kills it
-3. Timer resets, wait another 500ms, repeat
+### Root Cause
 
-Each oscillator lives only ~16ms (one animation frame), far too short to hear.
+In the `detect()` function at line 191, there is a defensive check:
 
-### Fix: Keep oscillator alive during pitch changes
-Once an oscillator is playing, only stop it when there's **silence** (no pitch detected), not when the pitch shifts. The reference tone should persist as long as the user is playing any note. When the detected note changes significantly, update the oscillator's frequency instead of destroying and recreating it.
+```text
+if (!ctx) return;
+```
 
-**In the `detect()` callback:**
-- When pitch is detected and an oscillator is already playing: update `oscillatorRef.current.frequency.value` to the new note instead of stopping
-- Only stop the oscillator in the "no pitch detected" branch (the outer else on line 211-215)
-- Remove `stopOscillator()` from the "pitch changed" inner else branch (line 208)
+This `return` exits the **entire** `detect` function. But `requestAnimationFrame(detect)` is at the very end of `detect()` (line 219). When this `return` fires, the rAF loop stops -- no more pitch detection, no more tuning, nothing. The tuner silently dies.
 
-### Problem 2: Button styling mismatch
-The mic button uses `variant="destructive"` (red) when on and `variant="default"` when off. The Match Sound button uses `variant="default"` when on and `variant="outline"` when off -- inconsistent.
+This happens when:
+1. Match Sound is enabled (`matchSoundEnabledRef.current` is true)
+2. A note is sustained for 500ms (passes the timing check)
+3. `outputCtxRef.current` is null for any reason (e.g., timing edge case, or context was closed)
 
-### Fix: Match the mic button pattern
-- On state: `variant="destructive"` (red, like mic-off)
-- Off state: `variant="default"` (primary color, like mic-on)
-- Make it a round icon-style button like the mic button for visual consistency
+Even if it only happens once, the entire tuner freezes.
 
-### Technical Details
+### Fix
+
+Restructure the oscillator creation block so that failing to create sound **never** aborts the detection loop. Replace the early `return` with a simple conditional wrapper -- if there's no output context, skip oscillator creation but keep detecting.
+
+### Technical Changes
 
 **File: `src/components/practice-log/Tuner.tsx`**
 
-**Change 1 -- Keep oscillator alive (lines 186-210):**
+**Lines 188-205** -- Wrap oscillator creation in a null check instead of returning:
+
+Before:
+```text
+if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
+  const ctx = outputCtxRef.current;
+  if (!ctx) return;          // <-- KILLS THE LOOP
+  if (ctx.state === 'suspended') ctx.resume();
+  // ... oscillator creation
+}
 ```
-if (stablePitchRef.current && Math.abs(...) <= 1) {
-  if (matchSoundEnabledRef.current && !oscillatorRef.current && ...) {
-    // create oscillator (unchanged)
-  }
-} else {
-  // REMOVE: stopOscillator();
-  // KEEP: stablePitchRef.current = { midiNote, since: now };
-  // ADD: if oscillator exists, update its frequency to new note
-  if (oscillatorRef.current) {
-    oscillatorRef.current.frequency.value = midiToFrequency(midiNote);
+
+After:
+```text
+if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
+  const ctx = outputCtxRef.current;
+  if (ctx) {                 // <-- Safe: skip if no ctx, but don't return
+    if (ctx.state === 'suspended') ctx.resume();
+    // ... oscillator creation (unchanged)
   }
 }
 ```
 
-The oscillator only stops when:
-- No pitch detected (silence) -- line 213
-- User disables Match Sound -- button onClick
-- User stops listening -- stopListening()
+This is the only code change needed. Everything else (pitch detection, transposition, gauge, button styling, cleanup) stays exactly the same.
 
-**Change 2 -- Button styling (lines 334-354):**
-```
-<Button
-  type="button"
-  variant={matchSoundEnabled ? "destructive" : "default"}
-  size="sm"
-  className="text-xs h-7 gap-1"
-  ...
->
-```
+### Why previous fixes didn't work
 
-**Change 3 -- Remove debug console.log (line 193)**
+Every previous attempt fixed real issues (separate AudioContext, volume, frequency updates) but this silent loop-killer was present the entire time. The tuner would detect a pitch, try to play sound, hit the `return`, and the whole component would freeze -- no sound, no further detection.
 
-### What stays the same
-- All pitch detection, transposition, gauge, note display unchanged
-- Triangle waveform, 500ms initial threshold, 1-semitone tolerance unchanged
-- Dedicated output AudioContext approach unchanged
-- All cleanup/unmount logic unchanged
