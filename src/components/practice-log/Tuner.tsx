@@ -133,7 +133,7 @@ export function Tuner() {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const bufferRef = useRef<any>(null);
-
+  const silenceTimeoutRef = useRef<number | null>(null);
   // Match sound refs
   const stablePitchRef = useRef<{ midiNote: number; since: number } | null>(null);
   const lockedMidiNoteRef = useRef<number | null>(null);
@@ -167,6 +167,12 @@ export function Tuner() {
     const freq = autoCorrelate(bufferRef.current, audioCtxRef.current!.sampleRate);
 
     if (freq > 0 && freq < 5000) {
+      // Cancel any pending silence timeout
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+
       const { note, octave, cents: c, midiNote } = frequencyToNote(freq);
 
       // Apply transposition for display
@@ -218,9 +224,17 @@ export function Tuner() {
         stablePitchRef.current = { midiNote, since: now };
       }
     } else {
+      // Pitch lost — give a grace period before stopping
       setActiveSegment(null);
-      stopOscillator();
-      stablePitchRef.current = null;
+      if (oscillatorRef.current && !silenceTimeoutRef.current) {
+        silenceTimeoutRef.current = window.setTimeout(() => {
+          stopOscillator();
+          stablePitchRef.current = null;
+          silenceTimeoutRef.current = null;
+        }, 500);
+      } else if (!oscillatorRef.current) {
+        stablePitchRef.current = null;
+      }
     }
 
     rafRef.current = requestAnimationFrame(detect);
@@ -250,6 +264,7 @@ export function Tuner() {
 
   const stopListening = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (silenceTimeoutRef.current) { clearTimeout(silenceTimeoutRef.current); silenceTimeoutRef.current = null; }
     stopOscillator();
     stablePitchRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -270,6 +285,7 @@ export function Tuner() {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
       stopOscillator();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close();
