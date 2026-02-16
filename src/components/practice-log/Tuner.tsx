@@ -187,12 +187,13 @@ export function Tuner() {
         if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 500)) {
           // Start reference tone
           const ctx = audioCtxRef.current!;
+          if (ctx.state === 'suspended') ctx.resume();
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "triangle";
           osc.frequency.value = midiToFrequency(midiNote);
           gain.gain.value = 0;
-          gain.gain.setTargetAtTime(0.15, ctx.currentTime, 0.08);
+          gain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.08);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start();
