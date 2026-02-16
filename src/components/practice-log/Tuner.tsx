@@ -1,55 +1,60 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Volume2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+const TRANSPOSITION_OFFSETS: Record<string, number> = {
+  C: 0,
+  Bb: 2,
+  Eb: 9,
+  F: 5,
+};
+
 // Segment colors from left (very flat) to right (very sharp)
-// 9 segments: 2 red, 2 orange, 2 yellow, 1 green center, then mirror
 const SEGMENT_COLORS = [
-"hsl(0, 100%, 60%)", // far flat - bright red
-"hsl(25, 100%, 60%)", // flat - bright orange
-"hsl(45, 100%, 55%)", // slightly flat - bright amber
-"hsl(55, 100%, 55%)", // almost - bright yellow
-"hsl(140, 90%, 50%)", // in tune - bright green
-"hsl(55, 100%, 55%)", // almost - bright yellow
-"hsl(45, 100%, 55%)", // slightly sharp - bright amber
-"hsl(25, 100%, 60%)", // sharp - bright orange
-"hsl(0, 100%, 60%)" // far sharp - bright red
+  "hsl(0, 100%, 60%)",
+  "hsl(25, 100%, 60%)",
+  "hsl(45, 100%, 55%)",
+  "hsl(55, 100%, 55%)",
+  "hsl(140, 90%, 50%)",
+  "hsl(55, 100%, 55%)",
+  "hsl(45, 100%, 55%)",
+  "hsl(25, 100%, 60%)",
+  "hsl(0, 100%, 60%)",
 ];
 
 const SEGMENT_GLOWS = [
-"0 0 10px hsl(0, 100%, 60%)",
-"0 0 10px hsl(25, 100%, 60%)",
-"0 0 10px hsl(45, 100%, 55%)",
-"0 0 10px hsl(55, 100%, 55%)",
-"0 0 12px hsl(140, 90%, 50%)",
-"0 0 10px hsl(55, 100%, 55%)",
-"0 0 10px hsl(45, 100%, 55%)",
-"0 0 10px hsl(25, 100%, 60%)",
-"0 0 10px hsl(0, 100%, 60%)"
+  "0 0 10px hsl(0, 100%, 60%)",
+  "0 0 10px hsl(25, 100%, 60%)",
+  "0 0 10px hsl(45, 100%, 55%)",
+  "0 0 10px hsl(55, 100%, 55%)",
+  "0 0 12px hsl(140, 90%, 50%)",
+  "0 0 10px hsl(55, 100%, 55%)",
+  "0 0 10px hsl(45, 100%, 55%)",
+  "0 0 10px hsl(25, 100%, 60%)",
+  "0 0 10px hsl(0, 100%, 60%)",
 ];
 
 const SEGMENT_COUNT = SEGMENT_COLORS.length;
 
 function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
-  // Check if there's enough signal
   let rms = 0;
   for (let i = 0; i < buffer.length; i++) {
     rms += buffer[i] * buffer[i];
   }
   rms = Math.sqrt(rms / buffer.length);
-  if (rms < 0.01) return -1; // not enough signal
+  if (rms < 0.01) return -1;
 
-  // Trim silence from ends
   let r1 = 0;
   let r2 = buffer.length - 1;
   const threshold = 0.2;
   for (let i = 0; i < buffer.length / 2; i++) {
-    if (Math.abs(buffer[i]) < threshold) {r1 = i;break;}
+    if (Math.abs(buffer[i]) < threshold) { r1 = i; break; }
   }
   for (let i = 1; i < buffer.length / 2; i++) {
-    if (Math.abs(buffer[buffer.length - i]) < threshold) {r2 = buffer.length - i;break;}
+    if (Math.abs(buffer[buffer.length - i]) < threshold) { r2 = buffer.length - i; break; }
   }
 
   const buf = buffer.slice(r1, r2);
@@ -61,14 +66,12 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
     }
   }
 
-  // Find first dip
   let d = 0;
   while (c[d] > c[d + 1]) {
     d++;
     if (d >= c.length - 1) return -1;
   }
 
-  // Find peak after dip
   let maxVal = -1;
   let maxPos = -1;
   for (let i = d; i < c.length; i++) {
@@ -78,7 +81,6 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
     }
   }
 
-  // Parabolic interpolation for better precision
   const t0 = maxPos > 0 ? c[maxPos - 1] : c[maxPos];
   const t1 = c[maxPos];
   const t2 = maxPos < c.length - 1 ? c[maxPos + 1] : c[maxPos];
@@ -91,19 +93,28 @@ function autoCorrelate(buffer: Float32Array, sampleRate: number): number {
   return sampleRate / maxPos;
 }
 
-function frequencyToNote(freq: number): {note: string;octave: number;cents: number;} {
+function frequencyToNote(freq: number): { note: string; octave: number; cents: number; midiNote: number } {
   const noteNum = 12 * Math.log2(freq / 440) + 69;
   const roundedNote = Math.round(noteNum);
   const cents = Math.round((noteNum - roundedNote) * 100);
   const noteName = NOTE_NAMES[(roundedNote % 12 + 12) % 12];
   const octave = Math.floor(roundedNote / 12) - 1;
-  return { note: noteName, octave, cents };
+  return { note: noteName, octave, cents, midiNote: roundedNote };
+}
+
+function transposeNoteName(midiNote: number, offset: number): { note: string; octave: number } {
+  const transposed = midiNote + offset;
+  const note = NOTE_NAMES[(transposed % 12 + 12) % 12];
+  const octave = Math.floor(transposed / 12) - 1;
+  return { note, octave };
+}
+
+function midiToFrequency(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
 function centsToSegmentIndex(cents: number): number {
-  // Map -50..+50 cents to segment 0..8
-  // Center (0 cents) = segment 4
-  const normalized = (cents + 50) / 100; // 0..1
+  const normalized = (cents + 50) / 100;
   const idx = Math.round(normalized * (SEGMENT_COUNT - 1));
   return Math.max(0, Math.min(SEGMENT_COUNT - 1, idx));
 }
@@ -114,12 +125,37 @@ export function Tuner() {
   const [detectedOctave, setDetectedOctave] = useState<number | null>(null);
   const [cents, setCents] = useState(0);
   const [activeSegment, setActiveSegment] = useState<number | null>(null);
+  const [transposition, setTransposition] = useState("C");
+  const [matchSoundEnabled, setMatchSoundEnabled] = useState(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const bufferRef = useRef<any>(null);
+
+  // Match sound refs
+  const stablePitchRef = useRef<{ midiNote: number; since: number } | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const matchSoundEnabledRef = useRef(false);
+  const transpositionRef = useRef("C");
+
+  // Keep refs in sync with state
+  useEffect(() => { matchSoundEnabledRef.current = matchSoundEnabled; }, [matchSoundEnabled]);
+  useEffect(() => { transpositionRef.current = transposition; }, [transposition]);
+
+  const stopOscillator = useCallback(() => {
+    if (gainNodeRef.current && oscillatorRef.current) {
+      try {
+        gainNodeRef.current.gain.setTargetAtTime(0, gainNodeRef.current.context.currentTime, 0.05);
+        const osc = oscillatorRef.current;
+        setTimeout(() => { try { osc.stop(); } catch {} }, 100);
+      } catch {}
+    }
+    oscillatorRef.current = null;
+    gainNodeRef.current = null;
+  }, []);
 
   const detect = useCallback(() => {
     if (!analyserRef.current || !bufferRef.current) return;
@@ -128,17 +164,54 @@ export function Tuner() {
     const freq = autoCorrelate(bufferRef.current, audioCtxRef.current!.sampleRate);
 
     if (freq > 0 && freq < 5000) {
-      const { note, octave, cents: c } = frequencyToNote(freq);
-      setDetectedNote(note);
-      setDetectedOctave(octave);
+      const { note, octave, cents: c, midiNote } = frequencyToNote(freq);
+
+      // Apply transposition for display
+      const offset = TRANSPOSITION_OFFSETS[transpositionRef.current] || 0;
+      if (offset === 0) {
+        setDetectedNote(note);
+        setDetectedOctave(octave);
+      } else {
+        const t = transposeNoteName(midiNote, offset);
+        setDetectedNote(t.note);
+        setDetectedOctave(t.octave);
+      }
+
       setCents(c);
       setActiveSegment(centsToSegmentIndex(c));
+
+      // Match sound logic
+      const now = performance.now();
+      if (stablePitchRef.current && stablePitchRef.current.midiNote === midiNote) {
+        // Same note sustained
+        if (matchSoundEnabledRef.current && !oscillatorRef.current && (now - stablePitchRef.current.since > 1000)) {
+          // Start reference tone
+          const ctx = audioCtxRef.current!;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = midiToFrequency(midiNote);
+          gain.gain.value = 0;
+          gain.gain.setTargetAtTime(0.15, ctx.currentTime, 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          oscillatorRef.current = osc;
+          gainNodeRef.current = gain;
+        }
+      } else {
+        // Pitch changed
+        stopOscillator();
+        stablePitchRef.current = { midiNote, since: now };
+      }
     } else {
       setActiveSegment(null);
+      stopOscillator();
+      stablePitchRef.current = null;
     }
 
     rafRef.current = requestAnimationFrame(detect);
-  }, []);
+  }, [stopOscillator]);
 
   const startListening = useCallback(async () => {
     try {
@@ -164,6 +237,8 @@ export function Tuner() {
 
   const stopListening = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    stopOscillator();
+    stablePitchRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     audioCtxRef.current?.close();
     audioCtxRef.current = null;
@@ -175,18 +250,39 @@ export function Tuner() {
     setDetectedOctave(null);
     setCents(0);
     setActiveSegment(null);
-  }, []);
+  }, [stopOscillator]);
 
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      stopOscillator();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close();
     };
-  }, []);
+  }, [stopOscillator]);
 
   return (
     <div className="mt-3 rounded-lg p-3 flex flex-col items-center gap-2 mx-0 bg-[hsl(var(--time-section-bg))]">
+      {/* Transposition toggle */}
+      <ToggleGroup
+        type="single"
+        value={transposition}
+        onValueChange={(v) => { if (v) setTransposition(v); }}
+        className="gap-1"
+      >
+        {Object.keys(TRANSPOSITION_OFFSETS).map((key) => (
+          <ToggleGroupItem
+            key={key}
+            value={key}
+            variant="outline"
+            size="sm"
+            className="text-xs px-2.5 h-7 font-semibold"
+          >
+            {key}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+
       {/* Mic button + label */}
       <div className="flex flex-col items-center gap-1">
         <Button
@@ -194,7 +290,8 @@ export function Tuner() {
           size="icon"
           variant={isListening ? "destructive" : "default"}
           className="rounded-full w-8 h-8 shrink-0"
-          onClick={isListening ? stopListening : startListening}>
+          onClick={isListening ? stopListening : startListening}
+        >
           {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
         </Button>
         {!detectedNote && (
@@ -226,6 +323,21 @@ export function Tuner() {
         <span className="text-sm text-muted-foreground font-semibold ml-1">♯</span>
       </div>
 
+      {/* Match Sound toggle */}
+      <Button
+        type="button"
+        variant={matchSoundEnabled ? "default" : "outline"}
+        size="sm"
+        className="text-xs h-7 gap-1"
+        onClick={() => {
+          if (matchSoundEnabled) stopOscillator();
+          setMatchSoundEnabled(!matchSoundEnabled);
+        }}
+      >
+        <Volume2 className="w-3 h-3" />
+        Match Sound
+      </Button>
+
       {/* Note display */}
       {isListening && detectedNote && (
         <div className="text-center">
@@ -238,6 +350,6 @@ export function Tuner() {
           </p>
         </div>
       )}
-    </div>);
-
+    </div>
+  );
 }
