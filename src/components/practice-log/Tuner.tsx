@@ -190,7 +190,7 @@ export function Tuner() {
           const ctx = outputCtxRef.current;
           if (!ctx) return;
           if (ctx.state === 'suspended') ctx.resume();
-          console.log("Match Sound: playing reference tone at", midiToFrequency(midiNote), "Hz");
+          // Reference tone started
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "triangle";
@@ -204,8 +204,10 @@ export function Tuner() {
           gainNodeRef.current = gain;
         }
       } else {
-        // Pitch changed
-        stopOscillator();
+        // Pitch changed — update oscillator frequency instead of stopping
+        if (oscillatorRef.current) {
+          oscillatorRef.current.frequency.value = midiToFrequency(midiNote);
+        }
         stablePitchRef.current = { midiNote, since: now };
       }
     } else {
@@ -333,7 +335,7 @@ export function Tuner() {
       {/* Match Sound toggle */}
       <Button
         type="button"
-        variant={matchSoundEnabled ? "default" : "outline"}
+        variant={matchSoundEnabled ? "destructive" : "default"}
         size="sm"
         className="text-xs h-7 gap-1"
         onClick={() => {
