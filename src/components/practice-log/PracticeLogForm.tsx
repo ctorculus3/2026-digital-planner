@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Save, Loader2, Plus } from "lucide-react";
 import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
+import { CopyFromButton } from "./CopyFromButton";
 import { MediaTools } from "./MediaTools";
 import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
@@ -416,6 +417,11 @@ export function PracticeLogForm({
           {dayName} – {formattedDate}
         </h2>
         <div className="flex items-center gap-2">
+          <CopyFromButton
+            targetDate={date}
+            userId={user.id}
+            hasExistingContent={!!practiceLog}
+          />
           <ShareButton practiceLogId={practiceLog?.id} disabled={!practiceLog} />
           <Button onClick={handleSave} disabled={isSaving || !hasUnsavedChanges} size="sm" variant={hasUnsavedChanges ? "default" : "outline"}>
             {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
