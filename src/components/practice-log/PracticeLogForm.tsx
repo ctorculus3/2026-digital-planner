@@ -132,6 +132,7 @@ export function PracticeLogForm({
   // Refs for initialization tracking to prevent race condition
   const isInitializedRef = useRef(false);
   const currentDateRef = useRef(date.toISOString());
+  const lastUpdatedAtRef = useRef<string | null>(null);
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
     if (!textarea) return;
     textarea.style.height = 'auto';
@@ -143,7 +144,17 @@ export function PracticeLogForm({
     // Reset initialization when date changes
     if (currentDateRef.current !== date.toISOString()) {
       isInitializedRef.current = false;
+      lastUpdatedAtRef.current = null;
       currentDateRef.current = date.toISOString();
+    }
+
+    // Detect external updates (e.g. copy operation) by tracking updated_at
+    if (practiceLog && lastUpdatedAtRef.current &&
+        practiceLog.updated_at !== lastUpdatedAtRef.current) {
+      isInitializedRef.current = false;
+    }
+    if (practiceLog) {
+      lastUpdatedAtRef.current = practiceLog.updated_at;
     }
 
     // Only initialize once per date to prevent overwriting user edits
