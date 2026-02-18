@@ -1,31 +1,24 @@
 
 
-## Separate Drone Section from Tuner
+## Update Drone Section Label and Background
 
-### Overview
-Move the Drone player out of the Tuner component into its own independent section in the practice log form, and make the drone note buttons larger and equally spaced.
+Two small changes to `src/components/practice-log/PracticeLogForm.tsx`:
 
-### Changes
+1. **Rename label** from "Drone" to "Drone Player"
+2. **Change background** of the Drone card from `bg-card` to `bg-[hsl(var(--time-section-bg))]` to match the Tuner's warm cream-beige background
 
-**1. `src/components/practice-log/Tuner.tsx`**
-- Remove the `DronePlayer` import and the drone section at the bottom (the "Drone" label and `<DronePlayer />` component)
+### Specific edit
 
-**2. `src/components/practice-log/DronePlayer.tsx`**
-- Make buttons larger: increase height from `h-8` to `h-10` and text from `text-xs` to `text-sm`
-- Use `flex-1` on each button so they stretch equally across the full width of the grid
-- The grid already uses `grid-cols-4` with `gap-1.5`, which ensures equal spacing
+In the Drone section block, change:
+```
+<div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+  <label ...>Drone</label>
+```
+to:
+```
+<div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
+  <label ...>Drone Player</label>
+```
 
-**3. `src/components/practice-log/PracticeLogForm.tsx`**
-- Import `DronePlayer`
-- Add a new independent card section for "Drone" right after (or near) the Tuner section, styled the same way as other sections:
-  ```
-  <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-    <label className="font-display text-sm text-muted-foreground mb-1 block">Drone</label>
-    <DronePlayer />
-  </div>
-  ```
+No other files need changes.
 
-### Result
-- Tuner section contains only the tuner (mic, pitch display, match sound)
-- Drone section appears as its own card with a "Drone" header
-- Note buttons are larger and evenly distributed across the width
