@@ -215,19 +215,21 @@ export default function Landing() {
       {/* ───── Hero ───── */}
       <section className="bg-background">
         <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center">
-          <img
-            src={musiciansHero}
-            alt="Practice Daily — a musician's practice journal illustration"
-            className="w-full max-w-4xl h-auto"
-            loading="eager"
-          />
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
-              Start Your Free Trial Now
-            </Button>
-            <Button variant="outline" size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
-              Sign in
-            </Button>
+          <div className="relative w-full max-w-4xl">
+            <img
+              src={musiciansHero}
+              alt="Practice Daily — a musician's practice journal illustration"
+              className="w-full h-auto"
+              loading="eager"
+            />
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+                Start Your Free Trial Now
+              </Button>
+              <Button variant="outline" size="lg" className="font-semibold text-base px-8 bg-white/90" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+                Sign in
+              </Button>
+            </div>
           </div>
         </div>
       </section>
