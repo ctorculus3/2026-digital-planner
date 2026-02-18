@@ -66,7 +66,7 @@ export function DronePlayer() {
               type="button"
               variant={activeNote === note ? "destructive" : "outline"}
               size="sm"
-              className="text-xs h-8 font-semibold px-1"
+              className="text-sm h-10 font-semibold px-1 flex-1"
               onClick={() => handleNote(note)}
             >
               {note}
