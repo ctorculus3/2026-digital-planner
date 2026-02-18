@@ -28,7 +28,7 @@ serve(async (req) => {
       );
     }
 
-    const voice = voiceId || "nPczCjzI2devNBz1zQrb"; // Brian
+    const voice = voiceId || "lxYfHSkYm1EzQzGhdbfc";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
