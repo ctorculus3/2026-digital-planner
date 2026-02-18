@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome, Activity, Mic, Users, BarChart3, Sparkles } from "lucide-react";
+import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Chrome, Activity, Mic, Users, BarChart3, Sparkles, Copy } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import { PlanToggle } from "@/components/subscription/PlanToggle";
 import { ContactDialog } from "@/components/ContactDialog";
@@ -37,7 +37,7 @@ const features = [{
 }, {
   icon: Mic,
   title: "Chromatic Tuner",
-  desc: "Tune your instrument in real time using your device microphone with a visual pitch gauge."
+  desc: "Tune your instrument in real time with transposition for C, B♭, E♭, and F keys. Enable Match Sound to hear a reference tone for intonation training."
 }, {
   icon: Users,
   title: "Community Feed",
@@ -53,7 +53,11 @@ const features = [{
 }, {
   icon: Sparkles,
   title: "Music AI Assistant",
-  desc: "Ask music theory questions, get practice advice, and receive personalized coaching — all powered by AI, right inside your journal."
+  desc: "Ask music theory questions, get practice advice, and receive personalized coaching — with voice playback so you can listen to responses hands-free."
+}, {
+  icon: Copy,
+  title: "Copy From Previous Day",
+  desc: "Duplicate any previous day's practice log to reuse your routine. Text fields are copied, media and PDFs are appended — start times stay fresh."
 }];
 const values = [{
   icon: Target,
@@ -81,7 +85,7 @@ const testimonials = [{
   name: "Dr. Elena R.",
   role: "Piano Instructor"
 }];
-const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Lesson PDF uploads with cloud storage & viewing", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches", "Built-in metronome with clave sample", "Chromatic tuner with real-time pitch detection", "Community feed to connect with musicians", "Dashboard with streaks, badges & practice calendar", "Music AI assistant for theory questions & practice coaching"];
+const pricingFeatures = ["Daily practice logging with goals & time tracking", "Scales, warmups & repertoire checklists", "Media tools — audio, YouTube, recordings", "Lesson PDF uploads with cloud storage & viewing", "Cloud storage across all your devices", "Share progress with teachers & peers", "Staff paper for notation sketches", "Built-in metronome with clave sample", "Chromatic tuner with transposition & Match Sound", "Copy from previous days to reuse your practice template", "Community feed to connect with musicians", "Dashboard with streaks, badges & practice calendar", "Music AI assistant with voice playback for theory & coaching"];
 
 /* ─────────── helpers ─────────── */
 
