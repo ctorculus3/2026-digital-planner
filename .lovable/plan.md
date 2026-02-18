@@ -1,32 +1,40 @@
 
 
-## Replace Hero Buttons with Link-Style Buttons
+## Replace Hero Image and Restore CTA Buttons
 
-Replace the two prominent hero buttons ("Start Your Free Trial Now" and "Sign in") with simple text links using the `link` variant of the Button component. This avoids visual duplication with the auth section CTA buttons further down the page.
+### What changes
 
-### Changes to `src/pages/Landing.tsx` (lines 224-231)
+**1. Replace the hero image asset**
+- Copy `user-uploads://Musical_journey_practice_journal_illustration.png` to `src/assets/musicians-hero.png` (overwriting the current file)
+- This new image already contains the illustration, headline, subtitle, and "Includes Music AI Assistant" line
 
-Replace the current button pair with link-styled text:
+**2. Add the original CTA buttons back inside the hero (under the image)**
+- Add a "Start Your Free Trial Now" primary button and a "Sign in" outline button directly below the image
+- These will use `size="lg"` with the original styling (`font-semibold text-base px-8`)
+- "Start Your Free Trial Now" sets sign-up mode and scrolls to auth
+- "Sign in" sets login mode and scrolls to auth
 
-- **"Start Your Free Trial Now"** -- change from default `Button` to `variant="link"` and keep the `onClick` that sets sign-up mode and scrolls to auth
-- **"Sign in"** -- change from `variant="outline"` to `variant="link"` and keep the `onClick` that sets login mode and scrolls to auth
-- Remove the `size="lg"` and extra padding classes since link-style buttons don't need them
-- Keep both on the same row, centered, with a small visual separator or just spacing between them
+**3. Remove the current link-style buttons**
+- Delete the existing `variant="link"` buttons that are currently below the image
 
 ### Technical detail
 
+**File: `src/assets/musicians-hero.png`** -- overwritten with the new uploaded image
+
+**File: `src/pages/Landing.tsx`** (lines 224-231) -- replace the link buttons with:
+
 ```tsx
-<div className="mt-6 flex items-center justify-center gap-6">
-  <Button variant="link" className="text-base" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+<div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+  <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
     Start Your Free Trial Now
   </Button>
-  <Button variant="link" className="text-base" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+  <Button variant="outline" size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
     Sign in
   </Button>
 </div>
 ```
 
 ### Preserved
-- Scroll-to-auth behavior
-- Login vs sign-up mode toggling
-- All other sections unchanged
+- Nav bar, all other sections, auth logic, scroll behavior unchanged
+- Only the hero section is affected
+
