@@ -1,38 +1,52 @@
 
 
-## Fix: Form Not Refreshing After Copy
+## Give the Music AI Coach a Voice with ElevenLabs TTS
 
-### Root Cause
+### How It Works
 
-In `PracticeLogForm.tsx` (line 150), the `isInitializedRef` guard prevents the form from re-reading `practiceLog` data once it's been initialized for a given date. When the copy operation completes and invalidates the query, fresh data arrives from the database, but the effect skips it because `isInitializedRef.current` is already `true`.
+After each AI response finishes streaming, a small speaker button will appear next to the message. Tapping it sends the text to ElevenLabs and plays the audio back. Users can also toggle an "auto-speak" mode so every response is read aloud automatically.
 
-The copy IS working -- data is saved to the database -- but the form simply doesn't update to reflect it.
+### Setup
 
-### Fix (single file: `PracticeLogForm.tsx`)
+1. **Link ElevenLabs connection** -- Your existing ElevenLabs connection needs to be linked to this project so the API key is available as a secret in backend functions.
 
-Track the `practiceLog.updated_at` timestamp in a ref. When it changes (indicating the database row was modified externally, e.g. by the copy operation), reset `isInitializedRef.current = false` so the form re-reads the fresh data.
+### New Backend Function
+
+**New file: `supabase/functions/elevenlabs-tts/index.ts`**
+- Accepts `{ text, voiceId }` in the request body
+- Calls the ElevenLabs TTS API (`/v1/text-to-speech/{voiceId}`) using the `ELEVENLABS_API_KEY` secret
+- Uses the `eleven_turbo_v2_5` model for low-latency speech
+- Returns the raw audio (MP3) as a binary response
+- Voice: "Brian" (`nPczCjzI2devNBz1zQrb`) -- a clear, warm male voice suitable for a tutor (can be changed later)
+
+### UI Changes
+
+**File: `src/components/practice-log/MusicAI.tsx`**
+- Add a small speaker/volume icon button next to each assistant message
+- When clicked, fetch audio from the TTS edge function and play it
+- Show a loading spinner while audio is being generated
+- Add a stop button to cancel playback mid-sentence
+- Add a toggle in the header for "Auto-speak" mode -- when enabled, each new response is automatically spoken aloud after streaming completes
 
 ### Technical Details
 
-**File: `src/components/practice-log/PracticeLogForm.tsx`**
+**Edge function (`elevenlabs-tts/index.ts`):**
+```
+POST { text: string, voiceId?: string }
+-> fetches from ElevenLabs API
+-> returns audio/mpeg binary
+```
 
-1. Add a ref to track the last known `updated_at`:
-   ```
-   const lastUpdatedAtRef = useRef<string | null>(null);
-   ```
+**Client-side playback:**
+- Uses `fetch()` with `.blob()` (not `supabase.functions.invoke()`) to get binary audio
+- Creates an `Audio` object from the blob URL for playback
+- Tracks playing state per message so only one message speaks at a time
 
-2. At the start of the existing `useEffect` (before the `isInitializedRef` check), detect if `practiceLog.updated_at` changed and reset initialization:
-   ```
-   if (practiceLog && lastUpdatedAtRef.current &&
-       practiceLog.updated_at !== lastUpdatedAtRef.current) {
-     isInitializedRef.current = false;
-   }
-   if (practiceLog) {
-     lastUpdatedAtRef.current = practiceLog.updated_at;
-   }
-   ```
+**Files to create:**
+- `supabase/functions/elevenlabs-tts/index.ts`
 
-3. Also reset `lastUpdatedAtRef.current = null` when the date changes (alongside the existing `isInitializedRef` reset).
+**Files to modify:**
+- `supabase/config.toml` -- add the new function entry
+- `src/components/practice-log/MusicAI.tsx` -- add speaker buttons and auto-speak toggle
 
-This is a minimal change -- just 6-8 lines added to the existing effect, no other files or logic affected.
-
+**No database changes needed.**
