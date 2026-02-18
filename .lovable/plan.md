@@ -1,26 +1,37 @@
 
 
-## Add Notification When TTS Limit Is Reached
+## Update How To Manual and Landing Page with Latest Features
 
-Currently, the app silently disables voice features on mount if the monthly quota is already exhausted. This change will show a visible toast notification so the user knows why voice is unavailable.
+Three features need to be documented: the enhanced Tuner (with transposition and Match Sound), Music AI Voice playback, and the Copy From feature.
 
-### What Changes
+### 1. How To Manual (`src/components/HowToManual.tsx`)
 
-**File: `src/components/practice-log/MusicAI.tsx`**
+**Tuner (Section 5 - Built-in Tools, line 98)**
+- Expand the existing one-line Tuner bullet to mention instrument transposition (C, Bb, Eb, F keys) and the Match Sound reference tone feature.
 
-- In the existing `useEffect` that checks quota on mount (`checkQuota`), add a toast notification when the usage is at or above the 6,000-second (100-minute) limit.
-- The toast will say something like: "Monthly voice limit reached. Voice playback will reset next month."
+**Music AI Voice (Section 6 - Music AI Assistant, lines 107-114)**
+- Add a bullet point about voice playback: AI responses can be read aloud using text-to-speech, with auto-speak enabled by default and manual playback via speaker icons. Mention the monthly voice limit.
 
-### Technical Detail
+**Copy From (Section 4 - Filling Out Your Practice Log, after the Media Tools subsection ~line 90)**
+- Add a new subsection called "Copy From Previous Day" explaining how users can duplicate a prior day's log via the Copy button and calendar picker, and that text fields are overwritten while media/PDFs are appended.
 
-In the `checkQuota` effect (~line 155), after detecting `data >= 6000`, add:
+### 2. Landing Page (`src/pages/Landing.tsx`)
 
-```typescript
-toast({
-  title: "Voice Limit Reached",
-  description: "Monthly voice playback limit reached. It will reset next month.",
-});
-```
+**Tuner feature card (line 38-41)**
+- Update the description to mention transposition keys and Match Sound reference tone.
 
-This complements the existing mid-playback notification -- users will now also be informed as soon as they open the Music AI panel.
+**Music AI feature card (line 54-57)**
+- Update the description to mention voice playback / text-to-speech.
+
+**Copy From - new feature card**
+- Add a new entry to the `features` array with a `Copy` icon, title "Copy From Previous Day", and a description about duplicating logs.
+
+**Pricing features list (line 84)**
+- Add "Copy from previous days to reuse your practice template" and update the AI line to mention voice playback.
+
+### Technical Notes
+
+- The `features` array and `pricingFeatures` array in Landing.tsx are simple data arrays -- adding entries is straightforward.
+- The `Copy` icon from lucide-react is already imported in the CopyFromButton; it will need to be added to the Landing page imports.
+- No structural or architectural changes required -- all edits are content additions.
 
