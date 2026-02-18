@@ -15,6 +15,7 @@ import { MediaTools } from "./MediaTools";
 import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
 import { Tuner } from "./Tuner";
+import { DronePlayer } from "./DronePlayer";
 import { Timer } from "./Timer";
 import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
@@ -575,11 +576,17 @@ export function PracticeLogForm({
           }} />
            </div>
 
-          {/* Tuner */}
-          <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-            <label className="font-display text-sm text-muted-foreground mb-1 block">Tuner</label>
-            <Tuner />
-          </div>
+           {/* Tuner */}
+           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+             <label className="font-display text-sm text-muted-foreground mb-1 block">Tuner</label>
+             <Tuner />
+           </div>
+
+           {/* Drone */}
+           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
+             <label className="font-display text-sm text-muted-foreground mb-1 block">Drone</label>
+             <DronePlayer />
+           </div>
 
           {/* Timer */}
           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">

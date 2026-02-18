@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { DronePlayer } from "./DronePlayer";
+
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -392,9 +392,6 @@ export function Tuner() {
         </div>
       )}
 
-      {/* Drone section */}
-      <p className="text-xs font-semibold text-muted-foreground mt-1">Drone</p>
-      <DronePlayer />
     </div>
   );
 }
