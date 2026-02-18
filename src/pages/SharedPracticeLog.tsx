@@ -61,6 +61,8 @@ export default function SharedPracticeLog() {
   const [mediaAudioUrls, setMediaAudioUrls] = useState<Record<string, string>>({});
   const [recordingUrls, setRecordingUrls] = useState<Record<number, string>>({});
 
+  useEffect(() => { document.title = "Shared Practice Log — Practice Daily"; }, []);
+
   useEffect(() => {
     async function fetchSharedLog() {
       if (!token) {

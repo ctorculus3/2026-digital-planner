@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
@@ -15,6 +15,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  useEffect(() => { document.title = "Dashboard — Practice Daily"; }, []);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-indexed

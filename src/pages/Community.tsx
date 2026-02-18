@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScallopHeader } from "@/components/practice-log/ScallopHeader";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { UserMenu } from "@/components/practice-log/UserMenu";
@@ -13,6 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 export default function Community() {
+  useEffect(() => { document.title = "Community — Practice Daily"; }, []);
   const {
     posts,
     loading: postsLoading,
