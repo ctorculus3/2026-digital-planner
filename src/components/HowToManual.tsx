@@ -97,8 +97,8 @@ export function HowToManual() {
                 <li><strong>Metronome</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
                 <li><strong>Tuner</strong> — Uses your device's microphone to help you tune your instrument.</li>
                 <li><strong>Timer</strong> — Set a countdown timer for focused practice blocks. An alarm sounds when time is up.</li>
-                <li><strong>Audio Recorder</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
-                <li><strong>Staff Paper</strong> — A blank staff paper canvas accessible from the day tabs. Use it to jot down musical ideas, and your drawings are saved per day.</li>
+                <li><strong>Audio Recorder</strong>Audio Recorder — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
+                <li><strong>Staff Paper</strong>Staff Paper — A blank staff paper canvas accessible from the day tabs. Use it to jot down musical ideas using your Apple Pencil or similar device, and your drawings are saved per day.</li>
               </ul>
             </section>
 
