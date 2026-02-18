@@ -221,11 +221,11 @@ export default function Landing() {
             className="w-full max-w-4xl h-auto"
             loading="eager"
           />
-          <div className="mt-6 flex items-center justify-center gap-6">
-            <Button variant="link" className="text-base" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
               Start Your Free Trial Now
             </Button>
-            <Button variant="link" className="text-base" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+            <Button variant="outline" size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
               Sign in
             </Button>
           </div>
