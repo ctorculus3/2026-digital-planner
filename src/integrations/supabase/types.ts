@@ -293,6 +293,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tts_usage: {
+        Row: {
+          created_at: string
+          estimated_seconds: number
+          id: string
+          text_length: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_seconds: number
+          id?: string
+          text_length: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_seconds?: number
+          id?: string
+          text_length?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_type: string
@@ -342,6 +366,7 @@ export type Database = {
         Args: { p_month: number; p_user_id: string; p_year: number }
         Returns: string[]
       }
+      get_tts_usage_this_month: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Sparkles, Send, X, Loader2, Mic, Volume2, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -37,6 +38,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
   const [loadingTtsIdx, setLoadingTtsIdx] = useState<number | null>(null);
+  const [ttsDisabled, setTtsDisabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -87,6 +89,17 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         });
 
         if (!resp.ok) {
+          const errBody = await resp.json().catch(() => ({}));
+          if (errBody.quota_exceeded) {
+            setTtsDisabled(true);
+            toast({
+              title: "Voice Limit Reached",
+              description: "Monthly voice playback limit reached. It will reset next month.",
+              variant: "destructive",
+            });
+            cleanupAudio();
+            return;
+          }
           throw new Error(`TTS failed: ${resp.status}`);
         }
 
@@ -151,6 +164,19 @@ export function MusicAI({ journalContext }: MusicAIProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Check TTS quota on mount
+  useEffect(() => {
+    const checkQuota = async () => {
+      try {
+        const { data } = await supabase.rpc("get_tts_usage_this_month" as any);
+        if (typeof data === "number" && data >= 6000) {
+          setTtsDisabled(true);
+        }
+      } catch {}
+    };
+    checkQuota();
+  }, []);
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -266,7 +292,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
       }
 
       // Auto-speak the completed response
-      if (autoSpeak && assistantSoFar.trim()) {
+      if (autoSpeak && !ttsDisabled && assistantSoFar.trim()) {
         const assistantIdx = allMessages.length;
         speakMessage(assistantSoFar, assistantIdx);
       }
@@ -308,14 +334,16 @@ export function MusicAI({ journalContext }: MusicAIProps) {
           <span className="font-display text-sm text-foreground">Music AI</span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 cursor-pointer" title="Auto-speak responses">
-            <Volume2 className="w-3 h-3 text-muted-foreground" />
-            <Switch
-              checked={autoSpeak}
-              onCheckedChange={setAutoSpeak}
-              className="scale-75"
-            />
-          </label>
+          {!ttsDisabled && (
+            <label className="flex items-center gap-1.5 cursor-pointer" title="Auto-speak responses">
+              <Volume2 className="w-3 h-3 text-muted-foreground" />
+              <Switch
+                checked={autoSpeak}
+                onCheckedChange={setAutoSpeak}
+                className="scale-75"
+              />
+            </label>
+          )}
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}>
             <X className="w-3 h-3" />
           </Button>
@@ -360,7 +388,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
               )}
             </div>
             {/* TTS controls for assistant messages */}
-            {m.role === "assistant" && !isLoading && (
+            {m.role === "assistant" && !isLoading && !ttsDisabled && (
               <div className="mt-1">
                 {speakingIdx === i ? (
                   <Button
