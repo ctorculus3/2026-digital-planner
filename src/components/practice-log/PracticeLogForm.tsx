@@ -583,8 +583,8 @@ export function PracticeLogForm({
            </div>
 
            {/* Drone */}
-           <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-             <label className="font-display text-sm text-muted-foreground mb-1 block">Drone</label>
+           <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
+              <label className="font-display text-sm text-muted-foreground mb-1 block">Drone Player</label>
              <DronePlayer />
            </div>
 
