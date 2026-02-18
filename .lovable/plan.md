@@ -1,44 +1,61 @@
 
 
-## Make Auto-Speak Default and Fix Autoplay with AudioContext
+## TTS Monthly Usage Cap (100 minutes across all users)
 
-### The Problem
-The `warmUpAudio()` approach using `new Audio()` with a silent clip is unreliable -- browsers may still block it or not keep the gate open long enough through the async TTS fetch. The user also wants auto-speak on by default.
+### Overview
+Track total TTS usage across all users. Once 100 minutes of voice playback is consumed in a calendar month, disable the feature until the next month.
 
-### The Fix (2 changes in one file)
+### Changes Required
 
-**File: `src/components/practice-log/MusicAI.tsx`**
+#### 1. New Database Table: `tts_usage`
+Create a table to log each TTS request with its estimated duration (based on text length).
 
-**1. Default auto-speak to ON**
-Change `useState(false)` to `useState(true)` for the `autoSpeak` state (line 38).
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key |
+| user_id | uuid | Who made the request |
+| text_length | integer | Character count of the text sent |
+| estimated_seconds | integer | Estimated audio duration (~15 chars/sec for speech) |
+| created_at | timestamptz | When the request was made |
 
-**2. Replace `warmUpAudio` with a persistent AudioContext approach**
-The Web Audio API's `AudioContext` is more reliable than `new Audio()` for unlocking playback. Once resumed during a user gesture, it stays unlocked for the entire page session. The fix:
+RLS: insert allowed for authenticated users, select not needed from client.
 
-- Create a shared `AudioContext` ref (persists across renders)
-- On user gesture (Send click or speaker icon click), call `audioContext.resume()` to unlock it
-- For TTS playback, decode the fetched audio into the AudioContext and play via `AudioBufferSourceNode` instead of `new Audio(url)`
-- This completely avoids the `NotAllowedError` since the context is already unlocked
+#### 2. New Database Function: `get_tts_usage_this_month`
+An RPC function that returns the total estimated seconds used this calendar month across ALL users. No user filter -- this is a global cap.
 
-```text
-Flow:
-  User clicks Send or Speaker icon (user gesture)
-    -> audioContext.resume() (unlocks permanently for session)
-    -> fetch TTS audio
-    -> audioContext.decodeAudioData(buffer)
-    -> sourceNode.start() (plays immediately, no restriction)
+```sql
+SELECT COALESCE(SUM(estimated_seconds), 0)
+FROM tts_usage
+WHERE created_at >= date_trunc('month', now())
 ```
+
+#### 3. Edge Function Update: `elevenlabs-tts/index.ts`
+Before calling ElevenLabs:
+- Query `tts_usage` for total seconds used this month
+- If >= 6000 (100 min), return a `429` response with `{ error: "Monthly voice limit reached", quota_exceeded: true }`
+- After a successful TTS call, insert a row into `tts_usage` with the estimated duration
+
+Estimation formula: `estimated_seconds = Math.ceil(text.length / 15)` (average speech rate is roughly 15 characters per second).
+
+#### 4. Frontend Update: `MusicAI.tsx`
+- When `speakMessage` receives a response with `quota_exceeded: true`, show a toast: "Voice playback limit reached for this month"
+- Hide the speaker icons and auto-speak toggle when quota is exceeded (use a `ttsDisabled` state)
+- On component mount, call a lightweight check endpoint (or the RPC) to know if TTS is already exhausted for the month
 
 ### Technical Details
 
-- Add `audioContextRef = useRef<AudioContext | null>(null)` and a helper `getAudioContext()` that lazily creates it
-- Replace `warmUpAudio()` with `getAudioContext().resume()` 
-- In `speakMessage`: fetch audio as `ArrayBuffer`, decode with `audioContext.decodeAudioData()`, play with `createBufferSource()`
-- `cleanupAudio` stops the source node instead of pausing an HTML Audio element
-- Remove `blobUrlRef` (no longer needed -- no object URLs)
-- Keep the fallback toast for edge cases but it should rarely trigger
+**Why estimate duration from text length?**
+Tracking actual audio duration would require decoding the MP3 on the server, which adds complexity. Character-based estimation is simple and accurate enough for a budget cap.
 
-### No other files change
-- Backend edge function stays the same
-- No database changes
+**Why enforce in the edge function?**
+Server-side enforcement prevents bypassing the cap. The frontend hides UI elements for a better experience, but the edge function is the real gatekeeper.
 
+**Flow:**
+```text
+User triggers TTS
+  -> Edge function checks tts_usage sum for current month
+  -> If < 6000 seconds: call ElevenLabs, log usage, return audio
+  -> If >= 6000 seconds: return 429 + quota_exceeded flag
+  -> Frontend shows "limit reached" message
+  -> Next month: usage resets automatically (date filter)
+```
