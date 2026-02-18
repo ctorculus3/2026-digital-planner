@@ -235,7 +235,7 @@ export default function Landing() {
       </section>
 
       {/* ───── Top 4 Features Spotlight ───── */}
-      <section id="features" className="container mx-auto px-4 pt-8 pb-20 md:pt-12 md:pb-28">
+      <section id="features" className="container mx-auto px-4 pt-2 pb-20 md:pt-4 md:pb-28">
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center">
           Everything You Need to Practice Better
         </h2>
