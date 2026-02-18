@@ -1,50 +1,24 @@
 
 
-## Overlay CTA Buttons on the Hero Image
+## Plan: Fix Hero Button Overlap + White Landing Page Background
 
-Move the two buttons from below the image to on top of the image, positioned at the bottom center -- right below the "Includes Music AI Assistant" text that's baked into the illustration.
+### 1. Percentage-based button positioning on hero image
+Currently the buttons use a fixed `bottom-20` (5rem) position. On small screens where the image shrinks, this can cause overlap with the illustration content.
 
-### Changes to `src/pages/Landing.tsx` (lines 217-231)
+**Fix:** Change from fixed `bottom-20` to percentage-based positioning (`bottom-[15%]`) so the buttons scale proportionally with the image height.
 
-**1. Make the image container `relative`** so we can position children over it.
+### 2. White landing page background
+Currently the page uses `bg-background` which maps to a warm cream (`hsl(0 0% 96%)`). We will override this to pure white (`bg-white`) on the landing page wrapper and the nav/hero sections, without changing the global design system.
 
-**2. Wrap the buttons in an absolutely positioned div** placed at the bottom center of the image, with some bottom padding so they sit just below the "Includes Music AI Assistant" line.
+---
 
-**3. Remove the `mt-8` spacing** since buttons will now float over the image rather than sit below it.
+### Technical Details
 
-### Technical detail
+**File: `src/pages/Landing.tsx`**
 
-```tsx
-<div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center">
-  <div className="relative w-full max-w-4xl">
-    <img
-      src={musiciansHero}
-      alt="Practice Daily — a musician's practice journal illustration"
-      className="w-full h-auto"
-      loading="eager"
-    />
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
-      <Button size="lg" className="font-semibold text-base px-8"
-        onClick={() => { setIsLogin(false); scrollToAuth(); }}>
-        Start Your Free Trial Now
-      </Button>
-      <Button variant="outline" size="lg" className="font-semibold text-base px-8 bg-white/90"
-        onClick={() => { setIsLogin(true); scrollToAuth(); }}>
-        Sign in
-      </Button>
-    </div>
-  </div>
-</div>
-```
+- Line 198: Change `bg-background` to `bg-white` on the root `div`
+- Line 200: Change `bg-background/95` and `bg-background/80` on the nav to `bg-white/95` and `bg-white/80`
+- Line 216: Change `bg-background` on the hero section to `bg-white`
+- Line 225: Change `bottom-20` to `bottom-[15%]` on the button overlay container so it scales with the image
 
-Key details:
-- `relative` on the wrapper, `absolute bottom-4 left-1/2 -translate-x-1/2` on the button container to center them at the bottom of the image
-- `bg-white/90` on the outline button so it stays readable over the illustration
-- The `bottom-4` value can be adjusted if we need the buttons higher or lower -- easy to tweak after seeing the result
-
-### Files
-- `src/pages/Landing.tsx` -- hero section updated (lines 217-231)
-
-### Preserved
-- All button click handlers (sign-up/sign-in mode + scroll to auth)
-- Nav bar, all other sections, auth logic unchanged
+All other sections remain unchanged. This is a landing-page-only change -- the rest of the app keeps the existing cream background.
