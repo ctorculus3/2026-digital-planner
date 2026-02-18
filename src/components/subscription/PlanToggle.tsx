@@ -23,13 +23,16 @@ export function PlanToggle({ selectedPlan, onPlanChange }: PlanToggleProps) {
         </button>
         <button
           onClick={() => onPlanChange("yearly")}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-all relative ${
             selectedPlan === "yearly"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Yearly
+          <Badge variant="default" className="absolute -top-2.5 -right-3 text-[10px] px-1.5 py-0 leading-4 bg-header-bg text-primary-foreground border-0">
+            BEST VALUE
+          </Badge>
         </button>
       </div>
       {selectedPlan === "yearly" && (
