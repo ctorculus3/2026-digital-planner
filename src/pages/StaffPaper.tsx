@@ -13,6 +13,7 @@ function StaffLines() {
 }
 export default function StaffPaper() {
   const navigate = useNavigate();
+  useEffect(() => { document.title = "Staff Paper — Practice Daily"; }, []);
   const [searchParams] = useSearchParams();
   const dateParam = searchParams.get("date");
   const currentDate = dateParam ? parseISO(dateParam) : new Date();

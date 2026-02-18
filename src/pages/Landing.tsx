@@ -124,6 +124,32 @@ export default function Landing() {
   const authRef = useRef<HTMLDivElement>(null);
   const [searchParams] = useSearchParams();
 
+  // Dynamic page title
+  useEffect(() => { document.title = "Practice Daily — Your Daily Practice, Elevated"; }, []);
+
+  // JSON-LD structured data
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Practice Daily",
+      "applicationCategory": "MusicApplication",
+      "operatingSystem": "Web",
+      "url": "https://daydream-calendar-2026.lovable.app",
+      "description": "A daily practice journal for musicians. Track sessions, log progress, share with teachers, and grow with a community of serious musicians.",
+      "offers": [
+        { "@type": "Offer", "price": "3.99", "priceCurrency": "USD", "name": "Monthly", "billingIncrement": "P1M" },
+        { "@type": "Offer", "price": "39.99", "priceCurrency": "USD", "name": "Yearly", "billingIncrement": "P1Y" }
+      ],
+      "aggregateRating": undefined
+    });
+    script.id = "ld-json-app";
+    document.head.appendChild(script);
+    return () => { document.getElementById("ld-json-app")?.remove(); };
+  }, []);
+
   // Show toast if user arrives after email verification in a different browser
   useEffect(() => {
     if (searchParams.get("verified") === "true") {

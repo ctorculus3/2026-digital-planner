@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Music2 } from "lucide-react";
 
 export default function Terms() {
+  useEffect(() => { document.title = "Terms of Service — Practice Daily"; }, []);
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
