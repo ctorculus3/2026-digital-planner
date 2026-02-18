@@ -13,7 +13,7 @@ import { PlanToggle } from "@/components/subscription/PlanToggle";
 import { ContactDialog } from "@/components/ContactDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import journalScreenshot from "@/assets/journal-screenshot.png";
+import musiciansHero from "@/assets/musicians-hero.png";
 
 /* ─────────── data ─────────── */
 
@@ -212,44 +212,24 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ───── Hero (two-column) ───── */}
-      <section className="relative overflow-hidden bg-header-bg">
-        <div className="container mx-auto px-4 py-16 md:py-24 lg:py-28">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            {/* Left: copy */}
-            <div className="text-center lg:text-left">
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
-                Never Lose Track of What You Practiced
-              </h1>
-              <p className="mt-6 max-w-lg mx-auto lg:mx-0 text-lg md:text-xl text-primary-foreground/85">
-                Log sessions, track progress, and share with your teacher — all from one practice journal built for serious musicians.
-              </p>
-              <div className="mt-6 flex justify-center lg:justify-start">
-                <div className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 border border-primary-foreground/25 px-4 py-2 text-sm text-primary-foreground">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Includes Music AI Assistant</span>
-                </div>
-              </div>
-              <div className="mt-8">
-                <Button size="lg" className="bg-primary-foreground text-header-bg hover:bg-primary-foreground/90 font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
-                  Start Your 7-Day Free Trial
-                </Button>
-              </div>
-            </div>
-            {/* Right: screenshot */}
-            <div className="relative mx-auto max-w-md lg:max-w-lg">
-              <div className="rounded-xl border-2 border-primary-foreground/20 shadow-2xl overflow-hidden bg-background">
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-card border-b border-border">
-                  <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-accent-foreground/40" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-header-bg/60" />
-                </div>
-                <img src={journalScreenshot} alt="Practice Daily journal — daily practice log with goals, scales, repertoire, media tools, and AI assistant" className="w-full h-auto" loading="eager" />
-              </div>
-            </div>
+      {/* ───── Hero ───── */}
+      <section className="bg-background">
+        <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center">
+          <img
+            src={musiciansHero}
+            alt="Practice Daily — a musician's practice journal illustration"
+            className="w-full max-w-4xl h-auto"
+            loading="eager"
+          />
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+              Start Your Free Trial Now
+            </Button>
+            <Button variant="outline" size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+              Sign in
+            </Button>
           </div>
         </div>
-        <ScallopDivider />
       </section>
 
       {/* ───── Top 4 Features Spotlight ───── */}
