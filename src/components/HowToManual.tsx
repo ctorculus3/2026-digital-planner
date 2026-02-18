@@ -88,9 +88,6 @@ export function HowToManual() {
 
               <h4 className="font-medium text-foreground mt-3 mb-1">Media Tools</h4>
               <p>The Media Tools section is located in the left column, below Repertoire & Exercises. You can upload or drag-and-drop audio files (MP3, WAV, M4A), video files (MP4, MOV), and photos (JPG, PNG, WebP, GIF) directly into your practice log. You can also paste a YouTube URL to embed a video — great for referencing listening sessions or performances. Up to 5 media items can be attached per day. Each item can be played back, viewed, or deleted right from the journal.</p>
-
-              <h4 className="font-medium text-foreground mt-3 mb-1">Copy From Previous Day</h4>
-              <p>Use the <strong>Copy</strong> button (above the form) to duplicate a previous day's practice log into the current date. A calendar picker highlights days that have existing logs. When you select a date, all text fields — goals, repertoire, scales, notes, etc. — are copied over, replacing any current content. Media files, PDFs, and recordings are appended alongside any existing items. Start and stop times are not copied, so you begin with a fresh session. This is perfect for maintaining a consistent daily routine without re-entering the same material.</p>
             </section>
 
             {/* 5. Built-in Tools */}
@@ -98,9 +95,9 @@ export function HowToManual() {
               <h3 className="text-base font-semibold text-foreground mb-2">5. Built-in Tools</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Metronome</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
-                <li><strong>Tuner</strong> — Uses your device's microphone to help you tune your instrument with a real-time visual pitch gauge. Supports instrument transposition for Concert C, B♭, E♭, and F keys. Enable <strong>Match Sound</strong> to hear a reference tone that matches the note you're playing — great for ear training and intonation work.</li>
+                <li><strong>Tuner</strong> — Uses your device's microphone to help you tune your instrument.</li>
                 <li><strong>Timer</strong> — Set a countdown timer for focused practice blocks. An alarm sounds when time is up.</li>
-                <li><strong>Audio Recorder</strong> — Record yourself directly in the app. Recordings are saved to your practice log.</li>
+                <li><strong>Audio Recorder</strong>Metronome — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
                 <li><strong>Staff Paper</strong> — A blank staff paper canvas accessible from the day tabs. Use it to jot down musical ideas, and your drawings are saved per day.</li>
               </ul>
             </section>
@@ -114,7 +111,6 @@ export function HowToManual() {
                 <li>Get personalized practice advice based on your current goals, repertoire, and notes.</li>
                 <li>Explore starter prompts to get the conversation going quickly.</li>
               </ul>
-              <p className="mt-2">AI responses can also be <strong>read aloud</strong> using text-to-speech voice playback. Auto-speak is enabled by default — toggle it off in the AI panel if you prefer to read. You can also tap the speaker icon on any individual message to hear it. Voice playback has a monthly usage limit; when reached, the AI chat continues to work normally but without audio.</p>
               <p className="mt-2 text-muted-foreground text-xs">Note: Conversations reset each session — no history is stored.</p>
             </section>
 
