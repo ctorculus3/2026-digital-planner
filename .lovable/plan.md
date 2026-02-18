@@ -1,44 +1,44 @@
 
 
-## Fix Manual Speaker Icon Autoplay Block
+## Make Auto-Speak Default and Fix Autoplay with AudioContext
 
 ### The Problem
-Clicking the speaker icon calls `speakMessage`, which first fetches audio from the TTS backend (takes several seconds). By the time the fetch returns and `audio.play()` is called, the browser no longer treats it as a user gesture, so playback is blocked with `NotAllowedError`.
+The `warmUpAudio()` approach using `new Audio()` with a silent clip is unreliable -- browsers may still block it or not keep the gate open long enough through the async TTS fetch. The user also wants auto-speak on by default.
 
-### The Fix
+### The Fix (2 changes in one file)
 
 **File: `src/components/practice-log/MusicAI.tsx`**
 
-Add `warmUpAudio()` as the first line inside `speakMessage`, before the fetch call. Since the function is invoked directly from a click handler (user gesture), playing the silent audio at that moment unlocks the browser's audio gate for subsequent playback.
+**1. Default auto-speak to ON**
+Change `useState(false)` to `useState(true)` for the `autoSpeak` state (line 38).
 
-**Current code (line ~72):**
-```typescript
-const speakMessage = useCallback(
-    async (text: string, idx: number) => {
-      cleanupAudio();
-      setLoadingTtsIdx(idx);
-```
+**2. Replace `warmUpAudio` with a persistent AudioContext approach**
+The Web Audio API's `AudioContext` is more reliable than `new Audio()` for unlocking playback. Once resumed during a user gesture, it stays unlocked for the entire page session. The fix:
 
-**Updated code:**
-```typescript
-const speakMessage = useCallback(
-    async (text: string, idx: number) => {
-      warmUpAudio();
-      cleanupAudio();
-      setLoadingTtsIdx(idx);
-```
-
-This is a single-line addition. No other files need to change.
-
-### Why This Works
+- Create a shared `AudioContext` ref (persists across renders)
+- On user gesture (Send click or speaker icon click), call `audioContext.resume()` to unlock it
+- For TTS playback, decode the fetched audio into the AudioContext and play via `AudioBufferSourceNode` instead of `new Audio(url)`
+- This completely avoids the `NotAllowedError` since the context is already unlocked
 
 ```text
-User clicks speaker icon (user gesture)
-  -> warmUpAudio() plays silent clip (unlocks audio gate)
-  -> fetch TTS audio from backend (async, ~3-5 seconds)
-  -> audio.play() succeeds (gate already unlocked)
+Flow:
+  User clicks Send or Speaker icon (user gesture)
+    -> audioContext.resume() (unlocks permanently for session)
+    -> fetch TTS audio
+    -> audioContext.decodeAudioData(buffer)
+    -> sourceNode.start() (plays immediately, no restriction)
 ```
 
-### Dependencies
-- `warmUpAudio` must be added to the `speakMessage` dependency array in `useCallback`
+### Technical Details
+
+- Add `audioContextRef = useRef<AudioContext | null>(null)` and a helper `getAudioContext()` that lazily creates it
+- Replace `warmUpAudio()` with `getAudioContext().resume()` 
+- In `speakMessage`: fetch audio as `ArrayBuffer`, decode with `audioContext.decodeAudioData()`, play with `createBufferSource()`
+- `cleanupAudio` stops the source node instead of pausing an HTML Audio element
+- Remove `blobUrlRef` (no longer needed -- no object URLs)
+- Keep the fallback toast for edge cases but it should rarely trigger
+
+### No other files change
+- Backend edge function stays the same
+- No database changes
 
