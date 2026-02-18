@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Send, X, Loader2, Mic, Volume2, VolumeX, Square } from "lucide-react";
+import { Sparkles, Send, X, Loader2, Mic, Volume2, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
@@ -35,13 +34,13 @@ export function MusicAI({ journalContext }: MusicAIProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
   const [loadingTtsIdx, setLoadingTtsIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const { toast } = useToast();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,28 +49,29 @@ export function MusicAI({ journalContext }: MusicAIProps) {
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       : null;
 
-  const warmUpAudio = useCallback(() => {
-    const silent = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-    silent.play().catch(() => {});
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    return audioContextRef.current;
   }, []);
 
   const cleanupAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
+    if (sourceNodeRef.current) {
+      try {
+        sourceNodeRef.current.stop();
+      } catch {
+        // already stopped
+      }
+      sourceNodeRef.current = null;
     }
     setSpeakingIdx(null);
   }, []);
 
   const speakMessage = useCallback(
     async (text: string, idx: number) => {
-      warmUpAudio();
-      // Stop any current playback
+      const ctx = getAudioContext();
+      await ctx.resume(); // unlock during user gesture
       cleanupAudio();
 
       setLoadingTtsIdx(idx);
@@ -90,38 +90,33 @@ export function MusicAI({ journalContext }: MusicAIProps) {
           throw new Error(`TTS failed: ${resp.status}`);
         }
 
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        blobUrlRef.current = url;
+        const arrayBuffer = await resp.arrayBuffer();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
-        const audio = new Audio(url);
-        audioRef.current = audio;
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        sourceNodeRef.current = source;
         setSpeakingIdx(idx);
 
-        audio.onended = () => {
-          cleanupAudio();
-        };
-        audio.onerror = () => {
+        source.onended = () => {
           cleanupAudio();
         };
 
-        await audio.play();
+        source.start();
       } catch (e: any) {
         console.error("TTS error:", e);
-        const isAutoplayBlock = e?.name === "NotAllowedError";
         toast({
-          title: isAutoplayBlock ? "Autoplay Blocked" : "Voice Error",
-          description: isAutoplayBlock
-            ? "Tap the speaker icon to hear the response"
-            : "Failed to generate speech",
-          variant: isAutoplayBlock ? "default" : "destructive",
+          title: "Voice Error",
+          description: "Failed to generate speech",
+          variant: "destructive",
         });
         cleanupAudio();
       } finally {
         setLoadingTtsIdx(null);
       }
     },
-    [warmUpAudio, cleanupAudio, toast]
+    [getAudioContext, cleanupAudio, toast]
   );
 
   const stopSpeaking = useCallback(() => {
@@ -161,12 +156,19 @@ export function MusicAI({ journalContext }: MusicAIProps) {
   useEffect(() => {
     return () => {
       cleanupAudio();
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
     };
   }, [cleanupAudio]);
 
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
-    if (autoSpeak) warmUpAudio();
+    // Unlock AudioContext during the user gesture (click)
+    const ctx = getAudioContext();
+    ctx.resume().catch(() => {});
+
     const userMsg: Msg = { role: "user", content: text.trim() };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
@@ -265,8 +267,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
       // Auto-speak the completed response
       if (autoSpeak && assistantSoFar.trim()) {
-        // The assistant message index is the last one
-        const assistantIdx = allMessages.length; // 0-based index in the new messages array
+        const assistantIdx = allMessages.length;
         speakMessage(assistantSoFar, assistantIdx);
       }
     } catch (e) {
