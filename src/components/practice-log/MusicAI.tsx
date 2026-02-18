@@ -174,6 +174,10 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         const { data } = await supabase.rpc("get_tts_usage_this_month" as any);
         if (typeof data === "number" && data >= 6000) {
           setTtsDisabled(true);
+          toast({
+            title: "Voice Limit Reached",
+            description: "Monthly voice playback limit reached. It will reset next month.",
+          });
         }
       } catch {}
     };
