@@ -1,28 +1,68 @@
 
 
-## Fix How To Manual: Repeated Words + Add Missing Feature Updates
+## SEO Improvements: Dynamic Titles, Structured Data, and Sitemap
 
-### Issues to Fix
+### 1. Dynamic Per-Page Titles
 
-**1. Metronome repeated word (line 97)**
-- Currently: `<strong>Metronome</strong>Metronome -- A built-in click track...`
-- Fix to: `<strong>Metronome</strong> -- A built-in click track...`
+Add a small `useEffect` in each page component to set `document.title` (no extra library needed). This gives each route its own browser tab title and improves SEO signals.
 
-**2. Audio Recorder repeated word + wrong description (line 100)**
-- Currently: `<strong>Audio Recorder</strong>Audio Recorder -- A built-in click track...` (copy of Metronome text)
-- Fix to: `<strong>Audio Recorder</strong> -- Record yourself practicing directly from the journal. Each repertoire row has its own recorder so you can track your progress over time. Play recordings back or download them to your device.`
+| Route | Title |
+|-------|-------|
+| `/auth` (Landing) | Practice Daily -- See Your Practice Come to Life |
+| `/dashboard` | Dashboard -- Practice Daily |
+| `/journal` | Practice Journal -- Practice Daily |
+| `/community` | Community -- Practice Daily |
+| `/staff-paper` | Staff Paper -- Practice Daily |
+| `/privacy` | Privacy Policy -- Practice Daily |
+| `/terms` | Terms of Service -- Practice Daily |
+| `/shared/:token` | Shared Practice Log -- Practice Daily |
 
-### Missing Feature Updates to Add
+Files to edit: `Landing.tsx`, `Dashboard.tsx`, `Index.tsx`, `Community.tsx`, `StaffPaper.tsx`, `Privacy.tsx`, `Terms.tsx`, `SharedPracticeLog.tsx`
 
-**3. Tuner (line 98)**
-- Expand to mention instrument transposition (C, Bb, Eb, F keys) and the Match Sound reference tone.
+Each gets a one-line `useEffect`:
+```typescript
+useEffect(() => { document.title = "Dashboard — Practice Daily"; }, []);
+```
 
-**4. Copy From Previous Day (new subsection after Media Tools, ~line 90)**
-- Add a new subsection in Section 4 explaining how to duplicate a prior day's log via the Copy button and calendar picker. Text fields are overwritten; media and PDFs are appended.
+### 2. JSON-LD Structured Data on Landing Page
 
-**5. Music AI Voice (Section 6, after existing bullets ~line 112)**
-- Add a bullet about voice playback: AI responses can be read aloud via text-to-speech, with auto-speak on by default and manual playback via speaker icons. Mention the monthly voice limit.
+Add a `SoftwareApplication` JSON-LD script tag to `Landing.tsx` via a `useEffect`. This helps search engines display rich snippets.
 
-### Files Changed
-- `src/components/HowToManual.tsx` -- all fixes are in this single file
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Practice Daily",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "Web",
+  "description": "A daily practice journal for musicians...",
+  "offers": {
+    "@type": "Offer",
+    "price": "3.99",
+    "priceCurrency": "USD",
+    "billingIncrement": "P1M"
+  }
+}
+```
 
+### 3. Sitemap
+
+Create `public/sitemap.xml` listing all public routes, and update `public/robots.txt` to reference it.
+
+Public routes to include:
+- `/` (redirects to `/dashboard`, but crawlers see `/auth`)
+- `/auth`
+- `/privacy`
+- `/terms`
+
+Update `robots.txt` to add:
+```
+Sitemap: https://daydream-calendar-2026.lovable.app/sitemap.xml
+```
+
+### Technical Notes
+
+- No new dependencies needed -- `document.title` and injected `<script>` tags are pure DOM.
+- JSON-LD is injected/removed via `useEffect` cleanup to avoid duplicates during SPA navigation.
+- The sitemap uses the published URL as the base.
+- All changes are additive and won't affect existing functionality.
