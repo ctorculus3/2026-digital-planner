@@ -222,7 +222,7 @@ export default function Landing() {
               className="w-full h-auto"
               loading="eager"
             />
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
                 Start Your Free Trial Now
               </Button>
