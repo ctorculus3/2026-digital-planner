@@ -195,9 +195,9 @@ export default function Landing() {
   const scrollToAuth = () => authRef.current?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-white text-foreground">
       {/* ───── Sticky Nav ───── */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <nav className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-full bg-header-bg flex items-center justify-center">
@@ -213,7 +213,7 @@ export default function Landing() {
       </nav>
 
       {/* ───── Hero ───── */}
-      <section className="bg-background">
+      <section className="bg-white">
         <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center">
           <div className="relative w-full max-w-4xl">
             <img
@@ -222,7 +222,7 @@ export default function Landing() {
               className="w-full h-auto"
               loading="eager"
             />
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
                 Start Your Free Trial Now
               </Button>
