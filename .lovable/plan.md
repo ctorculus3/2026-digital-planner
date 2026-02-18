@@ -1,32 +1,44 @@
 
 
-## Fix Auto-Speak Browser Autoplay Restriction
+## Fix Manual Speaker Icon Autoplay Block
 
 ### The Problem
-When "Auto-speak" is enabled, `audio.play()` is called after the AI response finishes streaming. By that point, the browser no longer considers it a direct user gesture, so it blocks playback with a `NotAllowedError`.
-
-Manual clicks on the speaker icon work fine because they are direct user interactions.
+Clicking the speaker icon calls `speakMessage`, which first fetches audio from the TTS backend (takes several seconds). By the time the fetch returns and `audio.play()` is called, the browser no longer treats it as a user gesture, so playback is blocked with `NotAllowedError`.
 
 ### The Fix
 
 **File: `src/components/practice-log/MusicAI.tsx`**
 
-Use a "warm-up" technique: when auto-speak is enabled, create and play a silent Audio element during the user's form submit (which IS a user gesture). This unlocks audio playback for that session. Then the real TTS audio can play later without restriction.
+Add `warmUpAudio()` as the first line inside `speakMessage`, before the fetch call. Since the function is invoked directly from a click handler (user gesture), playing the silent audio at that moment unlocks the browser's audio gate for subsequent playback.
 
-1. Add a helper function `warmUpAudio()` that plays a brief silent audio clip to unlock the browser's audio gate
-2. Call `warmUpAudio()` inside the `send()` function (triggered by form submit = user gesture) when `autoSpeak` is enabled, before the streaming begins
-3. In `speakMessage`, catch `NotAllowedError` specifically and show a helpful toast suggesting the user tap the speaker icon manually
-
-### Technical Details
-
-```text
-User clicks Send (user gesture)
-  -> if autoSpeak: play silent audio to unlock browser audio gate
-  -> stream AI response
-  -> when done: speakMessage() calls audio.play() (now allowed)
+**Current code (line ~72):**
+```typescript
+const speakMessage = useCallback(
+    async (text: string, idx: number) => {
+      cleanupAudio();
+      setLoadingTtsIdx(idx);
 ```
 
-The silent audio warm-up uses a minimal valid WAV data URI -- no network request needed.
+**Updated code:**
+```typescript
+const speakMessage = useCallback(
+    async (text: string, idx: number) => {
+      warmUpAudio();
+      cleanupAudio();
+      setLoadingTtsIdx(idx);
+```
 
-**Only one file changes:** `src/components/practice-log/MusicAI.tsx`
-No backend or database changes needed.
+This is a single-line addition. No other files need to change.
+
+### Why This Works
+
+```text
+User clicks speaker icon (user gesture)
+  -> warmUpAudio() plays silent clip (unlocks audio gate)
+  -> fetch TTS audio from backend (async, ~3-5 seconds)
+  -> audio.play() succeeds (gate already unlocked)
+```
+
+### Dependencies
+- `warmUpAudio` must be added to the `speakMessage` dependency array in `useCallback`
+
