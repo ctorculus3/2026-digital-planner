@@ -50,6 +50,11 @@ export function MusicAI({ journalContext }: MusicAIProps) {
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       : null;
 
+  const warmUpAudio = useCallback(() => {
+    const silent = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    silent.play().catch(() => {});
+  }, []);
+
   const cleanupAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -100,12 +105,15 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         };
 
         await audio.play();
-      } catch (e) {
+      } catch (e: any) {
         console.error("TTS error:", e);
+        const isAutoplayBlock = e?.name === "NotAllowedError";
         toast({
-          title: "Voice Error",
-          description: "Failed to generate speech",
-          variant: "destructive",
+          title: isAutoplayBlock ? "Autoplay Blocked" : "Voice Error",
+          description: isAutoplayBlock
+            ? "Tap the speaker icon to hear the response"
+            : "Failed to generate speech",
+          variant: isAutoplayBlock ? "default" : "destructive",
         });
         cleanupAudio();
       } finally {
@@ -157,6 +165,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    if (autoSpeak) warmUpAudio();
     const userMsg: Msg = { role: "user", content: text.trim() };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
