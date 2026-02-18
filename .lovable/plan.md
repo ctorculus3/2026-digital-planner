@@ -1,35 +1,32 @@
 
 
-## Replace Hero with Uploaded Image
+## Replace Hero Buttons with Link-Style Buttons
 
-A simple swap: remove the entire two-column hero layout and replace it with the uploaded illustration displayed as a full-width image, with two connected buttons below it.
+Replace the two prominent hero buttons ("Start Your Free Trial Now" and "Sign in") with simple text links using the `link` variant of the Button component. This avoids visual duplication with the auth section CTA buttons further down the page.
 
-### Changes to `src/pages/Landing.tsx`
+### Changes to `src/pages/Landing.tsx` (lines 224-231)
 
-**1. Copy the uploaded image into the project**
-- Save `user-uploads://Musicians_practice_journal_hero_section.png` to `src/assets/musicians-hero.png`
+Replace the current button pair with link-styled text:
 
-**2. Replace the hero section (lines 216-253)**
+- **"Start Your Free Trial Now"** -- change from default `Button` to `variant="link"` and keep the `onClick` that sets sign-up mode and scrolls to auth
+- **"Sign in"** -- change from `variant="outline"` to `variant="link"` and keep the `onClick` that sets login mode and scrolls to auth
+- Remove the `size="lg"` and extra padding classes since link-style buttons don't need them
+- Keep both on the same row, centered, with a small visual separator or just spacing between them
 
-Remove the entire two-column grid (headline, subtitle, AI badge, screenshot in browser mockup, ScallopDivider) and replace with:
+### Technical detail
 
-- The uploaded image displayed full-width inside the hero container
-- Two buttons centered below the image:
-  - **"Start Your Free Trial Now"** (primary) -- calls `setIsLogin(false)` then `scrollToAuth()`
-  - **"Sign in"** (outline) -- calls `setIsLogin(true)` then `scrollToAuth()`
-- Keep `bg-background` for a clean white background behind the image
-
-**3. Cleanup**
-- Remove the `journalScreenshot` import since it's no longer used in the hero (check if it's used elsewhere first)
-- Remove the `ScallopDivider` usage from the hero if it's no longer visually appropriate with the new image
-- Remove unused icon imports (`Sparkles`) if no longer referenced
-
-### Files
-- `src/assets/musicians-hero.png` -- new (copied from upload)
-- `src/pages/Landing.tsx` -- hero section replaced
+```tsx
+<div className="mt-6 flex items-center justify-center gap-6">
+  <Button variant="link" className="text-base" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+    Start Your Free Trial Now
+  </Button>
+  <Button variant="link" className="text-base" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+    Sign in
+  </Button>
+</div>
+```
 
 ### Preserved
-- Nav bar stays as-is
+- Scroll-to-auth behavior
+- Login vs sign-up mode toggling
 - All other sections unchanged
-- Auth logic, scroll behavior, JSON-LD all preserved
-
