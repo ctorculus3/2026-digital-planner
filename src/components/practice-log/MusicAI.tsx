@@ -70,6 +70,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
 
   const speakMessage = useCallback(
     async (text: string, idx: number) => {
+      warmUpAudio();
       // Stop any current playback
       cleanupAudio();
 
@@ -120,7 +121,7 @@ export function MusicAI({ journalContext }: MusicAIProps) {
         setLoadingTtsIdx(null);
       }
     },
-    [cleanupAudio, toast]
+    [warmUpAudio, cleanupAudio, toast]
   );
 
   const stopSpeaking = useCallback(() => {
