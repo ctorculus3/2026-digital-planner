@@ -318,9 +318,8 @@ export default function Landing() {
             <div className="lg:col-span-3">
               <video
                 src="/video/practice-daily-demo.mp4"
-                controls
                 playsInline
-                preload="metadata"
+                preload="auto"
                 loop
                 autoPlay
                 muted
