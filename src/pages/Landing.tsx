@@ -313,20 +313,23 @@ export default function Landing() {
               Watch how a typical practice session flows inside Practice Daily.
             </p>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center max-w-7xl mx-auto">
             {/* Video */}
-            <div>
+            <div className="lg:col-span-3">
               <video
                 src="/video/practice-daily-demo.mov"
                 controls
                 playsInline
                 preload="metadata"
+                loop
+                autoPlay
+                muted
                 className="w-full rounded-xl shadow-lg"
                 aria-label="Practice Daily product demo"
               />
             </div>
             {/* Benefits */}
-            <div className="space-y-5">
+            <div className="lg:col-span-2 space-y-5">
               {[
                 { title: "Track daily practice sessions", desc: "Log warmups, scales, repertoire, and more in a structured daily journal." },
                 { title: "Set goals & build streaks", desc: "Stay motivated with practice streaks, badges, and a visual calendar." },
