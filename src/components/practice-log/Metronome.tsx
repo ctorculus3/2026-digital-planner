@@ -40,9 +40,12 @@ export function Metronome({ onStart }: MetronomeProps) {
     }
   }, [getAudioContext]);
 
-  const playClick = useCallback(() => {
+  const playClick = useCallback(async () => {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     if (claveBufferRef.current) {
       const source = ctx.createBufferSource();
       source.buffer = claveBufferRef.current;
@@ -68,12 +71,24 @@ export function Metronome({ onStart }: MetronomeProps) {
     isPlayingRef.current = true;
     
     // Initialize AudioContext on user gesture
-    await getAudioContext();
+    const ctx = await getAudioContext();
     if (!isPlayingRef.current) return;
+
+    // Unlock iOS audio with silent buffer
+    const silentBuffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const silentSource = ctx.createBufferSource();
+    silentSource.buffer = silentBuffer;
+    silentSource.connect(ctx.destination);
+    silentSource.start();
     
     // Load clave sample if not yet loaded
     await loadClave();
     if (!isPlayingRef.current) return;
+
+    // Resume again after async work (iOS may have re-suspended)
+    if (audioCtxRef.current?.state === 'suspended') {
+      await audioCtxRef.current.resume();
+    }
 
     // Fire onStart callback only on first play
     if (!hasStartedRef.current) {
