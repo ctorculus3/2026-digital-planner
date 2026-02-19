@@ -1,52 +1,47 @@
 
 
-# Fix 6/8. (Dotted) Time Signature — "6/8 in 2"
+# Update Metronome Descriptions in How To Manual and Landing Page
 
-## The Problem
-Currently, 6/8. plays 6 clicks per measure with accents on beats 1 and 4. It should only produce **2 audible clicks** — one on beat 1 and one on beat 4 — with beats 2, 3, 5, 6 being completely silent. This is the "6/8 in 2" feel: Click (rest rest) Click (rest rest).
+## Overview
+Update the metronome descriptions in two files to reflect the new time signature and accent features.
 
-## The Fix
+---
 
-### 1. Update the pattern encoding
-Change the 6/8. pattern from `[1, 0, 0, 1, 0, 0]` to `[1, -1, -1, 1, -1, -1]`, where:
-- `1` = audible click (accent sound)
-- `0` = audible click (normal sound)  
-- `-1` = **silent** (no sound at all)
+## 1. How To Manual (`src/components/HowToManual.tsx`)
 
-### 2. Update `playClick` logic
-Add a check: if the current beat value is `-1`, skip playing any sound and just advance the beat counter. This is a small change — just one `if` check before the existing sound logic.
+**Section 5 — Built-in Tools — Metronome bullet:**
 
-### Technical Details
+Current:
+> Metronome -- A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.
 
-**File: `src/components/practice-log/Metronome.tsx`**
+Updated:
+> Metronome -- A built-in click track with clave samples. Set your tempo (20-300 BPM) using the slider or the plus/minus buttons. Choose from common and complex time signatures including 2/4, 3/4, 4/4, 5/4, 5/8, 6/8, 6/8 in 2, and 7/8. Toggle Accent to hear a high-pitched click on downbeats, and select accent grouping patterns (e.g. 3+2 or 2+3) for asymmetric meters.
 
-Pattern change (line ~43):
-```typescript
-"6/8.": {
-  beats: 6, subdivision: 8,
-  patterns: [[1, -1, -1, 1, -1, -1]],  // only 2 clicks per measure
-},
-```
+---
 
-playClick change (around line 124):
-```typescript
-const playClick = useCallback(() => {
-  const ctx = audioCtxRef.current;
-  if (!ctx) return;
+## 2. Landing Page (`src/pages/Landing.tsx`)
 
-  const sig = TIME_SIGNATURES[timeSigRef.current];
-  const pattern = sig.patterns[accentPatternIndexRef.current] ?? sig.patterns[0];
-  const beatValue = pattern[beatIndexRef.current];
+Three spots to update:
 
-  // -1 means silent beat — skip sound entirely
-  if (beatValue !== -1) {
-    const isAccent = accentOnRef.current && beatValue === 1;
-    const buffer = isAccent ? hiClaveBufferRef.current : claveBufferRef.current;
-    // ... existing sound playback logic unchanged ...
-  }
+**a) Top Features card (line ~41):**
 
-  beatIndexRef.current = (beatIndexRef.current + 1) % pattern.length;
-}, []);
-```
+Current: `"Built-in clave-sample metronome, chromatic tuner with transposition, and a 12-key drone player — all inside your journal."`
 
-Only one file modified. All other time signatures and existing functionality remain untouched.
+Updated: `"Built-in metronome with time signatures, accent patterns, and clave samples — plus a chromatic tuner, and 12-key drone player, all inside your journal."`
+
+**b) Pricing features list (line ~75):**
+
+Current: `"Built-in metronome with clave sample"`
+
+Updated: `"Built-in metronome with time signatures & accent patterns"`
+
+**c) Benefits section (line ~335) -- no change needed** since "Built-in metronome, tuner & drone" is already accurate at the summary level.
+
+---
+
+## Files Modified
+- `src/components/HowToManual.tsx` -- update metronome bullet text
+- `src/pages/Landing.tsx` -- update two description strings
+
+All changes are text-only. No logic or layout changes.
+
