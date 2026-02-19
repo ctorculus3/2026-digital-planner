@@ -1,89 +1,52 @@
 
 
-# Metronome Update: Time Signatures and Accents
+# Fix 6/8. (Dotted) Time Signature — "6/8 in 2"
 
-## Overview
-Add two new controls to the metronome: a **Time Signature** selector and an **Accent** toggle with pattern options. Accented beats play the uploaded `Hi-Clave-3.wav` sound, while unaccented beats use the existing `Clave-4.wav`.
+## The Problem
+Currently, 6/8. plays 6 clicks per measure with accents on beats 1 and 4. It should only produce **2 audible clicks** — one on beat 1 and one on beat 4 — with beats 2, 3, 5, 6 being completely silent. This is the "6/8 in 2" feel: Click (rest rest) Click (rest rest).
 
-## New Audio File
-- Copy `Hi-Clave-3.wav` to `public/audio/Hi-Clave-3.wav` for use as the accent sound.
+## The Fix
 
-## UI Changes (inside `Metronome.tsx`)
+### 1. Update the pattern encoding
+Change the 6/8. pattern from `[1, 0, 0, 1, 0, 0]` to `[1, -1, -1, 1, -1, -1]`, where:
+- `1` = audible click (accent sound)
+- `0` = audible click (normal sound)  
+- `-1` = **silent** (no sound at all)
 
-### Time Signature Selector
-- A horizontally scrollable row of toggle buttons below the BPM display.
-- Options: **2/4**, **3/4**, **4/4**, **5/4**, **5/8**, **6/8**, **6/8 (dotted)**, **7/8**
-- The 6/8 dotted variant will be labeled "6/8." (with a dot) to distinguish it from regular 6/8.
-- Default: 4/4
+### 2. Update `playClick` logic
+Add a check: if the current beat value is `-1`, skip playing any sound and just advance the beat counter. This is a small change — just one `if` check before the existing sound logic.
 
-### Accent Toggle and Pattern Selector
-- An on/off toggle for accents (default: off).
-- When accents are on, a pattern selector appears if the time signature has multiple accent options.
-- Simple time signatures (2/4, 3/4, 4/4) just accent beat 1 -- no pattern choice needed.
-- Complex time signatures show selectable patterns:
+### Technical Details
 
-| Time Signature | Accent Patterns |
-|---|---|
-| 2/4 | Beat 1 |
-| 3/4 | Beat 1 |
-| 4/4 | Beat 1 |
-| 5/4 | 3+2, 2+3 |
-| 5/8 | 3+2, 2+3 |
-| 6/8 | 3+3, 2+2+2 |
-| 6/8 (dotted) | 2 beats per measure (accent every dotted quarter) |
-| 7/8 | 3+4, 4+3, 3+2+2, 2+2+3 |
+**File: `src/components/practice-log/Metronome.tsx`**
 
-## Playback Logic Changes
-
-### Beat Tracking
-- Add a beat counter that tracks the current position within the measure.
-- On each tick, determine if the current beat is accented based on the selected pattern.
-
-### Accent Sound
-- Load `Hi-Clave-3.wav` alongside the existing `Clave-4.wav` at startup.
-- On each tick:
-  - If accents are **on** and the beat is an accent beat: play `Hi-Clave-3.wav`
-  - Otherwise: play `Clave-4.wav` (existing behavior)
-
-### Subdivision Handling for x/8 Time Signatures
-- For 5/8, 6/8, and 7/8: each "beat" in the interval corresponds to an eighth note, so the interval is calculated as `60000 / bpm` where BPM refers to the eighth-note pulse.
-- For 6/8 dotted: the BPM represents the dotted-quarter pulse (2 beats per measure), with subdivisions handled internally (3 eighth notes per dotted quarter).
-
-## Technical Details
-
-### Data Structure for Accent Patterns
+Pattern change (line ~43):
 ```typescript
-const TIME_SIGNATURES = {
-  "2/4": { beats: 2, subdivision: 4, patterns: [[1, 0]] },
-  "3/4": { beats: 3, subdivision: 4, patterns: [[1, 0, 0]] },
-  "4/4": { beats: 4, subdivision: 4, patterns: [[1, 0, 0, 0]] },
-  "5/4": { beats: 5, subdivision: 4, patterns: [[1, 0, 0, 1, 0], [1, 0, 1, 0, 0]] }, // 3+2, 2+3
-  "5/8": { beats: 5, subdivision: 8, patterns: [[1, 0, 0, 1, 0], [1, 0, 1, 0, 0]] },
-  "6/8": { beats: 6, subdivision: 8, patterns: [[1, 0, 0, 1, 0, 0], [1, 0, 1, 0, 1, 0]] }, // 3+3, 2+2+2
-  "6/8.": { beats: 6, subdivision: 8, patterns: [[1, 0, 0, 1, 0, 0]] }, // dotted quarter grouping
-  "7/8": { beats: 7, subdivision: 8, patterns: [[1,0,0,1,0,0,0], [1,0,0,0,1,0,0], [1,0,0,1,0,1,0], [1,0,1,0,1,0,0]] },
-};
+"6/8.": {
+  beats: 6, subdivision: 8,
+  patterns: [[1, -1, -1, 1, -1, -1]],  // only 2 clicks per measure
+},
 ```
 
-### State Additions
-- `timeSig`: selected time signature key (default "4/4")
-- `accentOn`: boolean toggle (default false)
-- `accentPatternIndex`: which pattern variant is selected (default 0)
-- `beatIndexRef`: ref tracking current beat position in the measure
-
-### Modified Tick Function
+playClick change (around line 124):
 ```typescript
-const playTick = async () => {
-  const pattern = TIME_SIGNATURES[timeSig].patterns[accentPatternIndex];
-  const isAccent = accentOn && pattern[beatIndexRef.current] === 1;
-  // Play hi-clave for accent, regular clave otherwise
-  playSound(isAccent ? hiClaveBuffer : claveBuffer);
+const playClick = useCallback(() => {
+  const ctx = audioCtxRef.current;
+  if (!ctx) return;
+
+  const sig = TIME_SIGNATURES[timeSigRef.current];
+  const pattern = sig.patterns[accentPatternIndexRef.current] ?? sig.patterns[0];
+  const beatValue = pattern[beatIndexRef.current];
+
+  // -1 means silent beat — skip sound entirely
+  if (beatValue !== -1) {
+    const isAccent = accentOnRef.current && beatValue === 1;
+    const buffer = isAccent ? hiClaveBufferRef.current : claveBufferRef.current;
+    // ... existing sound playback logic unchanged ...
+  }
+
   beatIndexRef.current = (beatIndexRef.current + 1) % pattern.length;
-};
+}, []);
 ```
 
-### Files Modified
-- `src/components/practice-log/Metronome.tsx` -- all changes contained here
-- `public/audio/Hi-Clave-3.wav` -- new file (copy from upload)
-
-All existing functionality (BPM slider, start/stop, iOS audio unlock, onStart callback, cleanup) is fully preserved.
+Only one file modified. All other time signatures and existing functionality remain untouched.
