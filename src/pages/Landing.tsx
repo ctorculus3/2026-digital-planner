@@ -14,6 +14,7 @@ import { ContactDialog } from "@/components/ContactDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import musiciansHero from "@/assets/musicians-hero.png";
+import journalScreenshot from "@/assets/journal-screenshot.png";
 
 /* ─────────── data ─────────── */
 
@@ -214,23 +215,46 @@ export default function Landing() {
 
       {/* ───── Hero ───── */}
       <section className="bg-white">
-        <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center">
-          <div className="relative w-full max-w-4xl">
+        <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
+
+          {/* Entourage — illustration strip */}
+          <div className="order-1 md:order-0 w-full flex justify-center -mb-8 md:-mb-16 z-10">
             <img
               src={musiciansHero}
               alt="Practice Daily — a musician's practice journal illustration"
-              className="w-full h-auto"
+              className="w-full h-auto max-w-none sm:max-w-3xl"
               loading="eager"
             />
-            <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
-                Start Your Free Trial Now
+          </div>
+
+          {/* Header — headline + subtitle + CTAs */}
+          <div className="order-2 md:order-1 z-20 flex flex-col items-center text-center px-2">
+            <h1 className="font-display text-4xl md:text-6xl font-bold tracking-tight">
+              Your personal practice journal
+            </h1>
+            <p className="mt-4 max-w-xl text-muted-foreground text-base md:text-lg">
+              Track sessions, set goals, and grow as a musician — all in one beautiful, distraction-free space.
+            </p>
+            <div className="mt-8 flex flex-col min-[440px]:flex-row items-center justify-center gap-2 min-[440px]:gap-2 md:gap-4 w-full min-[440px]:w-auto">
+              <Button size="lg" className="font-semibold text-base px-8 w-full min-[440px]:w-auto" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+                Get Practice Daily free
               </Button>
-              <Button variant="outline" size="lg" className="font-semibold text-base px-8 bg-white/90" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
+              <Button variant="outline" size="lg" className="font-semibold text-base px-8 w-full min-[440px]:w-auto" onClick={() => { setIsLogin(true); scrollToAuth(); }}>
                 Sign in
               </Button>
             </div>
           </div>
+
+          {/* Media — product screenshot */}
+          <div className="order-0 md:order-2 w-full max-w-4xl mt-0 md:mt-8 overflow-hidden md:border md:border-border md:rounded-xl md:shadow-2xl">
+            <img
+              src={journalScreenshot}
+              alt="Practice Daily journal interface preview"
+              className="w-full h-auto object-cover aspect-square md:aspect-[16/10]"
+              loading="eager"
+            />
+          </div>
+
         </div>
       </section>
 
