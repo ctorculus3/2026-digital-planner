@@ -235,15 +235,7 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Media — product screenshot */}
-          <div className="w-full max-w-4xl md:mt-8 overflow-hidden md:border md:border-border md:rounded-xl md:shadow-2xl">
-            <img
-              src={journalScreenshot}
-              alt="Practice Daily journal interface preview"
-              className="w-full h-auto"
-              loading="eager"
-            />
-          </div>
+          {/* Media — product screenshot (hidden until a proper image is ready) */}
 
         </div>
       </section>
