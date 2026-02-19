@@ -217,7 +217,7 @@ export default function Landing() {
       {/* ───── Hero ───── */}
       <section className="bg-white">
         {/* Musicians illustration banner — full width */}
-        <div className="w-full -mb-8 md:-mb-16">
+        <div className="w-full" style={{ marginBottom: '-3vw' }}>
           <img
             src={musiciansBanner}
             alt="Illustrated musicians playing various instruments"
