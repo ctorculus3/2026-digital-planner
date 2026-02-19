@@ -336,6 +336,7 @@ export default function Landing() {
                 { title: "Share progress with teachers", desc: "Generate a shareable link so your teacher can review your practice log." },
                 { title: "AI-powered music coaching", desc: "Get personalized feedback and practice suggestions from Music AI." },
                 { title: "Upload lesson PDFs", desc: "Keep lesson materials organized alongside each day's practice log." },
+                { title: "Attach media to your log", desc: "Embed YouTube videos, upload audio, photos, and video for reference listening — all stored with your daily entry." },
                 { title: "Dashboard with stats & badges", desc: "Visualize your progress with practice time graphs and earned badges." },
               ].map((b) => (
                 <div key={b.title} className="flex items-start gap-3">
