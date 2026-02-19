@@ -1,36 +1,47 @@
 
-# Video + Scrolling Benefits Section
 
-## Overview
-Replace the current "See It in Action" section with a split-layout: the product demo video on one side and scrolling benefit points on the other. On mobile, it stacks vertically (video on top, benefits below).
+# Auto-Loop Video + Make It Larger
 
-## Layout
-- **Desktop**: Two-column grid (video left, benefits right)
-- **Mobile**: Single column, video stacked above benefits
-- Video plays inline with controls, using a `<video>` tag with the uploaded `.mov` files
-- Benefits list scrolls/animates through key selling points with check icons
+## Changes (single file: `src/pages/Landing.tsx`)
 
-## Steps
+1. **Add `loop`, `autoPlay`, and `muted`** to the `<video>` tag so the demo plays continuously without user interaction (browsers require `muted` for autoplay to work).
 
-1. **Copy video file** to `public/video/practice-daily-demo.mov` (pick the best of the two uploads -- likely `PracticeDaily.mov`)
-2. **Update the "See It in Action" section** in `src/pages/Landing.tsx`:
-   - Replace the centered iframe layout with a `grid grid-cols-1 lg:grid-cols-2` split
-   - Left column: responsive `<video>` element with controls, rounded corners, shadow
-   - Right column: list of benefit points with check-mark icons, styled to match the existing design language (header-bg accent color)
-3. **Benefit points** will include items like:
-   - Track your daily practice sessions
-   - Set goals and build streaks
-   - Built-in metronome, tuner, and drone player
-   - Share progress with teachers
-   - AI-powered music coaching
-   - Upload lesson PDFs
-   - Dashboard with stats and badges
+2. **Make the video larger** by changing the grid ratio from equal 50/50 to roughly 60/40, giving the video more space:
+   - Change `grid-cols-1 lg:grid-cols-2` to `grid-cols-1 lg:grid-cols-5`
+   - Video column: `lg:col-span-3` (60%)
+   - Benefits column: `lg:col-span-2` (40%)
+   - Widen container from `max-w-6xl` to `max-w-7xl`
 
-## Technical Details
+## Technical Detail
 
-- The video will be placed in `public/video/` since it's a large media file best served statically rather than bundled
-- Uses a native `<video>` tag with `controls`, `playsinline`, `preload="metadata"` for performance
-- The benefit points use the existing `Check` icon from lucide-react and `header-bg` color tokens
-- Section heading ("See It in Action") and subtitle remain above the split layout
-- Existing iframe for the animated ad HTML will be removed (replaced by the real demo video)
-- Only the "See It in Action" section (lines 307-326) is modified; all other sections remain untouched
+Update the video element (around line 324):
+```tsx
+<video
+  src="/video/practice-daily-demo.mov"
+  controls
+  playsInline
+  preload="metadata"
+  loop
+  autoPlay
+  muted
+  className="w-full rounded-xl shadow-lg"
+  aria-label="Practice Daily product demo"
+/>
+```
+
+Update the grid (around line 319):
+```tsx
+<div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center max-w-7xl mx-auto">
+  {/* Video - 3/5 width */}
+  <div className="lg:col-span-3">
+    ...
+  </div>
+  {/* Benefits - 2/5 width */}
+  <div className="lg:col-span-2 space-y-5">
+    ...
+  </div>
+</div>
+```
+
+No other files are affected.
+
