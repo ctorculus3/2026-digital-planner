@@ -1,63 +1,89 @@
 
 
-# Fix Metronome Sound
+# Metronome Update: Time Signatures and Accents
 
-## Problem
-The metronome visually starts (button changes to stop icon, checkbox toggles) but produces no audible sound. This is likely caused by iOS/mobile browsers silently blocking audio when the `AudioContext` loses its user-gesture context during async operations.
+## Overview
+Add two new controls to the metronome: a **Time Signature** selector and an **Accent** toggle with pattern options. Accented beats play the uploaded `Hi-Clave-3.wav` sound, while unaccented beats use the existing `Clave-4.wav`.
 
-## Root Cause
-In `startMetronome`, two `await` calls happen between the user's tap gesture and the first `playClick()`:
+## New Audio File
+- Copy `Hi-Clave-3.wav` to `public/audio/Hi-Clave-3.wav` for use as the accent sound.
 
-```
-await getAudioContext();   // creates + resumes AudioContext
-await loadClave();         // fetches + decodes WAV file (network I/O)
-playClick();               // <-- by now, iOS may have re-suspended the context
-```
+## UI Changes (inside `Metronome.tsx`)
 
-iOS requires AudioContext operations to happen synchronously within a user gesture. The network fetch in `loadClave()` breaks that chain.
+### Time Signature Selector
+- A horizontally scrollable row of toggle buttons below the BPM display.
+- Options: **2/4**, **3/4**, **4/4**, **5/4**, **5/8**, **6/8**, **6/8 (dotted)**, **7/8**
+- The 6/8 dotted variant will be labeled "6/8." (with a dot) to distinguish it from regular 6/8.
+- Default: 4/4
 
-## Solution
-Ensure the `AudioContext` is explicitly resumed right before playing, and add a silent buffer "unlock" technique for iOS:
+### Accent Toggle and Pattern Selector
+- An on/off toggle for accents (default: off).
+- When accents are on, a pattern selector appears if the time signature has multiple accent options.
+- Simple time signatures (2/4, 3/4, 4/4) just accent beat 1 -- no pattern choice needed.
+- Complex time signatures show selectable patterns:
 
-### Changes to `src/components/practice-log/Metronome.tsx`:
+| Time Signature | Accent Patterns |
+|---|---|
+| 2/4 | Beat 1 |
+| 3/4 | Beat 1 |
+| 4/4 | Beat 1 |
+| 5/4 | 3+2, 2+3 |
+| 5/8 | 3+2, 2+3 |
+| 6/8 | 3+3, 2+2+2 |
+| 6/8 (dotted) | 2 beats per measure (accent every dotted quarter) |
+| 7/8 | 3+4, 4+3, 3+2+2, 2+2+3 |
 
-1. **Add an AudioContext resume before `playClick`** -- In the `playClick` function, check if the context is suspended and resume it. This catches cases where iOS re-suspends the context after async work.
+## Playback Logic Changes
 
-2. **Pre-warm the AudioContext with a silent buffer** -- After creating the AudioContext on user gesture, immediately play a silent buffer (a common iOS unlock trick). This "unlocks" the context before the async clave fetch happens.
+### Beat Tracking
+- Add a beat counter that tracks the current position within the measure.
+- On each tick, determine if the current beat is accented based on the selected pattern.
 
-3. **Add a resume call in `startMetronome` after the async operations** -- Right before calling `playClick()`, explicitly resume the AudioContext again.
+### Accent Sound
+- Load `Hi-Clave-3.wav` alongside the existing `Clave-4.wav` at startup.
+- On each tick:
+  - If accents are **on** and the beat is an accent beat: play `Hi-Clave-3.wav`
+  - Otherwise: play `Clave-4.wav` (existing behavior)
 
-### Technical Details
+### Subdivision Handling for x/8 Time Signatures
+- For 5/8, 6/8, and 7/8: each "beat" in the interval corresponds to an eighth note, so the interval is calculated as `60000 / bpm` where BPM refers to the eighth-note pulse.
+- For 6/8 dotted: the BPM represents the dotted-quarter pulse (2 beats per measure), with subdivisions handled internally (3 eighth notes per dotted quarter).
 
+## Technical Details
+
+### Data Structure for Accent Patterns
 ```typescript
-// In playClick, add a resume guard:
-const playClick = useCallback(async () => {
-  const ctx = audioCtxRef.current;
-  if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
-  }
-  // ... rest of play logic
-}, []);
-
-// In startMetronome, after getAudioContext(), play a silent buffer to unlock iOS:
-const ctx = await getAudioContext();
-// Unlock iOS audio with silent buffer
-const silentBuffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-const silentSource = ctx.createBufferSource();
-silentSource.buffer = silentBuffer;
-silentSource.connect(ctx.destination);
-silentSource.start();
-
-// After loadClave, resume again before playing:
-await loadClave();
-if (!isPlayingRef.current) return;
-if (audioCtxRef.current?.state === 'suspended') {
-  await audioCtxRef.current.resume();
-}
-playClick(); // Now the context is guaranteed to be running
+const TIME_SIGNATURES = {
+  "2/4": { beats: 2, subdivision: 4, patterns: [[1, 0]] },
+  "3/4": { beats: 3, subdivision: 4, patterns: [[1, 0, 0]] },
+  "4/4": { beats: 4, subdivision: 4, patterns: [[1, 0, 0, 0]] },
+  "5/4": { beats: 5, subdivision: 4, patterns: [[1, 0, 0, 1, 0], [1, 0, 1, 0, 0]] }, // 3+2, 2+3
+  "5/8": { beats: 5, subdivision: 8, patterns: [[1, 0, 0, 1, 0], [1, 0, 1, 0, 0]] },
+  "6/8": { beats: 6, subdivision: 8, patterns: [[1, 0, 0, 1, 0, 0], [1, 0, 1, 0, 1, 0]] }, // 3+3, 2+2+2
+  "6/8.": { beats: 6, subdivision: 8, patterns: [[1, 0, 0, 1, 0, 0]] }, // dotted quarter grouping
+  "7/8": { beats: 7, subdivision: 8, patterns: [[1,0,0,1,0,0,0], [1,0,0,0,1,0,0], [1,0,0,1,0,1,0], [1,0,1,0,1,0,0]] },
+};
 ```
 
-4. **Make the interval callback handle suspended state** -- Since `setInterval` callbacks also lose gesture context, ensure the interval's `playClick` handles this gracefully.
+### State Additions
+- `timeSig`: selected time signature key (default "4/4")
+- `accentOn`: boolean toggle (default false)
+- `accentPatternIndex`: which pattern variant is selected (default 0)
+- `beatIndexRef`: ref tracking current beat position in the measure
 
-These are targeted changes to the existing `Metronome.tsx` file only. No other files are affected. All existing functionality (BPM slider, start/stop, checkbox toggle, cleanup) is preserved.
+### Modified Tick Function
+```typescript
+const playTick = async () => {
+  const pattern = TIME_SIGNATURES[timeSig].patterns[accentPatternIndex];
+  const isAccent = accentOn && pattern[beatIndexRef.current] === 1;
+  // Play hi-clave for accent, regular clave otherwise
+  playSound(isAccent ? hiClaveBuffer : claveBuffer);
+  beatIndexRef.current = (beatIndexRef.current + 1) % pattern.length;
+};
+```
+
+### Files Modified
+- `src/components/practice-log/Metronome.tsx` -- all changes contained here
+- `public/audio/Hi-Clave-3.wav` -- new file (copy from upload)
+
+All existing functionality (BPM slider, start/stop, iOS audio unlock, onStart callback, cleanup) is fully preserved.
