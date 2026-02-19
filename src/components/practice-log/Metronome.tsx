@@ -37,7 +37,7 @@ const TIME_SIGNATURES: Record<TimeSigKey, TimeSigDef> = {
   },
   "6/8.": {
     beats: 6, subdivision: 8,
-    patterns: [[1, 0, 0, 1, 0, 0]],
+    patterns: [[1, -1, -1, 1, -1, -1]],
   },
   "7/8": {
     beats: 7, subdivision: 8,
@@ -125,28 +125,31 @@ export function Metronome({ onStart }: MetronomeProps) {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
 
-    // Determine which buffer to play
     const sig = TIME_SIGNATURES[timeSigRef.current];
     const pattern = sig.patterns[accentPatternIndexRef.current] ?? sig.patterns[0];
-    const isAccent = accentOnRef.current && pattern[beatIndexRef.current] === 1;
-    const buffer = isAccent ? hiClaveBufferRef.current : claveBufferRef.current;
+    const beatValue = pattern[beatIndexRef.current];
 
-    if (buffer) {
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start();
-    } else {
-      // Fallback oscillator beep
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.value = isAccent ? 1500 : 1000;
-      gain.gain.value = 0.3;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.03);
+    // -1 means silent beat — skip sound entirely
+    if (beatValue !== -1) {
+      const isAccent = accentOnRef.current && beatValue === 1;
+      const buffer = isAccent ? hiClaveBufferRef.current : claveBufferRef.current;
+
+      if (buffer) {
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start();
+      } else {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = isAccent ? 1500 : 1000;
+        gain.gain.value = 0.3;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+      }
     }
 
     beatIndexRef.current = (beatIndexRef.current + 1) % pattern.length;
