@@ -217,18 +217,8 @@ export default function Landing() {
       <section className="bg-white">
         <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
 
-          {/* Entourage — illustration strip */}
-          <div className="order-1 md:order-0 w-full flex justify-center -mb-8 md:-mb-16 z-10">
-            <img
-              src={musiciansHero}
-              alt="Practice Daily — a musician's practice journal illustration"
-              className="w-full h-auto max-w-none sm:max-w-3xl"
-              loading="eager"
-            />
-          </div>
-
           {/* Header — headline + subtitle + CTAs */}
-          <div className="order-2 md:order-1 z-20 flex flex-col items-center text-center px-2">
+          <div className="flex flex-col items-center text-center px-2">
             <h1 className="font-display text-4xl md:text-6xl font-bold tracking-tight">
               Your personal practice journal
             </h1>
@@ -246,11 +236,11 @@ export default function Landing() {
           </div>
 
           {/* Media — product screenshot */}
-          <div className="order-0 md:order-2 w-full max-w-4xl mt-0 md:mt-8 overflow-hidden md:border md:border-border md:rounded-xl md:shadow-2xl">
+          <div className="w-full max-w-4xl md:mt-8 overflow-hidden md:border md:border-border md:rounded-xl md:shadow-2xl">
             <img
               src={journalScreenshot}
               alt="Practice Daily journal interface preview"
-              className="w-full h-auto object-cover aspect-square md:aspect-[16/10]"
+              className="w-full h-auto"
               loading="eager"
             />
           </div>
