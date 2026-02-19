@@ -217,7 +217,7 @@ export default function Landing() {
       {/* ───── Hero ───── */}
       <section className="bg-white">
         {/* Musicians illustration banner — full width */}
-        <div className="w-full" style={{ marginBottom: '-3vw' }}>
+        <div className="w-full">
           <img
             src={musiciansBanner}
             alt="Illustrated musicians playing various instruments"
@@ -226,7 +226,7 @@ export default function Landing() {
           />
         </div>
 
-        <div className="container mx-auto px-4 pt-0 pb-12 md:pt-0 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
+        <div className="container mx-auto px-4 pb-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6" style={{ marginTop: '-8vw' }}>
 
           {/* Header — headline + subtitle + CTAs */}
           <div className="flex flex-col items-center text-center px-2">
