@@ -304,22 +304,48 @@ export default function Landing() {
         </Collapsible>
       </section>
 
-      {/* ───── See It in Action (Animated Ad) ───── */}
+      {/* ───── See It in Action (Video + Benefits) ───── */}
       <section className="bg-header-bg/5 border-y border-border">
-        <div className="container mx-auto px-4 py-20 md:py-28 text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold">See It in Action</h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Watch how a typical practice session flows inside Practice Daily.
-          </p>
-          <div className="mx-auto mt-12 max-w-5xl">
-            <div className="relative w-full rounded-xl shadow-lg overflow-hidden aspect-[3/4] md:aspect-[4/3]">
-              <iframe
-                src="/images/practice-daily-ad.html"
-                title="Practice Daily interactive product walkthrough"
-                className="absolute inset-0 w-full h-full border-0"
-                loading="lazy"
-                sandbox="allow-scripts"
+        <div className="container mx-auto px-4 py-20 md:py-28">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-3xl md:text-4xl font-bold">See It in Action</h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+              Watch how a typical practice session flows inside Practice Daily.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center max-w-6xl mx-auto">
+            {/* Video */}
+            <div>
+              <video
+                src="/video/practice-daily-demo.mov"
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full rounded-xl shadow-lg"
+                aria-label="Practice Daily product demo"
               />
+            </div>
+            {/* Benefits */}
+            <div className="space-y-5">
+              {[
+                { title: "Track daily practice sessions", desc: "Log warmups, scales, repertoire, and more in a structured daily journal." },
+                { title: "Set goals & build streaks", desc: "Stay motivated with practice streaks, badges, and a visual calendar." },
+                { title: "Built-in metronome, tuner & drone", desc: "Essential practice tools right inside the app — no switching between apps." },
+                { title: "Share progress with teachers", desc: "Generate a shareable link so your teacher can review your practice log." },
+                { title: "AI-powered music coaching", desc: "Get personalized feedback and practice suggestions from Music AI." },
+                { title: "Upload lesson PDFs", desc: "Keep lesson materials organized alongside each day's practice log." },
+                { title: "Dashboard with stats & badges", desc: "Visualize your progress with practice time graphs and earned badges." },
+              ].map((b) => (
+                <div key={b.title} className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-header-bg/15 mt-0.5">
+                    <Check className="h-4 w-4 text-header-bg" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold">{b.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">{b.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
