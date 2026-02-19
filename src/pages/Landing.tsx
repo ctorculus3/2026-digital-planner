@@ -216,17 +216,17 @@ export default function Landing() {
 
       {/* ───── Hero ───── */}
       <section className="bg-white">
-        <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
+        {/* Musicians illustration banner — full width */}
+        <div className="w-full -mb-4 md:-mb-8">
+          <img
+            src={musiciansBanner}
+            alt="Illustrated musicians playing various instruments"
+            className="w-full h-auto"
+            loading="eager"
+          />
+        </div>
 
-          {/* Musicians illustration banner */}
-          <div className="w-full flex justify-center -mb-4 md:-mb-8">
-            <img
-              src={musiciansBanner}
-              alt="Illustrated musicians playing various instruments"
-              className="w-full max-w-3xl h-auto"
-              loading="eager"
-            />
-          </div>
+        <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
 
           {/* Header — headline + subtitle + CTAs */}
           <div className="flex flex-col items-center text-center px-2">
