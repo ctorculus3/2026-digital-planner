@@ -1,38 +1,39 @@
 
 
-## Add Musicians Illustration to Hero
+## Make Musicians Banner Full Width
 
 ### What changes
 
-The uploaded illustration (`Never_lose_track_of_practice.png`) will be placed **above** the "Your personal practice journal" headline in the hero section, acting as a welcoming visual banner.
-
-### Steps
-
-1. **Copy the uploaded image** into `src/assets/` as `musicians-banner.png`
-2. **Import the image** in `Landing.tsx`
-3. **Add an `<img>` tag** above the Header wrapper, inside the hero flex container, with these styles:
-   - `w-full max-w-3xl` to keep it reasonably sized and centered
-   - `h-auto` for natural proportions
-   - No border/shadow -- just the raw illustration
-   - A small negative bottom margin (`-mb-4 md:-mb-8`) so the musicians slightly overlap into the headline area, similar to the effect shown in the uploaded image
+Remove the `max-w-3xl` constraint on the banner image so it stretches to the full width of the viewport. The banner currently sits inside a `container` div (max ~1400px), so we also need to break it out of that container using negative margins or move it above the container.
 
 ### Technical Details
 
 **File: `src/pages/Landing.tsx`**
 
-- Add import: `import musiciansBanner from "@/assets/musicians-banner.png";`
-- Insert before the Header wrapper (line 220), after the hero container opens:
-  ```tsx
-  {/* Musicians illustration banner */}
-  <div className="w-full flex justify-center -mb-4 md:-mb-8">
+- Move the banner `div` **above** the `container` div (line 219) but still inside the `<section>` so it spans full viewport width
+- Remove `max-w-3xl` from the image class, keep `w-full h-auto`
+- Remove the `flex justify-center` wrapper since it will just be full-width
+- Adjust negative bottom margin to pull the headline closer to the banner
+
+Resulting structure:
+
+```tsx
+<section className="bg-white">
+  {/* Musicians illustration banner — full width */}
+  <div className="w-full -mb-4 md:-mb-8">
     <img
       src={musiciansBanner}
       alt="Illustrated musicians playing various instruments"
-      className="w-full max-w-3xl h-auto"
+      className="w-full h-auto"
       loading="eager"
     />
   </div>
-  ```
 
-No other files or sections are modified.
+  <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
+    {/* Header — headline + subtitle + CTAs */}
+    ...
+  </div>
+</section>
+```
 
+No other files are modified.
