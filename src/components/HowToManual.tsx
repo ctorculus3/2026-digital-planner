@@ -97,7 +97,7 @@ export function HowToManual() {
             <section>
               <h3 className="text-base font-semibold text-foreground mb-2">5. Built-in Tools</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Metronome</strong> — A built-in click track. Set your practice tempo right inside the journal. Use the slider to raise or lower the tempo, or push the plus and minus signs.</li>
+                <li><strong>Metronome</strong> — A built-in click track with clave samples. Set your tempo (20–300 BPM) using the slider or the plus/minus buttons. Choose from common and complex time signatures including 2/4, 3/4, 4/4, 5/4, 5/8, 6/8, 6/8 in 2, and 7/8. Toggle Accent to hear a high-pitched click on downbeats, and select accent grouping patterns (e.g. 3+2 or 2+3) for asymmetric meters.</li>
                 <li><strong>Tuner</strong> — Uses your device's microphone to detect pitch and help you tune your instrument. Supports transposition for C (concert pitch), B♭, E♭, and F instruments. Enable <strong>Match Sound</strong> to hear a soft reference tone that matches your detected pitch — great for ear training and intonation work.</li>
                 <li><strong>Timer</strong> — Set a countdown timer for focused practice blocks. An alarm sounds when time is up.</li>
                 <li><strong>Audio Recorder</strong> — Record yourself practicing directly from the journal. Each repertoire row has its own recorder so you can track your progress over time. Play recordings back or download them to your device.</li>

@@ -38,7 +38,7 @@ const topFeatures = [
   {
     icon: Activity,
     title: "Metronome, Tuner & Drone Player",
-    desc: "Built-in clave-sample metronome, chromatic tuner with transposition, and a 12-key drone player — all inside your journal."
+    desc: "Built-in metronome with time signatures, accent patterns, and clave samples — plus a chromatic tuner, and 12-key drone player, all inside your journal."
   },
 ];
 
@@ -72,7 +72,7 @@ const pricingFeatures = [
   "Cloud storage across all your devices",
   "Share progress with teachers & peers",
   "Staff paper for notation sketches",
-  "Built-in metronome with clave sample",
+  "Built-in metronome with time signatures & accent patterns",
   "Chromatic tuner with transposition & Match Sound",
   "Copy from previous days to reuse your practice template",
   "Community feed to connect with musicians",
