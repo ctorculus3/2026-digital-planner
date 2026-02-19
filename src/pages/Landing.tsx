@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import musiciansHero from "@/assets/musicians-hero.png";
 import journalScreenshot from "@/assets/journal-screenshot.png";
+import musiciansBanner from "@/assets/musicians-banner.png";
 
 /* ─────────── data ─────────── */
 
@@ -216,6 +217,16 @@ export default function Landing() {
       {/* ───── Hero ───── */}
       <section className="bg-white">
         <div className="container mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 flex flex-col items-center gap-4 md:gap-6">
+
+          {/* Musicians illustration banner */}
+          <div className="w-full flex justify-center -mb-4 md:-mb-8">
+            <img
+              src={musiciansBanner}
+              alt="Illustrated musicians playing various instruments"
+              className="w-full max-w-3xl h-auto"
+              loading="eager"
+            />
+          </div>
 
           {/* Header — headline + subtitle + CTAs */}
           <div className="flex flex-col items-center text-center px-2">
