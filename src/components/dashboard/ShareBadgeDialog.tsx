@@ -90,10 +90,9 @@ export function ShareBadgeDialog({
           </div>
 
           {/* Streak */}
-          <div className="flex items-center gap-2 text-2xl font-bold text-foreground">
-            <Flame className="h-6 w-6 text-orange-500" />
-            <span>{streak}-day streak</span>
-          </div>
+          <p className="text-2xl font-bold text-foreground text-center">
+            {streak}-day streak
+          </p>
 
           {/* Branding */}
           <div className="text-center space-y-1">
