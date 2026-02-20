@@ -85,7 +85,7 @@ export default function Dashboard() {
         <PracticeTimeGraph practiceLogs={practiceLogs} loading={loading} />
 
         {/* Badge Shelf */}
-        <BadgeShelf badges={badges} loading={loading} />
+        <BadgeShelf badges={badges} loading={loading} streak={streak} />
       </main>
     </div>
   );

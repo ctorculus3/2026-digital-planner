@@ -1,6 +1,8 @@
-import { Trophy, Medal, Award, Crown, Music, Star } from "lucide-react";
+import { useState } from "react";
+import { Trophy, Medal, Award, Crown, Music, Star, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { ShareBadgeDialog } from "./ShareBadgeDialog";
 
 interface Badge {
   id: string;
@@ -11,9 +13,10 @@ interface Badge {
 interface BadgeShelfProps {
   badges: Badge[];
   loading?: boolean;
+  streak?: number;
 }
 
-const BADGE_CONFIG = [
+export const BADGE_CONFIG = [
   {
     type: "streak_10",
     number: 10,
@@ -52,7 +55,7 @@ const BADGE_CONFIG = [
   },
 ];
 
-function EnamelBadge({
+export function EnamelBadge({
   config,
   earned,
 }: {
@@ -140,8 +143,12 @@ function EnamelBadge({
   );
 }
 
-export function BadgeShelf({ badges, loading }: BadgeShelfProps) {
+export function BadgeShelf({ badges, loading, streak = 0 }: BadgeShelfProps) {
   const earnedMap = new Map(badges.map((b) => [b.badge_type, b]));
+  const [shareConfig, setShareConfig] = useState<{
+    config: (typeof BADGE_CONFIG)[0];
+    earned: Badge;
+  } | null>(null);
 
   return (
     <div className="bg-card rounded-lg border border-border p-4 md:p-6 shadow-sm">
@@ -149,14 +156,34 @@ export function BadgeShelf({ badges, loading }: BadgeShelfProps) {
         Streak Badges
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-items-center">
-        {BADGE_CONFIG.map((config) => (
-          <EnamelBadge
-            key={config.type}
-            config={config}
-            earned={earnedMap.get(config.type)}
-          />
-        ))}
+        {BADGE_CONFIG.map((config) => {
+          const earned = earnedMap.get(config.type);
+          return (
+            <div key={config.type} className="relative group">
+              <EnamelBadge config={config} earned={earned} />
+              {earned && (
+                <button
+                  onClick={() => setShareConfig({ config, earned })}
+                  className="absolute top-0 right-0 p-1 rounded-full bg-card/80 border border-border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={`Share ${config.label} badge`}
+                >
+                  <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {shareConfig && (
+        <ShareBadgeDialog
+          open={!!shareConfig}
+          onOpenChange={(open) => !open && setShareConfig(null)}
+          badgeConfig={shareConfig.config}
+          earned={shareConfig.earned}
+          streak={streak}
+        />
+      )}
     </div>
   );
 }
