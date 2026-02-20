@@ -1,43 +1,37 @@
 
 
-# Add Instagram and TikTok to Badge Sharing
+# Fix Badge Share Button Issues
 
-## Updated Plan
+## Problems Identified
 
-Building on the previously approved sharing plan, add **Instagram** and **TikTok** as sharing options alongside Twitter/X, Facebook, Copy Text, and native Share.
+1. **Share icon only visible on hover** -- The share button uses `opacity-0 group-hover:opacity-100`, making it invisible on mobile and hard to discover on desktop. Fix: make it always visible on earned badges.
 
-## How Instagram and TikTok Sharing Works
+2. **Share button click does nothing** -- The share icon button sits inside a `relative group` wrapper, but the dialog isn't opening reliably. The issue is likely that on mobile/touch devices, `group-hover` never fires, so the button is invisible and untappable. Making it always visible fixes this.
 
-Neither Instagram nor TikTok have simple web-based "share intent" URLs like Twitter or Facebook. Here's the practical approach:
+3. **"Copy Text" only shares text with a link** -- The user wants the shared content to include the actual badge details (streak number, badge milestone), not just a landing page URL. The current `shareMessage` already includes badge info (`"I just hit a X-day practice streak and earned the Y badge"`), but the user may want more emphasis. The real issue the user is describing is that the message feels like "just a link." We'll make the copy text more descriptive and badge-focused.
 
-- **Instagram**: Open the user's Instagram profile creation flow via `https://www.instagram.com/`. Since Instagram doesn't support pre-filled text links, the share button will first copy the share message to the clipboard, then open Instagram — with a toast telling the user to paste their message.
-- **TikTok**: Same approach — copy to clipboard, then open `https://www.tiktok.com/`. A toast notifies the user the text is copied and ready to paste.
+## Changes
 
-This is the standard pattern used by most apps for Instagram/TikTok sharing since those platforms don't offer URL-based share intents.
+### 1. `src/components/dashboard/BadgeShelf.tsx`
 
-## Changes to the Plan
+- Remove `opacity-0 group-hover:opacity-100` from the share button so it's **always visible** on earned badges
+- Style it as a subtle but permanently visible icon (slightly smaller, positioned at bottom-center or bottom-right of the badge)
 
-### `src/components/dashboard/ShareBadgeDialog.tsx` (new file)
+### 2. `src/components/dashboard/ShareBadgeDialog.tsx`
 
-Add two additional share buttons to the dialog:
+- Update `shareMessage` to be more badge-focused, emphasizing the achievement:
+  ```
+  "I earned the [30 Days] streak badge on Practice Daily! Currently on a [X]-day practice streak. Track your music practice journey at https://practicedaily.app"
+  ```
+- This makes the copied text clearly about the badge achievement rather than feeling like just a link share
 
-- **Instagram button**: Copies share text to clipboard, shows a toast ("Text copied! Paste it on Instagram"), then opens `https://www.instagram.com/` in a new tab
-- **TikTok button**: Copies share text to clipboard, shows a toast ("Text copied! Paste it on TikTok"), then opens `https://www.tiktok.com/` in a new tab
+## Technical Details
 
-The button order in the dialog will be:
-1. Twitter/X
-2. Facebook
-3. Instagram
-4. TikTok
-5. Copy Text (for SMS/texting)
-6. Share (native, mobile only)
+- The share icon button's `opacity-0 group-hover:opacity-100` classes will be replaced with `opacity-70 hover:opacity-100` so it's always visible but not distracting
+- The share message text will be restructured to lead with the badge achievement
+- No backend changes needed
 
-### All Other Files
-
-No additional changes beyond the original plan — `BadgeShelf.tsx` and `Dashboard.tsx` updates remain the same.
-
-## Files to Create/Modify
-- `src/components/dashboard/ShareBadgeDialog.tsx` — new file with all 6 share options
-- `src/components/dashboard/BadgeShelf.tsx` — export components, add share icon on earned badges
-- `src/pages/Dashboard.tsx` — pass streak to BadgeShelf
+## Files Modified
+- `src/components/dashboard/BadgeShelf.tsx` -- make share icon always visible
+- `src/components/dashboard/ShareBadgeDialog.tsx` -- improve share message text
 
