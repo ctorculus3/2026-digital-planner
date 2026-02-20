@@ -31,7 +31,7 @@ export function ShareBadgeDialog({
   earned,
   streak,
 }: ShareBadgeDialogProps) {
-  const shareMessage = `🏆 I earned the ${badgeConfig.label} streak badge on Practice Daily! 🔥 Currently on a ${streak}-day practice streak. Track your music practice journey at https://practicedaily.app`;
+  const shareMessage = `I earned the ${badgeConfig.label} streak badge on Practice Daily! 🔥 Currently on a ${streak}-day practice streak. Track your music practice journey at Practicedaily.app`;
 
   const handleTwitter = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`;
@@ -80,30 +80,28 @@ export function ShareBadgeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center">Share Your Achievement</DialogTitle>
+          <DialogTitle className="text-center text-2xl">Share Your Achievement</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2">
-          {/* Badge visual */}
-          <EnamelBadge config={badgeConfig} earned={earned} />
+          {/* Badge visual — scaled up */}
+          <div className="my-6" style={{ transform: "scale(1.8)" }}>
+            <EnamelBadge config={badgeConfig} earned={earned} />
+          </div>
 
           {/* Streak */}
-          <div className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Flame className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center gap-2 text-2xl font-bold text-foreground">
+            <Flame className="h-6 w-6 text-orange-500" />
             <span>{streak}-day streak</span>
           </div>
 
           {/* Branding */}
           <div className="text-center space-y-1">
-            <a
-              href="https://practicedaily.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xl font-display font-bold text-primary hover:underline"
-            >
+            <p className="text-3xl font-display font-bold text-foreground">
               Practice Daily
-            </a>
-            <p className="text-sm text-muted-foreground">Your Personal Practice Journal</p>
+            </p>
+            <p className="text-base text-muted-foreground">Your Personal Practice Journal</p>
+            <p className="text-lg text-muted-foreground">Practicedaily.app</p>
           </div>
 
           {/* Share buttons */}
