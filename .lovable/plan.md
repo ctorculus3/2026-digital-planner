@@ -1,45 +1,43 @@
 
 
-# Wire Up PR Outreach Webhook for Signup Events
+# Add Instagram and TikTok to Badge Sharing
 
-## Overview
-Update the `notify-subscriber-event` backend function to also forward signup events to the PR Outreach webhook, so new signups appear in PR Outreach automatically.
+## Updated Plan
 
----
+Building on the previously approved sharing plan, add **Instagram** and **TikTok** as sharing options alongside Twitter/X, Facebook, Copy Text, and native Share.
 
-## What You Need First
-Find the **x-webhook-secret** value from your PR Outreach dashboard. This is the secret token that authenticates requests to the webhook endpoint. Once you provide it, it will be stored securely in the backend.
+## How Instagram and TikTok Sharing Works
 
----
+Neither Instagram nor TikTok have simple web-based "share intent" URLs like Twitter or Facebook. Here's the practical approach:
 
-## Changes
+- **Instagram**: Open the user's Instagram profile creation flow via `https://www.instagram.com/`. Since Instagram doesn't support pre-filled text links, the share button will first copy the share message to the clipboard, then open Instagram — with a toast telling the user to paste their message.
+- **TikTok**: Same approach — copy to clipboard, then open `https://www.tiktok.com/`. A toast notifies the user the text is copied and ready to paste.
 
-### 1. Add a New Secret: `PR_OUTREACH_WEBHOOK_SECRET`
-Store the x-webhook-secret value securely so the backend function can use it.
+This is the standard pattern used by most apps for Instagram/TikTok sharing since those platforms don't offer URL-based share intents.
 
-### 2. Update `notify-subscriber-event` Edge Function (`supabase/functions/notify-subscriber-event/index.ts`)
+## Changes to the Plan
 
-After the existing n8n webhook call (line ~56-64), add a second webhook call **only for signup events** that POSTs to:
+### `src/components/dashboard/ShareBadgeDialog.tsx` (new file)
 
-```
-https://hzgwcuefaptbohxvbebi.supabase.co/functions/v1/webhook
-```
+Add two additional share buttons to the dialog:
 
-With:
-- Header: `x-webhook-secret` set to the stored secret
-- Header: `Content-Type: application/json`  
-- Body: the same payload (event, email, name, trial_start, trial_end)
+- **Instagram button**: Copies share text to clipboard, shows a toast ("Text copied! Paste it on Instagram"), then opens `https://www.instagram.com/` in a new tab
+- **TikTok button**: Copies share text to clipboard, shows a toast ("Text copied! Paste it on TikTok"), then opens `https://www.tiktok.com/` in a new tab
 
-This is also fire-and-forget — errors are logged but don't block the response.
+The button order in the dialog will be:
+1. Twitter/X
+2. Facebook
+3. Instagram
+4. TikTok
+5. Copy Text (for SMS/texting)
+6. Share (native, mobile only)
 
-### 3. No Frontend Changes
-The frontend already sends signup events with all the required fields (email, name, trial_start, trial_end). No client-side changes needed.
+### All Other Files
 
----
+No additional changes beyond the original plan — `BadgeShelf.tsx` and `Dashboard.tsx` updates remain the same.
 
-## Files Modified
-- `supabase/functions/notify-subscriber-event/index.ts` — add PR Outreach webhook call for signup events
-
-## Secrets Added
-- `PR_OUTREACH_WEBHOOK_SECRET` — the x-webhook-secret value from PR Outreach
+## Files to Create/Modify
+- `src/components/dashboard/ShareBadgeDialog.tsx` — new file with all 6 share options
+- `src/components/dashboard/BadgeShelf.tsx` — export components, add share icon on earned badges
+- `src/pages/Dashboard.tsx` — pass streak to BadgeShelf
 
