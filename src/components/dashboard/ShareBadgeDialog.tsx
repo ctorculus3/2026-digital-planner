@@ -31,7 +31,7 @@ export function ShareBadgeDialog({
   earned,
   streak,
 }: ShareBadgeDialogProps) {
-  const shareMessage = `🔥 I just hit a ${streak}-day practice streak and earned the ${badgeConfig.label} badge on Practice Daily — Your Personal Practice Journal! https://practicedaily.app`;
+  const shareMessage = `🏆 I earned the ${badgeConfig.label} streak badge on Practice Daily! 🔥 Currently on a ${streak}-day practice streak. Track your music practice journey at https://practicedaily.app`;
 
   const handleTwitter = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}`;
