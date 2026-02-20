@@ -162,9 +162,9 @@ export function BadgeShelf({ badges, loading, streak = 0 }: BadgeShelfProps) {
             <div key={config.type} className="relative group">
               <EnamelBadge config={config} earned={earned} />
               {earned && (
-                <button
+                 <button
                   onClick={() => setShareConfig({ config, earned })}
-                  className="absolute top-0 right-0 p-1 rounded-full bg-card/80 border border-border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-0 right-0 p-1 rounded-full bg-card/80 border border-border shadow-sm opacity-70 hover:opacity-100 transition-opacity"
                   aria-label={`Share ${config.label} badge`}
                 >
                   <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
