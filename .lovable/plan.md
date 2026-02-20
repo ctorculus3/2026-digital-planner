@@ -1,43 +1,45 @@
 
 
-# Add "Forgot Your Password?" to the Sign-In Form
+# Wire Up PR Outreach Webhook for Signup Events
 
 ## Overview
-Add a password reset flow so users can recover their accounts. This involves three changes:
-
-1. A "Forgot your password?" link on the sign-in form
-2. A forgot-password state in the Landing page that sends a reset email
-3. A new `/reset-password` page where users set their new password
+Update the `notify-subscriber-event` backend function to also forward signup events to the PR Outreach webhook, so new signups appear in PR Outreach automatically.
 
 ---
 
-## 1. Landing Page — Forgot Password Link and Flow (`src/pages/Landing.tsx`)
+## What You Need First
+Find the **x-webhook-secret** value from your PR Outreach dashboard. This is the secret token that authenticates requests to the webhook endpoint. Once you provide it, it will be stored securely in the backend.
 
-- Add a new state variable `forgotPassword` (boolean, default false)
-- Below the password field (line ~493), show a "Forgot your password?" button that only appears when `isLogin` is true — clicking it sets `forgotPassword = true`
-- When `forgotPassword` is true, the auth card changes to show:
-  - A title like "Reset Your Password"
-  - Just the email field (no password field)
-  - A "Send Reset Link" button that calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password' })`
-  - A "Back to Sign In" link to return to the normal login form
-- Show a toast confirming the reset email was sent
+---
 
-## 2. New Reset Password Page (`src/pages/ResetPassword.tsx`)
+## Changes
 
-- Detects the `type=recovery` token in the URL hash (Supabase appends this automatically)
-- Shows a simple form with "New Password" and "Confirm Password" fields
-- Calls `supabase.auth.updateUser({ password })` to save the new password
-- On success, shows a toast and redirects to `/auth`
+### 1. Add a New Secret: `PR_OUTREACH_WEBHOOK_SECRET`
+Store the x-webhook-secret value securely so the backend function can use it.
 
-## 3. Route Registration (`src/App.tsx`)
+### 2. Update `notify-subscriber-event` Edge Function (`supabase/functions/notify-subscriber-event/index.ts`)
 
-- Import and add a public route for `/reset-password` pointing to the new `ResetPassword` page
-- This route must NOT be behind `ProtectedRoute` or `PublicRoute` — it needs to be accessible regardless of auth state since the user arrives via an email link
+After the existing n8n webhook call (line ~56-64), add a second webhook call **only for signup events** that POSTs to:
+
+```
+https://hzgwcuefaptbohxvbebi.supabase.co/functions/v1/webhook
+```
+
+With:
+- Header: `x-webhook-secret` set to the stored secret
+- Header: `Content-Type: application/json`  
+- Body: the same payload (event, email, name, trial_start, trial_end)
+
+This is also fire-and-forget — errors are logged but don't block the response.
+
+### 3. No Frontend Changes
+The frontend already sends signup events with all the required fields (email, name, trial_start, trial_end). No client-side changes needed.
 
 ---
 
 ## Files Modified
-- `src/pages/Landing.tsx` — add forgot-password toggle, email-only form state, and reset email logic
-- `src/pages/ResetPassword.tsx` — new page for setting a new password
-- `src/App.tsx` — add `/reset-password` route
+- `supabase/functions/notify-subscriber-event/index.ts` — add PR Outreach webhook call for signup events
+
+## Secrets Added
+- `PR_OUTREACH_WEBHOOK_SECRET` — the x-webhook-secret value from PR Outreach
 
