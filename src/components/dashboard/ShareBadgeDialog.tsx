@@ -85,7 +85,7 @@ export function ShareBadgeDialog({
 
         <div className="flex flex-col items-center gap-4 py-2">
           {/* Badge visual — scaled up */}
-          <div className="my-6" style={{ transform: "scale(1.8)" }}>
+          <div className="mt-6 mb-14" style={{ transform: "scale(1.8)" }}>
             <EnamelBadge config={badgeConfig} earned={earned} />
           </div>
 
