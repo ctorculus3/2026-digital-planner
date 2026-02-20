@@ -63,6 +63,28 @@ serve(async (req) => {
       console.error("[notify-subscriber-event] Webhook call failed:", webhookErr);
     }
 
+    // Forward signup events to PR Outreach webhook (fire-and-forget)
+    if (eventType === "signup") {
+      const prOutreachSecret = Deno.env.get("PR_OUTREACH_WEBHOOK_SECRET");
+      if (prOutreachSecret) {
+        try {
+          await fetch("https://hzgwcuefaptbohxvbebi.supabase.co/functions/v1/webhook", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-webhook-secret": prOutreachSecret,
+            },
+            body: JSON.stringify(payload),
+          });
+          console.log("[notify-subscriber-event] PR Outreach webhook sent for signup");
+        } catch (prErr) {
+          console.error("[notify-subscriber-event] PR Outreach webhook failed:", prErr);
+        }
+      } else {
+        console.warn("[notify-subscriber-event] PR_OUTREACH_WEBHOOK_SECRET not set, skipping PR Outreach");
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
