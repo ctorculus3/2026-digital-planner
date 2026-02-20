@@ -1,37 +1,42 @@
 
 
-# Fix Badge Share Button Issues
+# Redesign Share Badge Dialog
 
-## Problems Identified
+## What Changes
 
-1. **Share icon only visible on hover** -- The share button uses `opacity-0 group-hover:opacity-100`, making it invisible on mobile and hard to discover on desktop. Fix: make it always visible on earned badges.
+### 1. Much Larger Badge in the Dialog
+The badge will be displayed at roughly 2x its current size (around 160x180px instead of 88x100px) so it's the hero of the dialog. This will be done by wrapping the `EnamelBadge` in a CSS `scale(1.8)` transform, keeping the component reusable without modifying the shelf version.
 
-2. **Share button click does nothing** -- The share icon button sits inside a `relative group` wrapper, but the dialog isn't opening reliably. The issue is likely that on mobile/touch devices, `group-hover` never fires, so the button is invisible and untappable. Making it always visible fixes this.
+### 2. Updated Share Message Text
+The share message will read exactly:
+> "I earned the [10 Days] streak badge on Practice Daily! Currently on a [21]-day practice streak. Track your music practice journey at Practicedaily.app"
 
-3. **"Copy Text" only shares text with a link** -- The user wants the shared content to include the actual badge details (streak number, badge milestone), not just a landing page URL. The current `shareMessage` already includes badge info (`"I just hit a X-day practice streak and earned the Y badge"`), but the user may want more emphasis. The real issue the user is describing is that the message feels like "just a link." We'll make the copy text more descriptive and badge-focused.
+No `https://` prefix in the visible text. The underlying link will still work.
 
-## Changes
+### 3. Remove "Preview" Style Link
+The current "Practice Daily" link shows as a clickable hyperlink with `https://practicedaily.app`. Instead, the branding section will show "Practice Daily" as a large heading (not a link) and "Your Personal Practice Journal" as a tagline, with "Practicedaily.app" shown as plain text below. No clickable preview link.
 
-### 1. `src/components/dashboard/BadgeShelf.tsx`
+### 4. Bigger Fonts Throughout
+- Dialog title: bump from `text-lg` to `text-2xl`
+- Streak count: bump from `text-lg` to `text-2xl`
+- "Practice Daily" branding: bump from `text-xl` to `text-3xl`
+- Tagline: bump from `text-sm` to `text-base`
+- "Practicedaily.app" shown as `text-lg` plain text
 
-- Remove `opacity-0 group-hover:opacity-100` from the share button so it's **always visible** on earned badges
-- Style it as a subtle but permanently visible icon (slightly smaller, positioned at bottom-center or bottom-right of the badge)
-
-### 2. `src/components/dashboard/ShareBadgeDialog.tsx`
-
-- Update `shareMessage` to be more badge-focused, emphasizing the achievement:
-  ```
-  "I earned the [30 Days] streak badge on Practice Daily! Currently on a [X]-day practice streak. Track your music practice journey at https://practicedaily.app"
-  ```
-- This makes the copied text clearly about the badge achievement rather than feeling like just a link share
+### 5. Clarify the "Share" Button
+The native Share button (using `navigator.share`) only appears on mobile devices that support it — on desktop browsers it's hidden entirely, which is expected behavior. No code change needed here, but the other buttons (Twitter/X, Facebook, Instagram, TikTok, Copy Text) all work on every device. The dialog will remain functional on desktop through those options.
 
 ## Technical Details
 
-- The share icon button's `opacity-0 group-hover:opacity-100` classes will be replaced with `opacity-70 hover:opacity-100` so it's always visible but not distracting
-- The share message text will be restructured to lead with the badge achievement
-- No backend changes needed
+### File: `src/components/dashboard/ShareBadgeDialog.tsx`
 
-## Files Modified
-- `src/components/dashboard/BadgeShelf.tsx` -- make share icon always visible
-- `src/components/dashboard/ShareBadgeDialog.tsx` -- improve share message text
+**Changes:**
+- Wrap `EnamelBadge` in a container with `transform: scale(1.8)` and appropriate margin to prevent overlap
+- Update `shareMessage` to: `` `I earned the ${badgeConfig.label} streak badge on Practice Daily! 🔥 Currently on a ${streak}-day practice streak. Track your music practice journey at Practicedaily.app` ``
+- Replace the `<a>` branding link with a plain `<p>` showing "Practice Daily" in large bold text
+- Add "Practicedaily.app" as plain text below the tagline
+- Increase all font sizes as described above
+
+### File: `src/components/dashboard/BadgeShelf.tsx`
+No changes needed.
 
