@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { notifySubscriberEventUnauthenticated } from "@/lib/notifySubscriberEvent";
@@ -116,6 +117,7 @@ export default function Landing() {
   const [formLoading, setFormLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const [showMoreFeatures, setShowMoreFeatures] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const authRef = useRef<HTMLDivElement>(null);
@@ -464,7 +466,9 @@ export default function Landing() {
       <section id="auth" ref={authRef} className="container mx-auto px-4 py-20 md:py-28">
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center">Ready to Practice?</h2>
         <p className="mt-4 text-center text-muted-foreground">
-          {isLogin ? "Sign in to access your practice logs." : "Create an account and start your 7-day free trial."}
+          {forgotPassword
+            ? "Enter your email and we'll send you a link to reset your password."
+            : isLogin ? "Sign in to access your practice logs." : "Create an account and start your 7-day free trial."}
         </p>
 
         <Card className="mx-auto mt-10 max-w-md shadow-lg border-primary/20">
@@ -473,60 +477,101 @@ export default function Landing() {
               <Music2 className="w-7 h-7 text-primary-foreground" />
             </div>
             <CardTitle className="font-display text-xl">
-              {isLogin ? "Welcome Back" : "Create Your Account"}
+              {forgotPassword ? "Reset Your Password" : isLogin ? "Welcome Back" : "Create Your Account"}
             </CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {!isLogin && (
+
+          {forgotPassword ? (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setFormLoading(true);
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: window.location.origin + '/reset-password',
+                });
+                if (error) throw error;
+                toast({ title: "Check your email", description: "We've sent you a password reset link." });
+              } catch (error: any) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+              } finally {
+                setFormLoading(false);
+              }
+            }}>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input id="displayName" type="text" placeholder="Your name" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={formLoading}>
-                {formLoading ? "Loading..." : isLogin ? "Sign In" : "Start Free Trial"}
-              </Button>
-              <div className="relative w-full">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+                <button type="button" onClick={() => setForgotPassword(false)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  ← Back to Sign In
+                </button>
+              </CardFooter>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-4">
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input id="displayName" type="text" placeholder="Your name" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
                 </div>
-              </div>
-              <Button type="button" variant="outline" className="w-full" disabled={formLoading} onClick={async () => {
-                setFormLoading(true);
-                sessionStorage.setItem("oauth_in_progress", "true");
-                try {
-                  const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
-                  if (error) throw error;
-                } catch (error: any) {
-                  toast({ title: "Error", description: error.message, variant: "destructive" });
-                } finally {
-                  setFormLoading(false);
-                }
-              }}>
-                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                </svg>
-                Continue with Apple
-              </Button>
-              <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-              </button>
-            </CardFooter>
-          </form>
+                {isLogin && (
+                  <div className="text-right">
+                    <button type="button" onClick={() => setForgotPassword(true)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                      Forgot your password?
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={formLoading}>
+                  {formLoading ? "Loading..." : isLogin ? "Sign In" : "Start Free Trial"}
+                </Button>
+                <div className="relative w-full">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" className="w-full" disabled={formLoading} onClick={async () => {
+                  setFormLoading(true);
+                  sessionStorage.setItem("oauth_in_progress", "true");
+                  try {
+                    const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
+                    if (error) throw error;
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  } finally {
+                    setFormLoading(false);
+                  }
+                }}>
+                  <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                  </svg>
+                  Continue with Apple
+                </Button>
+                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                </button>
+              </CardFooter>
+            </form>
+          )}
         </Card>
       </section>
 

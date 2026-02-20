@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import StaffPaper from "./pages/StaffPaper";
 import SharedPracticeLog from "./pages/SharedPracticeLog";
+import ResetPassword from "./pages/ResetPassword";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 
@@ -114,6 +115,7 @@ const App = () => (
               }
             />
             <Route path="/shared/:token" element={<SharedPracticeLog />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
