@@ -17,6 +17,7 @@ import { Metronome } from "./Metronome";
 import { Tuner } from "./Tuner";
 import { DronePlayer } from "./DronePlayer";
 import { Timer } from "./Timer";
+import { PracticeSessionTimer } from "./PracticeSessionTimer";
 import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 interface PracticeLogFormProps {
@@ -462,31 +463,17 @@ export function PracticeLogForm({
         </div>
       </div>
 
-      {/* Time Tracking */}
-      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-3 shadow-sm border border-border">
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="font-display text-sm text-muted-foreground block mb-1">Start Time:</label>
-            <Input type="text" value={startTime} onChange={(e) => {
-            setStartTime(e.target.value);
-            markChanged();
-          }} placeholder="e.g. 12:30 PM" className="bg-transparent border-b border-border rounded-none px-0" />
-          </div>
-          <div>
-            <label className="font-display text-sm text-muted-foreground block mb-1">Stop:</label>
-            <Input type="text" value={stopTime} onChange={(e) => {
-            setStopTime(e.target.value);
-            markChanged();
-          }} placeholder="e.g. 2:30 PM" className="bg-transparent border-b border-border rounded-none px-0" />
-          </div>
-          <div>
-            <label className="font-display text-sm text-muted-foreground block mb-1">Total Practice Time:</label>
-            <div className="h-10 flex items-center border-b border-border text-foreground font-medium">
-              {totalTime || "0:00"}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Practice Session Timer */}
+      <PracticeSessionTimer
+        existingStartTime={startTime}
+        existingStopTime={stopTime}
+        existingTotalTime={totalTime}
+        onSessionComplete={(start, stop, duration) => {
+          setStartTime(start);
+          setStopTime(stop);
+          markChanged();
+        }}
+      />
 
       {/* Warmups and Scales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
