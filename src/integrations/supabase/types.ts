@@ -293,6 +293,44 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          log_date: string
+          student_user_id: string
+          studio_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          log_date: string
+          student_user_id: string
+          studio_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          log_date?: string
+          student_user_id?: string
+          studio_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_comments_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_students: {
         Row: {
           id: string

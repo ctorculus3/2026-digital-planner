@@ -20,6 +20,7 @@ import { Timer } from "./Timer";
 import { PracticeSessionTimer } from "./PracticeSessionTimer";
 import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
+import { TeacherCommentCard } from "./TeacherCommentCard";
 interface PracticeLogFormProps {
   date: Date;
 }
@@ -435,6 +436,9 @@ export function PracticeLogForm({
       </div>;
   }
   return <div className="flex-1 space-y-4 overflow-auto">
+      {/* Teacher Comment (if exists) */}
+      <TeacherCommentCard logDate={dateString} />
+
       {/* Date Header with Share and Save Buttons */}
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl md:text-2xl text-foreground">
