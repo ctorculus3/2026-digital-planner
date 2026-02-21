@@ -9,6 +9,7 @@ interface Subscription {
   status: SubscriptionStatus;
   isTrialing: boolean;
   endDate: string | null;
+  productId: string | null;
 }
 
 interface AuthContextType {
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: 'loading',
     isTrialing: false,
     endDate: null,
+    productId: null,
   });
 
   // Flag to prevent duplicate subscription checks during initialization
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!currentSession) {
       if (myId === fetchIdRef.current) {
-        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
       }
       return;
     }
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn("Subscription check error:", error);
           if ((error as any)?.status === 401) {
             await supabase.auth.signOut();
-            setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+            setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
             return true;
           }
           return false;
@@ -108,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           status: newStatus,
           isTrialing: data?.is_trialing || false,
           endDate: data?.subscription_end || null,
+          productId: data?.product_id || null,
         });
         return true;
       } catch (error) {
@@ -125,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const retryOk = await attempt();
       if (!retryOk && myId === fetchIdRef.current) {
         console.error("Subscription check: retry also failed, setting inactive");
-        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
       }
     }
   }, []);
@@ -169,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSubscription(prev => ({ ...prev, status: 'loading' }));
             await fetchSubscription(newSession);
           } else {
-            setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+            setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
           }
         }
       }
@@ -197,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // No session, no redirect — stop loading
         setLoading(false);
-        setSubscription({ status: 'inactive', isTrialing: false, endDate: null });
+        setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
       }
     });
 

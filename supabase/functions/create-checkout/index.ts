@@ -7,9 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRICES: Record<string, string> = {
-  monthly: "price_1T06OeLSlNM2EUMkv9O6hItY",
-  yearly: "price_1T06OeLSlNM2EUMkNM8T5t8k",
+const PRICES: Record<string, Record<string, string>> = {
+  student: {
+    monthly: "price_1T06OeLSlNM2EUMkv9O6hItY",
+    yearly: "price_1T06OeLSlNM2EUMkNM8T5t8k",
+  },
+  teacher: {
+    monthly: "price_1T389qLSlNM2EUMkG9ZT6jkB",
+    yearly: "price_1T38ABLSlNM2EUMkm7TQFzvD",
+  },
 };
 
 const logStep = (step: string, details?: any) => {
@@ -78,18 +84,29 @@ serve(async (req) => {
       );
     }
 
-    // Read selected plan from request body, default to monthly
+    // Read selected plan and tier from request body
     let plan = "monthly";
+    let tier = "student";
     try {
       const body = await req.json();
-      if (body?.plan && PRICES[body.plan]) {
+      if (body?.plan && ["monthly", "yearly"].includes(body.plan)) {
         plan = body.plan;
       }
+      if (body?.tier && PRICES[body.tier]) {
+        tier = body.tier;
+      }
     } catch {
-      // No body or invalid JSON — use default
+      // No body or invalid JSON — use defaults
     }
-    const priceId = PRICES[plan];
-    logStep("Plan selected", { plan, priceId });
+    const tierPrices = PRICES[tier];
+    if (!tierPrices || !tierPrices[plan]) {
+      return new Response(JSON.stringify({ error: "Invalid tier or plan" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    const priceId = tierPrices[plan];
+    logStep("Plan selected", { tier, plan, priceId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
