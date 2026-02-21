@@ -251,7 +251,8 @@ export function PracticeLogForm({
       isInitializedRef.current = true;
     }
   }, [practiceLog, isLoading, date]);
-  const totalTime = useMemo(() => {
+  const [totalTimeOverride, setTotalTimeOverride] = useState<string | null>(null);
+  const computedTotalTime = useMemo(() => {
     const start = parseTimeString(startTime);
     const stop = parseTimeString(stopTime);
     if (!start || !stop) return "";
@@ -263,6 +264,7 @@ export function PracticeLogForm({
     const minutes = totalMinutes % 60;
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   }, [startTime, stopTime]);
+  const totalTime = totalTimeOverride || computedTotalTime;
   const handleSave = useCallback(() => {
     save({
       goals: mainGoals,
@@ -471,6 +473,7 @@ export function PracticeLogForm({
         onSessionComplete={(start, stop, duration) => {
           setStartTime(start);
           setStopTime(stop);
+          setTotalTimeOverride(duration);
           markChanged();
         }}
       />
