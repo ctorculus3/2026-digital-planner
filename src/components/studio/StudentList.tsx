@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { UserMinus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { StudioStudent } from "@/hooks/useStudioData";
 
 interface Props {
@@ -32,6 +33,7 @@ function formatWeeklyTime(minutes: number): string {
 }
 
 export function StudentList({ students, onRemove }: Props) {
+  const navigate = useNavigate();
   if (students.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -57,7 +59,10 @@ export function StudentList({ students, onRemove }: Props) {
           const status = getStatusColor(s.last_practice_date);
           return (
             <TableRow key={s.student_user_id}>
-              <TableCell className="font-medium">
+              <TableCell
+                className="font-medium cursor-pointer hover:text-primary transition-colors"
+                onClick={() => navigate(`/studio/student/${s.student_user_id}`)}
+              >
                 {s.display_name || "Unnamed Student"}
               </TableCell>
               <TableCell className="text-center">

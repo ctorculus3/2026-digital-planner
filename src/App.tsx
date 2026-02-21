@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import StaffPaper from "./pages/StaffPaper";
 import Studio from "./pages/Studio";
+import StudentLogView from "./pages/StudentLogView";
 import JoinStudio from "./pages/JoinStudio";
 import SharedPracticeLog from "./pages/SharedPracticeLog";
 import ResetPassword from "./pages/ResetPassword";
@@ -122,6 +123,16 @@ const App = () => (
                 <ProtectedRoute>
                   <SubscriptionGate>
                     <Studio />
+                  </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/studio/student/:studentId"
+              element={
+                <ProtectedRoute>
+                  <SubscriptionGate>
+                    <StudentLogView />
                   </SubscriptionGate>
                 </ProtectedRoute>
               }
