@@ -32,7 +32,7 @@ function formatDuration(totalSeconds: number): string {
     return `${h}:${String(m).padStart(2, "0")} hrs`;
   }
   if (m > 0) {
-    return `0:${String(m).padStart(2, "0")} mins`;
+    return `${m}:${String(s).padStart(2, "0")} mins`;
   }
   return `0:${String(s).padStart(2, "0")} secs`;
 }
