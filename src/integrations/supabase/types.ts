@@ -453,6 +453,65 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_assignments: {
+        Row: {
+          additional_tasks: string[] | null
+          created_at: string
+          ear_training: string[] | null
+          goals: string | null
+          id: string
+          notes: string | null
+          repertoire: string[] | null
+          scales: string[] | null
+          student_user_id: string
+          studio_id: string
+          subgoals: string | null
+          updated_at: string
+          warmups: string[] | null
+          week_start: string
+        }
+        Insert: {
+          additional_tasks?: string[] | null
+          created_at?: string
+          ear_training?: string[] | null
+          goals?: string | null
+          id?: string
+          notes?: string | null
+          repertoire?: string[] | null
+          scales?: string[] | null
+          student_user_id: string
+          studio_id: string
+          subgoals?: string | null
+          updated_at?: string
+          warmups?: string[] | null
+          week_start: string
+        }
+        Update: {
+          additional_tasks?: string[] | null
+          created_at?: string
+          ear_training?: string[] | null
+          goals?: string | null
+          id?: string
+          notes?: string | null
+          repertoire?: string[] | null
+          scales?: string[] | null
+          student_user_id?: string
+          studio_id?: string
+          subgoals?: string | null
+          updated_at?: string
+          warmups?: string[] | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_assignments_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
