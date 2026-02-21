@@ -70,9 +70,14 @@ export function PracticeSessionTimer({
   const [completedTotalTime, setCompletedTotalTime] = useState(existingTotalTime);
   const accumulatedRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
+  const justCompletedRef = useRef(false);
 
   // Sync with external data changes (e.g. date navigation)
   useEffect(() => {
+    if (justCompletedRef.current) {
+      justCompletedRef.current = false;
+      return;
+    }
     if (hasExistingSession) {
       setSessionState("completed");
       setCompletedStartTime(existingStartTime);
@@ -122,6 +127,7 @@ export function PracticeSessionTimer({
 
   const completeSession = useCallback(() => {
     clearTimer();
+    justCompletedRef.current = true;
     const now = new Date();
     const start = startTimestamp || new Date(now.getTime() - elapsedSeconds * 1000);
 
