@@ -1,29 +1,44 @@
 
 
-# Add Time Unit Labels to Completed Session Duration
+# Fix: Practice Session Timer Showing Incorrect Duration
 
-## What Changes
+## Root Cause
 
-In the completed state of the Practice Session Timer, the message currently reads:
-> "You practiced for 0:01. See you tomorrow."
+There is a race condition between the timer's internal state and the sync effect that watches parent props.
 
-It will be updated to append a human-readable unit after the time value:
+When the user clicks "Complete":
+1. `completeSession` correctly calculates the duration (e.g., "0:01 mins" for 1:12) and sets `completedTotalTime`
+2. It calls `onSessionComplete(startDb, stopDb, duration)` which updates the parent's `startTime` and `stopTime`
+3. The parent re-renders with new `existingStartTime` / `existingStopTime` props
+4. The sync `useEffect` detects the prop change, sees `hasExistingSession` is now true, and **overwrites** `completedTotalTime` with `existingTotalTime` -- which is still the old/empty value from the database
 
-| Duration | Display |
-|----------|---------|
-| Less than 1 minute (e.g. `0:01`) | "0:01 secs" |
-| 1-59 minutes (e.g. `0:15`) | "0:15 mins" |
-| 1+ hours (e.g. `1:30`) | "1:30 hrs" |
+Additionally, the parent never stores the `duration` value back into `totalTime` state, so `existingTotalTime` remains stale.
 
-## Technical Details
+## Fix (two changes)
 
-### File: `src/components/practice-log/PracticeSessionTimer.tsx`
+### 1. Parent: Store the duration in `totalTime` state
 
-**Modify `formatDuration` function** (lines 28-34) to return the time string with the unit label appended:
+In `PracticeLogForm.tsx`, the `onSessionComplete` callback should also update `totalTime`:
 
-- If `h > 0`: return `"X:MM hrs"`
-- If `m > 0`: return `"0:MM mins"`
-- Otherwise (m === 0): return `"0:SS secs"`
+```tsx
+onSessionComplete={(start, stop, duration) => {
+  setStartTime(start);
+  setStopTime(stop);
+  setTotalTime(duration);   // <-- ADD THIS LINE
+  markChanged();
+}}
+```
 
-No other files need to change. The display message on the completed screen will automatically pick up the new format since it uses the return value of this function.
+This ensures `existingTotalTime` has the correct value when the sync effect runs.
+
+### 2. Timer: Guard the sync effect against self-triggered updates
+
+In `PracticeSessionTimer.tsx`, skip the sync effect when the session was just completed internally (to avoid overwriting the freshly-set completed state). Use a ref to track internal completions:
+
+- Add a `justCompletedRef` that gets set to `true` in `completeSession` and checked/cleared in the sync effect
+- When the effect fires and `justCompletedRef.current` is true, skip the state reset and just clear the ref
+
+### Files to Modify
+- `src/components/practice-log/PracticeLogForm.tsx` -- add `setTotalTime(duration)` in the callback
+- `src/components/practice-log/PracticeSessionTimer.tsx` -- add `justCompletedRef` guard in sync effect and `completeSession`
 
