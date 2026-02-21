@@ -5,15 +5,20 @@ import { useStudioData } from "@/hooks/useStudioData";
 import { CreateStudioDialog } from "@/components/studio/CreateStudioDialog";
 import { InviteCodeCard } from "@/components/studio/InviteCodeCard";
 import { StudentList } from "@/components/studio/StudentList";
+import { TeacherUpgradeCard } from "@/components/studio/TeacherUpgradeCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, GraduationCap, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { isTeacherTier } from "@/lib/subscriptionTiers";
 
 export default function Studio() {
   const { studio, students, loading, createStudio, removeStudent, refetch } = useStudioData();
   const [showCreate, setShowCreate] = useState(false);
   const { toast } = useToast();
+  const { subscription } = useAuth();
+  const hasTeacherSub = isTeacherTier(subscription.productId);
 
   const handleCreate = async (name: string) => {
     try {
@@ -50,6 +55,8 @@ export default function Studio() {
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : !hasTeacherSub && !studio ? (
+          <TeacherUpgradeCard />
         ) : !studio ? (
           <div className="text-center py-20 space-y-4">
             <GraduationCap className="h-16 w-16 mx-auto text-primary/40" />
