@@ -37,6 +37,37 @@ function formatDuration(totalSeconds: number): string {
   return `0:${String(s).padStart(2, "0")} secs`;
 }
 
+/** Parse various time formats into total seconds */
+function parseDurationToSeconds(str: string): number {
+  if (!str) return 0;
+  // Strip unit labels like "hrs", "mins", "secs"
+  const cleaned = str.replace(/\s*(hrs|mins|secs|hr|min|sec)\s*/gi, "").trim();
+  // HH:MM:SS (e.g. "03:41:00" from DB interval)
+  const hms = cleaned.match(/^(\d+):(\d{2}):(\d{2})$/);
+  if (hms) return parseInt(hms[1]) * 3600 + parseInt(hms[2]) * 60 + parseInt(hms[3]);
+  // H:MM or M:SS (e.g. "3:41" or "1:24")
+  const hm = cleaned.match(/^(\d+):(\d{2})$/);
+  if (hm) {
+    const a = parseInt(hm[1]);
+    const b = parseInt(hm[2]);
+    // If original had "hrs", treat as H:MM
+    if (/hrs?/i.test(str)) return a * 3600 + b * 60;
+    // If original had "mins", treat as M:SS
+    if (/mins?/i.test(str)) return a * 60 + b;
+    // Default: assume H:MM (legacy computed format)
+    return a * 3600 + b * 60;
+  }
+  return 0;
+}
+
+/** Format seconds as HH:MM:SS for DB interval storage */
+function formatDurationForDb(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 function formatTimeTo12Hr(date: Date): string {
   let hours = date.getHours();
   const minutes = String(date.getMinutes()).padStart(2, "0");
@@ -67,7 +98,9 @@ export function PracticeSessionTimer({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [startTimestamp, setStartTimestamp] = useState<Date | null>(null);
   const [completedStartTime, setCompletedStartTime] = useState(existingStartTime);
-  const [completedTotalTime, setCompletedTotalTime] = useState(existingTotalTime);
+  const [completedTotalTime, setCompletedTotalTime] = useState(
+    existingTotalTime ? formatDuration(parseDurationToSeconds(existingTotalTime)) : ""
+  );
   const accumulatedRef = useRef(0);
   const intervalRef = useRef<number | null>(null);
   const justCompletedRef = useRef(false);
@@ -81,7 +114,9 @@ export function PracticeSessionTimer({
     if (hasExistingSession) {
       setSessionState("completed");
       setCompletedStartTime(existingStartTime);
-      setCompletedTotalTime(existingTotalTime);
+      setCompletedTotalTime(
+        existingTotalTime ? formatDuration(parseDurationToSeconds(existingTotalTime)) : ""
+      );
     } else {
       setSessionState("idle");
       setElapsedSeconds(0);
@@ -131,19 +166,26 @@ export function PracticeSessionTimer({
     const now = new Date();
     const start = startTimestamp || new Date(now.getTime() - elapsedSeconds * 1000);
 
-    const startDisplay = formatTimeTo12Hr(start);
-    const stopDisplay = formatTimeTo12Hr(now);
     const startDb = formatTimeForDb(start);
     const stopDb = formatTimeForDb(now);
-    const duration = formatDuration(elapsedSeconds);
 
-    setCompletedStartTime(startDisplay);
-    setCompletedTotalTime(duration);
+    // Accumulate: add new session seconds to any existing total
+    const existingSeconds = parseDurationToSeconds(existingTotalTime);
+    const combinedSeconds = existingSeconds + elapsedSeconds;
+    const displayDuration = formatDuration(combinedSeconds);
+    const dbDuration = formatDurationForDb(combinedSeconds);
+
+    // For start time display, keep earliest start if there was a previous session
+    const displayStart = existingStartTime || formatTimeTo12Hr(start);
+
+    setCompletedStartTime(displayStart);
+    setCompletedTotalTime(displayDuration);
     setSessionState("completed");
 
-    onSessionComplete(startDb, stopDb, duration);
+    // Send DB-format duration to parent for proper interval storage
+    onSessionComplete(startDb, stopDb, dbDuration);
     refetchStreak();
-  }, [clearTimer, startTimestamp, elapsedSeconds, onSessionComplete, refetchStreak]);
+  }, [clearTimer, startTimestamp, elapsedSeconds, existingTotalTime, existingStartTime, onSessionComplete, refetchStreak]);
 
   const resetSession = useCallback(() => {
     clearTimer();
