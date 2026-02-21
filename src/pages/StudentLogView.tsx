@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, Loader2, Music, Youtube, Video, ImageIcon, FileText } from "lucide-react";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
+import { WeeklyAssignmentPanel } from "@/components/studio/WeeklyAssignmentPanel";
+import { TeacherPdfUpload } from "@/components/studio/TeacherPdfUpload";
 
 export default function StudentLogView() {
   const { studentId } = useParams<{ studentId: string }>();
@@ -366,8 +368,19 @@ export default function StudentLogView() {
           </>
         )}
 
+        {/* Teacher PDF Upload */}
+        <TeacherPdfUpload
+          studentUserId={studentId || ""}
+          practiceLogId={practiceLog?.id || null}
+          logDate={dateString}
+          existingPdfCount={pdfItems.length}
+        />
+
         {/* Teacher Comment Panel - always show */}
         <TeacherCommentPanel studioId={studio?.id} studentUserId={studentId || ""} logDate={dateString} />
+
+        {/* Weekly Assignment Panel */}
+        <WeeklyAssignmentPanel studioId={studio?.id} studentUserId={studentId || ""} currentDate={currentDate} />
 
         {/* PDF Viewer Dialog */}
         <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerName(""); } }}>
