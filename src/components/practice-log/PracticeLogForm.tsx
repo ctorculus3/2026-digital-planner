@@ -141,6 +141,8 @@ export function PracticeLogForm({
     textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
   };
 
+  const [totalTimeOverride, setTotalTimeOverride] = useState<string | null>(null);
+
   // Load data when practice log is fetched - only initialize once per date
   useEffect(() => {
     // Reset initialization when date changes
@@ -148,6 +150,7 @@ export function PracticeLogForm({
       isInitializedRef.current = false;
       lastUpdatedAtRef.current = null;
       currentDateRef.current = date.toISOString();
+      setTotalTimeOverride(null);
     }
 
     // Detect external updates (e.g. copy operation) by tracking updated_at
@@ -166,6 +169,12 @@ export function PracticeLogForm({
       setSubgoals(practiceLog.subgoals || "");
       setStartTime(normalizeTime(practiceLog.start_time));
       setStopTime(normalizeTime(practiceLog.stop_time));
+      // Load DB total_time as override so accumulation works correctly
+      if (practiceLog.total_time) {
+        setTotalTimeOverride(String(practiceLog.total_time));
+      } else {
+        setTotalTimeOverride(null);
+      }
       const loadedWarmups = [...(practiceLog.warmups || [])];
       while (loadedWarmups.length < 10) loadedWarmups.push("");
       setWarmups(loadedWarmups.slice(0, 10));
@@ -251,7 +260,7 @@ export function PracticeLogForm({
       isInitializedRef.current = true;
     }
   }, [practiceLog, isLoading, date]);
-  const [totalTimeOverride, setTotalTimeOverride] = useState<string | null>(null);
+  
   const computedTotalTime = useMemo(() => {
     const start = parseTimeString(startTime);
     const stop = parseTimeString(stopTime);
