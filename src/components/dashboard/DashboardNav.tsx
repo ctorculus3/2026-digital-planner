@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BookOpen, Users } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, GraduationCap } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Journal", path: "/journal", icon: BookOpen },
   { label: "Community", path: "/community", icon: Users },
@@ -11,11 +12,16 @@ const NAV_ITEMS = [
 export function DashboardNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isTeacher } = useUserRole();
+
+  const navItems = isTeacher
+    ? [...BASE_NAV_ITEMS, { label: "Studio", path: "/studio", icon: GraduationCap }]
+    : BASE_NAV_ITEMS;
 
   return (
     <nav className="bg-[hsl(var(--time-section-bg))] border-b border-border">
       <div className="flex items-center justify-center gap-1 px-4 py-1.5">
-        {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+        {navItems.map(({ label, path, icon: Icon }) => {
           const isActive = location.pathname === path;
           return (
             <button
