@@ -10,11 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, LogOut, Camera, Loader2, Pencil, Check, X } from "lucide-react";
+import { User, LogOut, Camera, Loader2, Pencil, Check, X, GraduationCap } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { useStudentStudio } from "@/hooks/useStudentStudio";
+import { JoinStudioDialog } from "@/components/studio/JoinStudioDialog";
 
 function getInitials(name: string | null | undefined, email: string | undefined): string {
   if (name) {
@@ -40,6 +42,8 @@ export function UserMenu() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
+  const [showJoinStudio, setShowJoinStudio] = useState(false);
+  const { studioInfo, joinStudio, leaveStudio } = useStudentStudio();
 
   const fetchProfile = useCallback(async () => {
     if (!user) return;
@@ -255,12 +259,51 @@ export function UserMenu() {
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
+          {studioInfo ? (
+            <>
+              <DropdownMenuItem disabled>
+                <GraduationCap className="w-4 h-4 mr-2" />
+                <span className="truncate">{studioInfo.studio_name}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await leaveStudio();
+                    toast({ title: "Left studio" });
+                  } catch {
+                    toast({ title: "Could not leave studio", variant: "destructive" });
+                  }
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                Leave Studio
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setShowJoinStudio(true);
+              }}
+            >
+              <GraduationCap className="w-4 h-4 mr-2" />
+              Join a Studio
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
             <LogOut className="w-4 h-4 mr-2" />
             Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <JoinStudioDialog
+        open={showJoinStudio}
+        onOpenChange={setShowJoinStudio}
+        onJoin={joinStudio}
+      />
     </>
   );
 }

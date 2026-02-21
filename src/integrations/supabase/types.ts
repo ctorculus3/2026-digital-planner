@@ -293,6 +293,65 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_students: {
+        Row: {
+          id: string
+          joined_at: string
+          status: string
+          student_user_id: string
+          studio_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          status?: string
+          student_user_id: string
+          studio_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          status?: string
+          student_user_id?: string
+          studio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_students_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_studios: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          max_students: number
+          studio_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          max_students?: number
+          studio_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          max_students?: number
+          studio_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tts_usage: {
         Row: {
           created_at: string
@@ -361,6 +420,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_teacher_studio: { Args: { p_studio_name: string }; Returns: Json }
       get_practice_streak: { Args: { p_user_id: string }; Returns: number }
       get_practiced_dates: {
         Args: { p_month: number; p_user_id: string; p_year: number }
@@ -374,6 +434,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_studio_by_code: { Args: { p_invite_code: string }; Returns: Json }
       lookup_shared_practice_log: {
         Args: { p_share_token: string }
         Returns: {
@@ -383,7 +444,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -511,7 +572,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "teacher"],
     },
   },
 } as const

@@ -6,12 +6,14 @@ export function useUserRole() {
   const { user } = useAuth();
   const [isModerator, setIsModerator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setIsModerator(false);
       setIsAdmin(false);
+      setIsTeacher(false);
       setLoading(false);
       return;
     }
@@ -31,11 +33,12 @@ export function useUserRole() {
       const roles = (data || []).map((r: any) => r.role);
       setIsModerator(roles.includes("moderator") || roles.includes("admin"));
       setIsAdmin(roles.includes("admin"));
+      setIsTeacher(roles.includes("teacher"));
       setLoading(false);
     };
 
     fetchRoles();
   }, [user]);
 
-  return { isModerator, isAdmin, loading };
+  return { isModerator, isAdmin, isTeacher, loading };
 }
