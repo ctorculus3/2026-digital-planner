@@ -27,10 +27,14 @@ function formatElapsed(totalSeconds: number): string {
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
   if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}`;
+    return `${h}:${String(m).padStart(2, "0")} hrs`;
   }
-  return `0:${String(m).padStart(2, "0")}`;
+  if (m > 0) {
+    return `0:${String(m).padStart(2, "0")} mins`;
+  }
+  return `0:${String(s).padStart(2, "0")} secs`;
 }
 
 function formatTimeTo12Hr(date: Date): string {
