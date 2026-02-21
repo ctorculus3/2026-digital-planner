@@ -21,6 +21,8 @@ import { PracticeSessionTimer } from "./PracticeSessionTimer";
 import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import { TeacherCommentCard } from "./TeacherCommentCard";
+import { AssignmentBanner } from "./AssignmentBanner";
+import { useStudentAssignment } from "@/hooks/useWeeklyAssignment";
 interface PracticeLogFormProps {
   date: Date;
 }
@@ -94,6 +96,7 @@ export function PracticeLogForm({
     save,
     isSaving
   } = usePracticeLog(date);
+  const { assignment } = useStudentAssignment(date);
   const [mainGoals, setMainGoals] = useState("");
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -233,34 +236,51 @@ export function PracticeLogForm({
         adjustTextareaHeight(notesRef.current);
       }, 0);
     } else if (!isLoading) {
-      // Reset form for new day
-      setMainGoals("");
-      setSubgoals("");
+      // Reset form for new day — pre-fill from weekly assignment if available
+      const pad = (arr: string[] | null | undefined, size: number) => {
+        const a = [...(arr || [])];
+        while (a.length < size) a.push("");
+        return a;
+      };
+      setMainGoals(assignment?.goals || "");
+      setSubgoals(assignment?.subgoals || "");
       setStartTime("");
       setStopTime("");
-      setWarmups(Array(10).fill(""));
-      setScales(Array(10).fill(""));
-      setRepertoire(Array(15).fill(""));
+
+      const assignWarmups = pad(assignment?.warmups, 10);
+      setWarmups(assignWarmups);
+      setWarmupCount(Math.max(4, assignment?.warmups?.length || 0));
+
+      const assignScales = pad(assignment?.scales, 10);
+      setScales(assignScales);
+      setScaleCount(Math.max(4, assignment?.scales?.length || 0));
+
+      const assignRepertoire = pad(assignment?.repertoire, 15);
+      setRepertoire(assignRepertoire);
       setRepertoireCompleted(Array(15).fill(false));
       setRepertoireRecordings(Array(15).fill(""));
-      setWarmupCount(4);
-      setScaleCount(4);
-      setRepertoireCount(10);
+      setRepertoireCount(Math.max(10, assignment?.repertoire?.length || 0));
+
       setNotes("");
       setMetronomeUsed(false);
-      setAdditionalTasks(Array(10).fill(""));
+
+      const assignAdditional = pad(assignment?.additional_tasks, 10);
+      setAdditionalTasks(assignAdditional);
       setAdditionalTasksCompleted(Array(10).fill(false));
-      setAdditionalTaskCount(4);
-      setEarTraining(Array(10).fill(""));
+      setAdditionalTaskCount(Math.max(4, assignment?.additional_tasks?.length || 0));
+
+      const assignEar = pad(assignment?.ear_training, 10);
+      setEarTraining(assignEar);
       setEarTrainingCompleted(Array(10).fill(false));
-      setEarTrainingCount(4);
+      setEarTrainingCount(Math.max(4, assignment?.ear_training?.length || 0));
+
       setMusicListening(Array(10).fill(""));
       setMusicListeningCompleted(Array(10).fill(false));
       setMusicListeningCount(4);
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
     }
-  }, [practiceLog, isLoading, date]);
+  }, [practiceLog, isLoading, date, assignment]);
   
   const computedTotalTime = useMemo(() => {
     const start = parseTimeString(startTime);
@@ -436,6 +456,9 @@ export function PracticeLogForm({
       </div>;
   }
   return <div className="flex-1 space-y-4 overflow-auto">
+      {/* Assignment Banner (if student has a weekly assignment) */}
+      <AssignmentBanner date={date} />
+
       {/* Teacher Comment (if exists) */}
       <TeacherCommentCard logDate={dateString} />
 
