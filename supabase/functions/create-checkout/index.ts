@@ -14,7 +14,7 @@ const PRICES: Record<string, Record<string, string>> = {
   },
   teacher: {
     monthly: "price_1T389qLSlNM2EUMkG9ZT6jkB",
-    yearly: "price_1T38ABLSlNM2EUMkm7TQFzvD",
+    yearly: "price_1T3R55LSlNM2EUMkzghb3Ynw",
   },
 };
 
