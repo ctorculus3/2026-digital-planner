@@ -28,6 +28,37 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const pollingRef = useRef(false);
+  const autoCheckoutTriggered = useRef(false);
+
+  // Auto-redirect fresh sign-ups / sign-ins straight to Stripe checkout
+  // so the flow is: Auth → Stripe → Dashboard with zero extra clicks.
+  useEffect(() => {
+    if (
+      subscription.status === 'inactive' &&
+      !autoCheckoutTriggered.current &&
+      !loading &&
+      !processingCheckout &&
+      sessionStorage.getItem("fresh_auth") === "true"
+    ) {
+      autoCheckoutTriggered.current = true;
+      sessionStorage.removeItem("fresh_auth");
+
+      (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("create-checkout", {
+            body: { plan: "monthly" },
+          });
+          if (error) throw error;
+          if (data?.url) {
+            window.location.href = data.url;
+          }
+        } catch (err: any) {
+          // Auto-redirect failed — the user will see the manual paywall below
+          console.warn("Auto-checkout redirect failed:", err);
+        }
+      })();
+    }
+  }, [subscription.status, loading, processingCheckout]);
 
   // Handle post-checkout return: detect ?checkout=success and poll for active subscription
   useEffect(() => {

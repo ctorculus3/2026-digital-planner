@@ -159,8 +159,12 @@ export default function Landing() {
     setFormLoading(true);
     try {
       if (isLogin) {
+        sessionStorage.setItem("fresh_auth", "true");
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          sessionStorage.removeItem("fresh_auth");
+          throw error;
+        }
       } else {
         const { error } = await signUp(email, password, displayName);
         if (error) throw error;
@@ -186,10 +190,12 @@ export default function Landing() {
   const handleGoogleSignIn = async () => {
     setFormLoading(true);
     sessionStorage.setItem("oauth_in_progress", "true");
+    sessionStorage.setItem("fresh_auth", "true");
     try {
       const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
       if (error) throw error;
     } catch (error: any) {
+      sessionStorage.removeItem("fresh_auth");
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setFormLoading(false);
@@ -552,10 +558,12 @@ export default function Landing() {
                 <Button type="button" variant="outline" className="w-full" disabled={formLoading} onClick={async () => {
                   setFormLoading(true);
                   sessionStorage.setItem("oauth_in_progress", "true");
+                  sessionStorage.setItem("fresh_auth", "true");
                   try {
                     const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
                     if (error) throw error;
                   } catch (error: any) {
+                    sessionStorage.removeItem("fresh_auth");
                     toast({ title: "Error", description: error.message, variant: "destructive" });
                   } finally {
                     setFormLoading(false);
