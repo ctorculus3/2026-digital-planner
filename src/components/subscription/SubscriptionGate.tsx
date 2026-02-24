@@ -147,11 +147,27 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const handleSubscribe = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: selectedPlan },
-      });
-      if (data?.url) {
-        window.location.href = data.url;
+      // Use fetch directly so we can read the response body on error
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ plan: selectedPlan }),
+        }
+      );
+      const body = await resp.json();
+      if (!resp.ok) {
+        throw new Error(body?.error || `HTTP ${resp.status}`);
+      }
+      if (body?.url) {
+        window.location.href = body.url;
       } else {
         throw new Error("No checkout URL received");
       }

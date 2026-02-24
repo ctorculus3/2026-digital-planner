@@ -35,26 +35,25 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    // Use getClaims for signing-keys compatible JWT validation
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    logStep("Authenticating user with token");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      throw new Error(`Authentication error: ${claimsError?.message || "Invalid token"}`);
+    logStep("Authenticating user with getUser");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      throw new Error(`Authentication error: ${userError?.message || "Invalid token"}`);
     }
-    
-    const userEmail = claimsData.claims.email as string;
-    const userId = claimsData.claims.sub as string;
+
+    const userEmail = userData.user.email;
+    const userId = userData.user.id;
     if (!userEmail) throw new Error("User not authenticated or email not available");
 
     logStep("User authenticated", { userId, email: userEmail });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey);
     const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     
     if (customers.data.length === 0) {
