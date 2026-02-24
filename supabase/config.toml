@@ -1,4 +1,4 @@
-project_id = "cbuebvuqpippyiifatkn"
+project_id = "cyiglozkytiadzpuqflh"
 
 # Use signing-keys compatible auth validation inside the function.
 [functions.check-subscription]
