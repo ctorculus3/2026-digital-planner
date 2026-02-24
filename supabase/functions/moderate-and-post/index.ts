@@ -22,13 +22,15 @@ async function callModeration(
 ): Promise<{ approved: boolean; reason?: string } | null> {
   try {
     const res = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         signal: AbortSignal.timeout(8000),
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://2026-digital-planner.vercel.app",
+          "X-Title": "Practice Daily",
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-lite",
@@ -117,10 +119,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!openrouterApiKey) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -199,10 +201,10 @@ serve(async (req) => {
 
     // AI moderation (text only)
     if (trimmed.length > 0) {
-      let modResult = await callModeration(trimmed, lovableApiKey);
+      let modResult = await callModeration(trimmed, openrouterApiKey);
       if (!modResult) {
         console.log("Moderation attempt 1 failed, retrying...");
-        modResult = await callModeration(trimmed, lovableApiKey);
+        modResult = await callModeration(trimmed, openrouterApiKey);
       }
       if (!modResult) {
         console.log("Moderation unavailable — allowing post (fail-open)");

@@ -13,8 +13,8 @@ serve(async (req) => {
 
   try {
     const { messages, journalContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     let systemPrompt =
       "You are a knowledgeable music theory tutor and practice coach. Answer questions about music theory, scales, chords, ear training, technique, and practice strategies. Keep answers clear and practical. Use markdown formatting for readability.";
@@ -31,12 +31,14 @@ serve(async (req) => {
     }
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://2026-digital-planner.vercel.app",
+          "X-Title": "Practice Daily",
         },
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
@@ -63,7 +65,7 @@ serve(async (req) => {
         );
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("OpenRouter error:", response.status, t);
       return new Response(
         JSON.stringify({ error: "AI service error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
