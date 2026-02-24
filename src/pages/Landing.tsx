@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Activity, Mic, Users, BarChart3, Sparkles, Copy, ChevronDown } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
 import { PlanToggle } from "@/components/subscription/PlanToggle";
 import { ContactDialog } from "@/components/ContactDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -192,10 +191,14 @@ export default function Landing() {
     sessionStorage.setItem("oauth_in_progress", "true");
     sessionStorage.setItem("fresh_auth", "true");
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
       if (error) throw error;
     } catch (error: any) {
       sessionStorage.removeItem("fresh_auth");
+      sessionStorage.removeItem("oauth_in_progress");
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setFormLoading(false);
@@ -571,25 +574,6 @@ export default function Landing() {
 
 
 
-                <Button type="button" variant="outline" className="w-full" disabled={formLoading} onClick={async () => {
-                  setFormLoading(true);
-                  sessionStorage.setItem("oauth_in_progress", "true");
-                  sessionStorage.setItem("fresh_auth", "true");
-                  try {
-                    const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
-                    if (error) throw error;
-                  } catch (error: any) {
-                    sessionStorage.removeItem("fresh_auth");
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
-                  } finally {
-                    setFormLoading(false);
-                  }
-                }}>
-                  <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                  </svg>
-                  Continue with Apple
-                </Button>
                 <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                 </button>
