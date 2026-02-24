@@ -134,7 +134,7 @@ export default function Landing() {
       "name": "Practice Daily",
       "applicationCategory": "MusicApplication",
       "operatingSystem": "Web",
-      "url": "https://daydream-calendar-2026.lovable.app",
+      "url": "https://2026-digital-planner.vercel.app",
       "description": "A daily practice journal for musicians. Track sessions, log progress, share with teachers, and grow with a community of serious musicians.",
       "offers": [
         { "@type": "Offer", "price": "3.99", "priceCurrency": "USD", "name": "Monthly", "billingIncrement": "P1M" },

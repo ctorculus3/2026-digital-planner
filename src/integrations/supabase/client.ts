@@ -9,8 +9,8 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // import { supabase } from "@/integrations/supabase/client";
 
 // In-process lock replaces navigator.locks to avoid contention during OAuth
-// redirects (Lovable cloud-auth init + Supabase _initialize both race for the
-// same lock, causing a timeout that drops the session).
+// redirects (multiple auth inits race for the same lock, causing a timeout
+// that drops the session).
 const inProcessLocks = new Map<string, Promise<unknown>>();
 
 async function processLock<R>(
