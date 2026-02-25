@@ -1,0 +1,375 @@
+{
+  "project": {
+    "name": "Practice Daily",
+    "slug": "practice-daily",
+    "description": "A music practice companion app for musicians — track practice sessions, use built-in tools (metronome, tuner, drone player, audio recorder), get AI-powered music coaching, share progress with teachers and peers, earn streaks and badges, and connect through a community feed.",
+    "created": "2026-02-04",
+    "last_updated": "2026-02-24"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript",
+      "Vite",
+      "Tailwind CSS",
+      "shadcn/ui (Radix)",
+      "React Router v6",
+      "React Query (TanStack)",
+      "Recharts",
+      "Lucide icons"
+    ],
+    "backend": [
+      "Supabase (Auth, Database, Edge Functions, Storage)"
+    ],
+    "database": [
+      "PostgreSQL (via Supabase)"
+    ],
+    "services": [
+      "Stripe (subscriptions/checkout)",
+      "ElevenLabs (TTS for AI responses)",
+      "OpenRouter (AI gateway — Gemini models, OpenAI-compatible format)"
+    ],
+    "infrastructure": [
+      "Supabase hosted",
+      "Vercel (production: practicedaily.app)"
+    ]
+  },
+  "urls": {
+    "production": "https://practicedaily.app",
+    "local_dev": "http://localhost:8080",
+    "repo": "https://github.com/ctorculus3/2026-digital-planner",
+    "dashboard": "https://practicedaily.app/dashboard",
+    "other": {
+      "stripe_dashboard": "https://dashboard.stripe.com",
+      "supabase_dashboard": "https://supabase.com/dashboard/project/cyiglozkytiadzpuqflh",
+      "supabase_auth_providers": "https://supabase.com/dashboard/project/cyiglozkytiadzpuqflh/auth/providers",
+      "google_cloud_console": "https://console.cloud.google.com/apis/credentials?project=my-project-gmail-487419",
+      "openai_dashboard": "https://openai.com",
+      "vercel_app_dashboard": "https://practicedaily.app/dashboard"
+    }
+  },
+  "identifiers": {
+    "supabase_project_ref": "cyiglozkytiadzpuqflh",
+    "google_cloud_project": "my-project-gmail-487419",
+    "stripe_account": "Torculus LLC (acct_1SwzqVLSlNM2EUMk)",
+    "notes": "Supabase project ref stored in supabase/.temp/project-ref. Stripe keys configured as Supabase Edge Function secrets. .env now in .gitignore."
+  },
+  "architecture": {
+    "decisions": [
+      {
+        "decision": "Transitioning off Lovable to fully local development",
+        "reason": "Calvin wants full control.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "Claude Code as primary development tool",
+        "reason": "Full filesystem and git access.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "Google OAuth via Supabase (not Lovable)",
+        "reason": "Direct Supabase OAuth in Landing.tsx.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "Supabase project reconfigured to correct instance",
+        "reason": "Was pointing to old Lovable-managed project.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "AI gateway migrated from Lovable to OpenRouter",
+        "reason": "Same Gemini models, ~$15/mo for 100 users.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "Supabase for full backend",
+        "reason": "Auth, DB, edge functions, storage in one platform."
+      },
+      {
+        "decision": "Stripe for subscriptions",
+        "reason": "Checkout sessions and customer portal."
+      },
+      {
+        "decision": "ElevenLabs TTS for AI voice playback",
+        "reason": "Hands-free listening while practicing."
+      },
+      {
+        "decision": "All URLs updated from Lovable domain to Vercel",
+        "reason": "Canonical URL, og:url, JSON-LD updated.",
+        "date": "2026-02-23"
+      },
+      {
+        "decision": "Edge Functions use getUser instead of getClaims for auth",
+        "reason": "getClaims caused 'missing sub claim' errors. getUser makes a network call to Auth server and is more reliable.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "Edge Functions set verify_jwt: false",
+        "reason": "JWT validation handled in function code via getUser, not the Supabase gateway.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "Stripe SDK uses default API version (no explicit apiVersion)",
+        "reason": "Beta version '2025-08-27.basil' caused 500 errors.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "SubscriptionGate uses direct fetch for create-checkout",
+        "reason": "supabase.functions.invoke wraps errors with generic messages. Direct fetch gives access to actual response body for better error reporting.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "Custom domain practicedaily.app with Vercel + GoDaddy DNS",
+        "reason": "Professional domain for the app. A record for root, CNAME for www.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "Vercel env vars required for Vite build",
+        "reason": "Vite inlines import.meta.env.VITE_* at build time. Missing vars = undefined = silent crash.",
+        "date": "2026-02-24"
+      },
+      {
+        "decision": "Dashboard blinking fix: lastSessionTokenRef in AuthContext",
+        "reason": "onAuthStateChange fires on token refresh with same session. Skip redundant subscription fetches. processingCheckout initialized from URL params.",
+        "date": "2026-02-24"
+      }
+    ],
+    "database_schema": {
+      "notes": "30+ Supabase migrations (Feb 4-22, 2026)."
+    },
+    "integrations": [
+      "Stripe checkout/portal via Edge Functions",
+      "Music AI via Edge Function (music-ai) — OpenRouter gateway",
+      "ElevenLabs TTS via Edge Function (elevenlabs-tts) — OpenRouter gateway",
+      "Community post moderation (moderate-and-post)",
+      "Subscriber event notifications (notify-subscriber-event)",
+      "Inactive data purge (purge-inactive-data)"
+    ],
+    "notes": [
+      "Lovable fully removed.",
+      "Auth flow: Landing > Google OAuth > /auth callback > Stripe subscription check > Index.",
+      ".env contains only public Supabase anon keys. Gitignored.",
+      "Stripe checkout: 7-day free trial, then $3.99/mo (student) or teacher pricing.",
+      "Edge Functions deployed with verify_jwt: false — auth handled in code."
+    ]
+  },
+  "tasks": {
+    "active": [
+      {
+        "id": "task-008",
+        "title": "Monitor OpenRouter usage and costs",
+        "status": "todo",
+        "priority": "low",
+        "created": "2026-02-24",
+        "completed": null
+      }
+    ],
+    "blocked": [],
+    "completed": [
+      {
+        "id": "task-001",
+        "title": "Set up local dev workflow",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-005",
+        "title": "Switch Google OAuth from Lovable to Supabase",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-006",
+        "title": "Remove Apple sign-in button",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-004",
+        "title": "Test full Google sign-in flow",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-002",
+        "title": "Review and secure .env file",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-003",
+        "title": "Clean up Lovable packages",
+        "status": "done",
+        "priority": "medium",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-010",
+        "title": "Supabase project reconfiguration",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-011",
+        "title": "Migrate AI gateway to OpenRouter",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-23",
+        "completed": "2026-02-23"
+      },
+      {
+        "id": "task-012",
+        "title": "Fix Edge Function auth (getClaims -> getUser)",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-013",
+        "title": "Fix Stripe API version in Edge Functions",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-014",
+        "title": "Fix Stripe secret key in Supabase",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-015",
+        "title": "Complete Stripe checkout and verify post-checkout flow",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-007",
+        "title": "Update README.md",
+        "status": "done",
+        "priority": "medium",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-009",
+        "title": "Custom domain setup (practicedaily.app)",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-016",
+        "title": "Fix dashboard blinking on post-checkout load",
+        "status": "done",
+        "priority": "low",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-017",
+        "title": "Fix blank page on production (Vercel env vars)",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      },
+      {
+        "id": "task-018",
+        "title": "Update all domain URLs from vercel.app to practicedaily.app",
+        "status": "done",
+        "priority": "high",
+        "created": "2026-02-24",
+        "completed": "2026-02-24"
+      }
+    ]
+  },
+  "known_issues": [],
+  "session_history": [
+    {
+      "date": "2026-02-23",
+      "summary": "Onboarded project. Mapped 240 files. Confirmed local matches GitHub.",
+      "tasks_completed": [],
+      "tasks_started": [
+        "task-001",
+        "task-002",
+        "task-003"
+      ]
+    },
+    {
+      "date": "2026-02-23",
+      "summary": "Set up local dev. Switched Google sign-in to Supabase OAuth. Removed Apple sign-in.",
+      "tasks_completed": [
+        "task-001",
+        "task-005",
+        "task-006"
+      ],
+      "tasks_started": [
+        "task-004"
+      ]
+    },
+    {
+      "date": "2026-02-23",
+      "summary": "Dev Report No. 2. Full Lovable transition complete. 5 commits pushed to main.",
+      "tasks_completed": [
+        "task-004",
+        "task-002",
+        "task-003",
+        "task-010",
+        "task-011"
+      ],
+      "tasks_started": []
+    },
+    {
+      "date": "2026-02-24",
+      "summary": "Ingested Dev Report No. 2 into Project Supervisor. Added dashboard URLs.",
+      "tasks_completed": [],
+      "tasks_started": []
+    },
+    {
+      "date": "2026-02-24",
+      "summary": "Dev Report No. 3. Fixed Edge Function auth and Stripe checkout flow. Debugged 4 layered issues: verify_jwt gateway rejection, getClaims auth failures, beta Stripe API version, invalid STRIPE_SECRET_KEY. Full checkout flow verified end-to-end. PR #1 created.",
+      "tasks_completed": [
+        "task-012",
+        "task-013",
+        "task-014"
+      ],
+      "tasks_started": [
+        "task-015"
+      ]
+    },
+    {
+      "date": "2026-02-24",
+      "summary": "Dev Report No. 4. Custom domain practicedaily.app: DNS at GoDaddy, Vercel config, SSL certs. Fixed blank page (Vercel missing VITE_SUPABASE env vars). Updated Supabase Auth Site URL and Google Cloud OAuth origins. All domain URLs updated across codebase. README rewritten. Dashboard blinking fix (AuthContext lastSessionTokenRef + SubscriptionGate processingCheckout from URL).",
+      "tasks_completed": [
+        "task-007",
+        "task-009",
+        "task-015",
+        "task-016",
+        "task-017",
+        "task-018"
+      ],
+      "tasks_started": []
+    }
+  ]
+}

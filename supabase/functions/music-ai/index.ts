@@ -37,7 +37,7 @@ serve(async (req) => {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://2026-digital-planner.vercel.app",
+          "HTTP-Referer": "https://practicedaily.app",
           "X-Title": "Practice Daily",
         },
         body: JSON.stringify({

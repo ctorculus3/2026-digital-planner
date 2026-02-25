@@ -29,7 +29,7 @@ async function callModeration(
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://2026-digital-planner.vercel.app",
+          "HTTP-Referer": "https://practicedaily.app",
           "X-Title": "Practice Daily",
         },
         body: JSON.stringify({

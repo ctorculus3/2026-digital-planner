@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "iceberg-js": path.resolve(__dirname, "./src/stubs/iceberg-js.ts"),
     },
   },
 }));

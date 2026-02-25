@@ -23,10 +23,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { subscription, refreshSubscription, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Initialize from URL so we never flash the paywall when returning from Stripe
+  const [processingCheckout, setProcessingCheckout] = useState(
+    () => searchParams.get("checkout") === "success"
+  );
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
 
@@ -147,11 +150,27 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const handleSubscribe = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: selectedPlan },
-      });
-      if (data?.url) {
-        window.location.href = data.url;
+      // Use fetch directly so we can read the response body on error
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ plan: selectedPlan }),
+        }
+      );
+      const body = await resp.json();
+      if (!resp.ok) {
+        throw new Error(body?.error || `HTTP ${resp.status}`);
+      }
+      if (body?.url) {
+        window.location.href = body.url;
       } else {
         throw new Error("No checkout URL received");
       }
