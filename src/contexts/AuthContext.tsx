@@ -44,6 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const prevSubStatusRef = useRef<SubscriptionStatus>('loading');
   // Track previous trialing state to detect upgrade (trial -> paid)
   const prevIsTrialingRef = useRef(false);
+  // Track the last session token to skip redundant subscription fetches
+  // (e.g. when onAuthStateChange fires on token refresh with the same session)
+  const lastSessionTokenRef = useRef<string | null>(null);
+
   const fetchSubscription = useCallback(async (currentSession: Session | null) => {
     const myId = ++fetchIdRef.current;
 
@@ -169,9 +173,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // This prevents duplicate calls during initialization
         if (initialSessionLoaded.current) {
           if (newSession) {
+            // Skip redundant subscription fetches when the session token hasn't changed
+            // (e.g. Supabase fires onAuthStateChange on token refresh with same access_token)
+            const token = newSession.access_token;
+            if (token === lastSessionTokenRef.current) return;
+            lastSessionTokenRef.current = token;
             setSubscription(prev => ({ ...prev, status: 'loading' }));
             await fetchSubscription(newSession);
           } else {
+            lastSessionTokenRef.current = null;
             setSubscription({ status: 'inactive', isTrialing: false, endDate: null, productId: null });
           }
         }
@@ -191,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (existingSession) {
         // Session found — stop loading and fetch subscription
+        lastSessionTokenRef.current = existingSession.access_token;
         setLoading(false);
         await fetchSubscription(existingSession);
       } else if (isAuthRedirect) {

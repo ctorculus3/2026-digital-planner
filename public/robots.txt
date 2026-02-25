@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://2026-digital-planner.vercel.app/sitemap.xml
+Sitemap: https://practicedaily.app/sitemap.xml

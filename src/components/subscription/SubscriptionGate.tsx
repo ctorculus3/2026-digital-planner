@@ -23,10 +23,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { subscription, refreshSubscription, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Initialize from URL so we never flash the paywall when returning from Stripe
+  const [processingCheckout, setProcessingCheckout] = useState(
+    () => searchParams.get("checkout") === "success"
+  );
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
 

@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+# Practice Daily
 
-## Project info
+> See your practice come to life.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+A music practice companion app for musicians — track sessions, use built-in tools, get AI coaching, share progress with teachers and peers, earn streaks and badges, and connect through a community feed.
 
-## How can I edit this code?
+**Live:** [practicedaily.app](https://practicedaily.app)
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Daily Practice Logging** — Set goals, track time, and log warmups, scales, and repertoire
+- **Built-in Metronome** — Time signatures, accent patterns, and clave samples
+- **Chromatic Tuner** — Real-time tuning with transposition for C, B♭, E♭, and F
+- **Drone Player** — All 12 keys for intonation practice
+- **Music AI Assistant** — Theory questions, practice advice, and coaching with voice playback
+- **Audio Recorder** — Record and attach audio directly to your practice log
+- **Lesson PDF Uploads** — Store and view lesson materials alongside your log
+- **Media Tools** — Attach YouTube videos, audio, and images for reference
+- **Dashboard** — Practice calendar, time graphs, streak tracking, and badges
+- **Share with Teachers** — Generate a link so your teacher can review your logs
+- **Studios** — Teachers create studios, assign homework, leave comments, and chat
+- **Community Feed** — Share posts and connect with fellow musicians
+- **Copy from Previous Day** — Reuse your practice template instantly
+- **Staff Paper** — Built-in notation sketches
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Router v6, React Query, Recharts
+- **Backend:** Supabase (Auth, Database, Edge Functions, Storage)
+- **Payments:** Stripe (subscriptions with 7-day free trial)
+- **AI:** OpenRouter gateway (Gemini models)
+- **Voice:** ElevenLabs TTS for hands-free AI responses
+- **Hosting:** Vercel
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repo
+git clone https://github.com/ctorculus3/2026-digital-planner.git
+cd 2026-digital-planner
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Create .env with your Supabase keys
+echo "VITE_SUPABASE_URL=your-supabase-url" > .env
+echo "VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key" >> .env
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app runs at [http://localhost:8080](http://localhost:8080).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+  pages/         — Route pages (Landing, Auth, Index, Dashboard, etc.)
+  components/
+    practice-log/  — Timer, Metronome, Tuner, DronePlayer, AudioRecorder, MusicAI
+    dashboard/     — PracticeCalendar, StreakCounter, BadgeShelf, stats
+    studio/        — Teacher-student features (assignments, comments, chat)
+    community/     — Social feed (PostCard, PostComposer, PostFeed)
+    subscription/  — Billing (SubscriptionGate, PlanToggle)
+  contexts/      — AuthContext (auth state management)
+  hooks/         — Custom hooks for practice logs, streaks, studios, etc.
+  integrations/  — Supabase client & generated types
+supabase/
+  functions/     — Edge Functions (music-ai, create-checkout, etc.)
+  migrations/    — 30+ database migrations
+public/
+  audio/         — Drone notes, clave sounds, timer alarm
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## License
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+All rights reserved. This is a proprietary project by Torculus LLC.
