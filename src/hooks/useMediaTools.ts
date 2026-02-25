@@ -41,23 +41,26 @@ export interface MediaItem {
 function extractYouTubeVideoId(url: string): string | null {
   try {
     const parsed = new URL(url);
-    // youtube.com/watch?v=VIDEO_ID
-    if (
-      (parsed.hostname === "www.youtube.com" || parsed.hostname === "youtube.com") &&
-      parsed.pathname === "/watch"
-    ) {
-      return parsed.searchParams.get("v");
+    const host = parsed.hostname.replace(/^www\./, "").replace(/^m\./, "");
+
+    // youtu.be/VIDEO_ID (short links)
+    if (host === "youtu.be") {
+      return parsed.pathname.slice(1).split(/[?/]/)[0] || null;
     }
-    // youtube.com/embed/VIDEO_ID
-    if (
-      (parsed.hostname === "www.youtube.com" || parsed.hostname === "youtube.com") &&
-      parsed.pathname.startsWith("/embed/")
-    ) {
-      return parsed.pathname.split("/embed/")[1]?.split("?")[0] || null;
-    }
-    // youtu.be/VIDEO_ID
-    if (parsed.hostname === "youtu.be") {
-      return parsed.pathname.slice(1).split("?")[0] || null;
+
+    // youtube.com and music.youtube.com
+    if (host === "youtube.com" || host === "music.youtube.com") {
+      // /watch?v=VIDEO_ID
+      if (parsed.pathname === "/watch") {
+        return parsed.searchParams.get("v");
+      }
+      // /shorts/VIDEO_ID, /embed/VIDEO_ID, /live/VIDEO_ID, /v/VIDEO_ID
+      const pathMatch = parsed.pathname.match(
+        /^\/(shorts|embed|live|v)\/([a-zA-Z0-9_-]+)/
+      );
+      if (pathMatch) {
+        return pathMatch[2];
+      }
     }
   } catch {
     // not a valid URL
