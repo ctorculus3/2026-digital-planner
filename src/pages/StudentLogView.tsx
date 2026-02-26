@@ -55,7 +55,7 @@ export default function StudentLogView() {
   return (
     <div className="min-h-screen bg-background">
       {/* Music AI — floating top-right */}
-      <div className="fixed top-20 right-4 z-50 w-80 hidden md:block">
+      <div className="fixed top-4 right-4 z-50 w-80 hidden md:block">
         <MusicAI />
       </div>
 
