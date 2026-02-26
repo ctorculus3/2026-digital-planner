@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useStudentAssignment } from "@/hooks/useWeeklyAssignment";
 import { useStudentStudio } from "@/hooks/useStudentStudio";
-import { ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, ChevronDown, ChevronUp, Download } from "lucide-react";
 
 interface Props {
   date: Date;
+  onLoadAssignment?: () => void;
 }
 
 function AssignmentList({ label, items }: { label: string; items: string[] | null }) {
@@ -24,7 +26,7 @@ function AssignmentList({ label, items }: { label: string; items: string[] | nul
   );
 }
 
-export function AssignmentBanner({ date }: Props) {
+export function AssignmentBanner({ date, onLoadAssignment }: Props) {
   const { assignment, isLoading } = useStudentAssignment(date);
   const { studioInfo } = useStudentStudio();
   const [expanded, setExpanded] = useState(false);
@@ -82,6 +84,18 @@ export function AssignmentBanner({ date }: Props) {
             <AssignmentList label="Ear Training" items={assignment.ear_training} />
             <AssignmentList label="Additional Tasks" items={assignment.additional_tasks} />
           </div>
+          {onLoadAssignment && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onLoadAssignment}
+              className="w-full mt-2"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              Load assignment into today's log
+            </Button>
+          )}
         </div>
       )}
     </div>
