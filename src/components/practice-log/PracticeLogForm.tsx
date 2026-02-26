@@ -97,7 +97,7 @@ export function PracticeLogForm({
     save,
     isSaving
   } = usePracticeLog(date);
-  const { assignment } = useStudentAssignment(date);
+  const { assignment, isLoading: assignmentLoading } = useStudentAssignment(date);
   const [mainGoals, setMainGoals] = useState("");
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -236,7 +236,7 @@ export function PracticeLogForm({
         adjustTextareaHeight(subgoalsRef.current);
         adjustTextareaHeight(notesRef.current);
       }, 0);
-    } else if (!isLoading) {
+    } else if (!isLoading && !assignmentLoading) {
       // Reset form for new day — pre-fill from weekly assignment if available
       const pad = (arr: string[] | null | undefined, size: number) => {
         const a = [...(arr || [])];
@@ -281,7 +281,7 @@ export function PracticeLogForm({
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
     }
-  }, [practiceLog, isLoading, date, assignment]);
+  }, [practiceLog, isLoading, date, assignment, assignmentLoading]);
   
   const computedTotalTime = useMemo(() => {
     const start = parseTimeString(startTime);
@@ -446,6 +446,44 @@ export function PracticeLogForm({
       setMusicListeningCount((prev) => prev + 1);
     }
   };
+  const loadAssignmentIntoForm = useCallback(() => {
+    if (!assignment) return;
+    const pad = (arr: string[] | null | undefined, size: number) => {
+      const a = [...(arr || [])];
+      while (a.length < size) a.push("");
+      return a;
+    };
+    if (assignment.goals) setMainGoals(assignment.goals);
+    if (assignment.subgoals) setSubgoals(assignment.subgoals);
+
+    const aw = assignment.warmups?.filter(w => w.trim()) || [];
+    if (aw.length > 0) {
+      setWarmups(pad(assignment.warmups, 10));
+      setWarmupCount(Math.max(4, aw.length));
+    }
+    const asc = assignment.scales?.filter(s => s.trim()) || [];
+    if (asc.length > 0) {
+      setScales(pad(assignment.scales, 10));
+      setScaleCount(Math.max(4, asc.length));
+    }
+    const ar = assignment.repertoire?.filter(r => r.trim()) || [];
+    if (ar.length > 0) {
+      setRepertoire(pad(assignment.repertoire, 15));
+      setRepertoireCount(Math.max(10, ar.length));
+    }
+    const at = assignment.additional_tasks?.filter(t => t.trim()) || [];
+    if (at.length > 0) {
+      setAdditionalTasks(pad(assignment.additional_tasks, 10));
+      setAdditionalTaskCount(Math.max(4, at.length));
+    }
+    const ae = assignment.ear_training?.filter(e => e.trim()) || [];
+    if (ae.length > 0) {
+      setEarTraining(pad(assignment.ear_training, 10));
+      setEarTrainingCount(Math.max(4, ae.length));
+    }
+    markChanged();
+  }, [assignment, markChanged]);
+
   if (!user) {
     return <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Please sign in to view your practice log.</p>
@@ -458,7 +496,7 @@ export function PracticeLogForm({
   }
   return <div className="flex-1 space-y-4 overflow-auto">
       {/* Assignment Banner (if student has a weekly assignment) */}
-      <AssignmentBanner date={date} />
+      <AssignmentBanner date={date} onLoadAssignment={loadAssignmentIntoForm} />
 
       {/* Teacher Comment (if exists) */}
       <TeacherCommentCard logDate={dateString} />
