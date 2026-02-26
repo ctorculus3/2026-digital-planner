@@ -234,7 +234,7 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
           <Textarea value={subgoals} onChange={(e) => setSubgoals(e.target.value)} placeholder="Subgoals..." className="min-h-[40px] text-xs" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-3">
             {renderList("Repertoire", repertoire, setRepertoire)}
             {renderList("Scales", scales, setScales)}
