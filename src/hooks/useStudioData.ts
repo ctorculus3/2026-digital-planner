@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface StudioStudent {
   student_user_id: string;
   display_name: string | null;
+  avatar_url: string | null;
   streak: number;
   weekly_minutes: number;
   last_practice_date: string | null;
@@ -62,7 +63,7 @@ export function useStudioData() {
     // Fetch profiles
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, display_name")
+      .select("id, display_name, avatar_url")
       .in("id", studentIds);
 
     // Fetch streaks via RPC for each student
@@ -89,7 +90,9 @@ export function useStudioData() {
 
     const streakResults = await Promise.all(streakPromises);
     const streakMap = Object.fromEntries(streakResults.map((s) => [s.id, s.streak]));
-    const profileMap = Object.fromEntries((profiles || []).map((p) => [p.id, p.display_name]));
+    const profileMap = Object.fromEntries(
+      (profiles || []).map((p) => [p.id, { display_name: p.display_name, avatar_url: p.avatar_url }])
+    );
     const linkMap = Object.fromEntries(links.map((l) => [l.student_user_id, l.joined_at]));
 
     // Calculate weekly minutes per student
@@ -114,7 +117,8 @@ export function useStudioData() {
 
     const result: StudioStudent[] = studentIds.map((id) => ({
       student_user_id: id,
-      display_name: profileMap[id] || null,
+      display_name: profileMap[id]?.display_name || null,
+      avatar_url: profileMap[id]?.avatar_url || null,
       streak: streakMap[id] || 0,
       weekly_minutes: weeklyMap[id] || 0,
       last_practice_date: lastPracticeMap[id] || null,
