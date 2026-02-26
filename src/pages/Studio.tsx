@@ -12,9 +12,11 @@ import { Loader2, GraduationCap, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isTeacherTier } from "@/lib/subscriptionTiers";
+import { useAssignmentStatuses } from "@/hooks/useAssignmentStatuses";
 
 export default function Studio() {
   const { studio, students, loading, createStudio, removeStudent, refetch } = useStudioData();
+  const { statuses: assignmentStatuses } = useAssignmentStatuses(studio?.id);
   const [showCreate, setShowCreate] = useState(false);
   const { toast } = useToast();
   const { subscription } = useAuth();
@@ -89,7 +91,7 @@ export default function Studio() {
                 <CardTitle className="text-lg">Students</CardTitle>
               </CardHeader>
               <CardContent>
-                <StudentList students={students} onRemove={handleRemove} />
+                <StudentList students={students} onRemove={handleRemove} assignmentStatuses={assignmentStatuses} />
               </CardContent>
             </Card>
           </>

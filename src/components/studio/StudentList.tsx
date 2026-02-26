@@ -1,13 +1,15 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { UserMinus } from "lucide-react";
+import { UserMinus, FileText, Send, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { StudioStudent } from "@/hooks/useStudioData";
+import type { AssignmentStatus } from "@/hooks/useAssignmentStatuses";
 
 interface Props {
   students: StudioStudent[];
   onRemove: (studentId: string) => void;
+  assignmentStatuses?: Record<string, AssignmentStatus>;
 }
 
 function getInitials(name: string | null): string {
@@ -44,7 +46,7 @@ function formatWeeklyTime(minutes: number): string {
   return `${h}h ${m}m`;
 }
 
-export function StudentList({ students, onRemove }: Props) {
+export function StudentList({ students, onRemove, assignmentStatuses = {} }: Props) {
   const navigate = useNavigate();
   if (students.length === 0) {
     return (
@@ -63,6 +65,7 @@ export function StudentList({ students, onRemove }: Props) {
           <TableHead className="text-center">Status</TableHead>
           <TableHead className="text-center">Streak</TableHead>
           <TableHead className="text-center">This Week</TableHead>
+          <TableHead className="text-center">Assignment</TableHead>
           <TableHead className="w-12" />
         </TableRow>
       </TableHeader>
@@ -98,6 +101,21 @@ export function StudentList({ students, onRemove }: Props) {
               </TableCell>
               <TableCell className="text-center">
                 {formatWeeklyTime(s.weekly_minutes)}
+              </TableCell>
+              <TableCell className="text-center">
+                {assignmentStatuses[s.student_user_id] === "sent" ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                    <Send className="w-3 h-3" /> Sent
+                  </span>
+                ) : assignmentStatuses[s.student_user_id] === "draft" ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    <FileText className="w-3 h-3" /> Draft
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/50">
+                    <Minus className="w-3 h-3" /> None
+                  </span>
+                )}
               </TableCell>
               <TableCell>
                 <Button
