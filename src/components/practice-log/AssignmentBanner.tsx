@@ -89,7 +89,7 @@ export function AssignmentBanner({ date, onLoadAssignment }: Props) {
               type="button"
               size="sm"
               variant="outline"
-              onClick={onLoadAssignment}
+              onClick={() => { onLoadAssignment?.(); setExpanded(false); }}
               className="w-full mt-2"
             >
               <Download className="w-4 h-4 mr-1.5" />
