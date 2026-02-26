@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { UserMinus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +8,17 @@ import type { StudioStudent } from "@/hooks/useStudioData";
 interface Props {
   students: StudioStudent[];
   onRemove: (studentId: string) => void;
+}
+
+function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 function getStatusColor(lastPracticeDate: string | null): { color: string; label: string } {
@@ -63,7 +75,17 @@ export function StudentList({ students, onRemove }: Props) {
                 className="font-medium cursor-pointer hover:text-primary transition-colors"
                 onClick={() => navigate(`/studio/student/${s.student_user_id}`)}
               >
-                {s.display_name || "Unnamed Student"}
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    {s.avatar_url && (
+                      <AvatarImage src={s.avatar_url} alt={s.display_name || "Student"} />
+                    )}
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {getInitials(s.display_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {s.display_name || "Unnamed Student"}
+                </div>
               </TableCell>
               <TableCell className="text-center">
                 <span className="inline-flex items-center gap-1.5 text-xs">
