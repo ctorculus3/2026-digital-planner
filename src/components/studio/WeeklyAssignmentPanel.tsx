@@ -234,17 +234,15 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
           <Textarea value={subgoals} onChange={(e) => setSubgoals(e.target.value)} placeholder="Subgoals..." className="min-h-[40px] text-xs" />
         </div>
 
-        <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-4 shadow-sm border border-border">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              {renderList("Repertoire", repertoire, setRepertoire)}
-              {renderList("Scales", scales, setScales)}
-              {renderList("Additional Tasks", additionalTasks, setAdditionalTasks)}
-            </div>
-            <div className="space-y-3">
-              {renderList("Warm-ups", warmups, setWarmups)}
-              {renderList("Ear Training", earTraining, setEarTraining)}
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-4 shadow-sm border border-border space-y-3">
+            {renderList("Repertoire", repertoire, setRepertoire)}
+            {renderList("Scales", scales, setScales)}
+            {renderList("Additional Tasks", additionalTasks, setAdditionalTasks)}
+          </div>
+          <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-4 shadow-sm border border-border space-y-3">
+            {renderList("Warm-ups", warmups, setWarmups)}
+            {renderList("Ear Training", earTraining, setEarTraining)}
           </div>
         </div>
 
