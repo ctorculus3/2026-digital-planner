@@ -12,6 +12,7 @@ import { AudioRecorder } from "./AudioRecorder";
 import { ShareButton } from "./ShareButton";
 import { CopyFromButton } from "./CopyFromButton";
 import { MediaTools } from "./MediaTools";
+import { AssignmentMediaDisplay } from "./AssignmentMediaDisplay";
 import { LessonPdfs } from "./LessonPdfs";
 import { Metronome } from "./Metronome";
 import { Tuner } from "./Tuner";
@@ -562,6 +563,9 @@ export function PracticeLogForm({
 
           {/* Media Tools - always show when user is logged in */}
           {user && <MediaTools practiceLogId={practiceLog?.id} userId={user.id} logDate={dateString} onPracticeLogCreated={() => queryClient.invalidateQueries({ queryKey: ["practice-log", dateString] })} />}
+
+          {/* Assignment Media from Teacher (read-only) */}
+          <AssignmentMediaDisplay date={date} />
         </div>
 
         <div className="space-y-4">
