@@ -96,7 +96,7 @@ export function PracticeLogForm({
     save,
     isSaving
   } = usePracticeLog(date);
-  const { assignment } = useStudentAssignment(date);
+  const { assignment, isLoading: assignmentLoading } = useStudentAssignment(date);
   const [mainGoals, setMainGoals] = useState("");
   const [subgoals, setSubgoals] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -235,7 +235,7 @@ export function PracticeLogForm({
         adjustTextareaHeight(subgoalsRef.current);
         adjustTextareaHeight(notesRef.current);
       }, 0);
-    } else if (!isLoading) {
+    } else if (!isLoading && !assignmentLoading) {
       // Reset form for new day — pre-fill from weekly assignment if available
       const pad = (arr: string[] | null | undefined, size: number) => {
         const a = [...(arr || [])];
@@ -280,7 +280,7 @@ export function PracticeLogForm({
       setHasUnsavedChanges(false);
       isInitializedRef.current = true;
     }
-  }, [practiceLog, isLoading, date, assignment]);
+  }, [practiceLog, isLoading, date, assignment, assignmentLoading]);
   
   const computedTotalTime = useMemo(() => {
     const start = parseTimeString(startTime);
