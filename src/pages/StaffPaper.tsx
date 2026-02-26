@@ -37,7 +37,7 @@ export default function StaffPaper() {
     setIsErasing(prev => !prev);
   }, []);
   const handleBackToJournal = () => {
-    navigate(`/?date=${format(currentDate, "yyyy-MM-dd")}`);
+    navigate(`/journal?date=${format(currentDate, "yyyy-MM-dd")}`);
   };
 
   // Measure container size for canvas
