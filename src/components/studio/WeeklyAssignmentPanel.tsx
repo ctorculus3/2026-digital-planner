@@ -235,11 +235,15 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {renderList("Repertoire", repertoire, setRepertoire)}
-          {renderList("Warm-ups", warmups, setWarmups)}
-          {renderList("Scales", scales, setScales)}
-          {renderList("Ear Training", earTraining, setEarTraining)}
-          {renderList("Additional Tasks", additionalTasks, setAdditionalTasks)}
+          <div className="space-y-3">
+            {renderList("Repertoire", repertoire, setRepertoire)}
+            {renderList("Scales", scales, setScales)}
+            {renderList("Additional Tasks", additionalTasks, setAdditionalTasks)}
+          </div>
+          <div className="space-y-3">
+            {renderList("Warm-ups", warmups, setWarmups)}
+            {renderList("Ear Training", earTraining, setEarTraining)}
+          </div>
         </div>
 
         {/* YouTube Links */}
