@@ -14,6 +14,7 @@ interface BadgeShelfProps {
   badges: Badge[];
   loading?: boolean;
   streak?: number;
+  showShare?: boolean;
 }
 
 export const BADGE_CONFIG = [
@@ -143,7 +144,7 @@ export function EnamelBadge({
   );
 }
 
-export function BadgeShelf({ badges, loading, streak = 0 }: BadgeShelfProps) {
+export function BadgeShelf({ badges, loading, streak = 0, showShare = true }: BadgeShelfProps) {
   const earnedMap = new Map(badges.map((b) => [b.badge_type, b]));
   const [shareConfig, setShareConfig] = useState<{
     config: (typeof BADGE_CONFIG)[0];
@@ -161,7 +162,7 @@ export function BadgeShelf({ badges, loading, streak = 0 }: BadgeShelfProps) {
           return (
             <div key={config.type} className="relative group">
               <EnamelBadge config={config} earned={earned} />
-              {earned && (
+              {earned && showShare && (
                  <button
                   onClick={() => setShareConfig({ config, earned })}
                   className="absolute top-0 right-0 p-1 rounded-full bg-card/80 border border-border shadow-sm opacity-70 hover:opacity-100 transition-opacity"

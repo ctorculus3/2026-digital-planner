@@ -36,23 +36,39 @@ export function useTeacherAssignment(studioId: string | undefined, studentUserId
     enabled: !!studioId && !!studentUserId && !!weekStart,
   });
 
+  const buildRow = (payload: WeeklyAssignmentData) => ({
+    studio_id: studioId!,
+    student_user_id: studentUserId,
+    week_start: weekStart,
+    goals: payload.goals || null,
+    subgoals: payload.subgoals || null,
+    repertoire: payload.repertoire?.filter(r => r.trim()) || [],
+    warmups: payload.warmups?.filter(w => w.trim()) || [],
+    scales: payload.scales?.filter(s => s.trim()) || [],
+    additional_tasks: payload.additional_tasks?.filter(t => t.trim()) || [],
+    ear_training: payload.ear_training?.filter(e => e.trim()) || [],
+    youtube_links: payload.youtube_links?.filter(l => l.trim()) || [],
+    notes: payload.notes || null,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (payload: WeeklyAssignmentData) => {
       if (!studioId) throw new Error("No studio");
-      const row = {
-        studio_id: studioId,
-        student_user_id: studentUserId,
-        week_start: weekStart,
-        goals: payload.goals || null,
-        subgoals: payload.subgoals || null,
-        repertoire: payload.repertoire?.filter(r => r.trim()) || [],
-        warmups: payload.warmups?.filter(w => w.trim()) || [],
-        scales: payload.scales?.filter(s => s.trim()) || [],
-        additional_tasks: payload.additional_tasks?.filter(t => t.trim()) || [],
-        ear_training: payload.ear_training?.filter(e => e.trim()) || [],
-        youtube_links: payload.youtube_links?.filter(l => l.trim()) || [],
-        notes: payload.notes || null,
-      };
+      const row = { ...buildRow(payload), status: assignment?.status || "draft" };
+      const { error } = await supabase
+        .from("weekly_assignments")
+        .upsert(row, { onConflict: "studio_id,student_user_id,week_start" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["weekly-assignment", studioId, studentUserId, weekStart] });
+    },
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async (payload: WeeklyAssignmentData) => {
+      if (!studioId) throw new Error("No studio");
+      const row = { ...buildRow(payload), status: "sent" as const };
       const { error } = await supabase
         .from("weekly_assignments")
         .upsert(row, { onConflict: "studio_id,student_user_id,week_start" });
@@ -108,6 +124,8 @@ export function useTeacherAssignment(studioId: string | undefined, studentUserId
     isLoading,
     save: saveMutation.mutate,
     isSaving: saveMutation.isPending,
+    send: sendMutation.mutate,
+    isSending: sendMutation.isPending,
     remove: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
     ensureAssignment,
@@ -126,6 +144,7 @@ export function useStudentAssignment(logDate: Date) {
         .from("weekly_assignments")
         .select("*")
         .eq("week_start", weekStart)
+        .eq("status", "sent")
         .maybeSingle();
       if (error) throw error;
       return data;

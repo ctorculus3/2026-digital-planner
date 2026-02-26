@@ -6,7 +6,7 @@ import { useTeacherAssignment } from "@/hooks/useWeeklyAssignment";
 import { useAssignmentMedia, type AssignmentMediaItem } from "@/hooks/useAssignmentMedia";
 import { useAuth } from "@/contexts/AuthContext";
 import { startOfWeek, format, addWeeks } from "date-fns";
-import { Save, Trash2, Loader2, ClipboardList, ChevronLeft, ChevronRight, Plus, Youtube, Upload, X, Music, Video, ImageIcon } from "lucide-react";
+import { Save, Trash2, Loader2, ClipboardList, ChevronLeft, ChevronRight, Plus, Youtube, Upload, X, Music, Video, ImageIcon, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { extractYouTubeVideoId } from "@/hooks/useMediaTools";
 
@@ -69,7 +69,7 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
   const weekStart = format(monday, "yyyy-MM-dd");
   const weekLabel = `Week of ${format(monday, "MMM d, yyyy")}`;
 
-  const { assignment, isLoading, save, isSaving, remove, isDeleting, ensureAssignment } =
+  const { assignment, isLoading, save, isSaving, send, isSending, remove, isDeleting, ensureAssignment } =
     useTeacherAssignment(studioId, studentUserId, weekStart);
 
   // Assignment media (file uploads)
@@ -125,10 +125,23 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
     }
   }, [assignment, isLoading, weekStart]);
 
+  const getPayload = () => ({
+    goals, subgoals, repertoire, warmups, scales,
+    additional_tasks: additionalTasks, ear_training: earTraining,
+    youtube_links: youtubeLinks, notes,
+  });
+
   const handleSave = () => {
-    save({ goals, subgoals, repertoire, warmups, scales, additional_tasks: additionalTasks, ear_training: earTraining, youtube_links: youtubeLinks, notes }, {
-      onSuccess: () => toast({ title: "Assignment saved" }),
+    save(getPayload(), {
+      onSuccess: () => toast({ title: "Draft saved" }),
       onError: (err: any) => toast({ title: "Error saving assignment", description: err.message, variant: "destructive" }),
+    });
+  };
+
+  const handleSend = () => {
+    send(getPayload(), {
+      onSuccess: () => toast({ title: "Assignment sent!" }),
+      onError: (err: any) => toast({ title: "Error sending assignment", description: err.message, variant: "destructive" }),
     });
   };
 
@@ -190,6 +203,15 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
         <div className="flex items-center gap-2 text-sm font-display text-muted-foreground">
           <ClipboardList className="h-4 w-4" />
           Weekly Assignment
+          {assignment && (
+            <span className={`ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              (assignment as any).status === "sent"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              {(assignment as any).status === "sent" ? "Sent ✓" : "Draft"}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setWeekOffset(o => o - 1)}>
@@ -330,9 +352,13 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
       </div>
 
       <div className="flex items-center gap-2">
-        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+        <Button size="sm" variant="outline" onClick={handleSave} disabled={isSaving}>
           {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-          Save Assignment
+          Save Draft
+        </Button>
+        <Button size="sm" onClick={handleSend} disabled={isSending}>
+          {isSending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+          Send
         </Button>
         {assignment && (
           <Button size="sm" variant="ghost" onClick={handleDelete} disabled={isDeleting} className="text-destructive hover:text-destructive">
