@@ -6,6 +6,7 @@ import { useStudentBadges } from "@/hooks/useStudentBadges";
 import { StudentStatusCard } from "@/components/studio/StudentStatusCard";
 import { TeacherCommentPanel } from "@/components/studio/TeacherCommentPanel";
 import { WeeklyAssignmentPanel } from "@/components/studio/WeeklyAssignmentPanel";
+import { MusicAI } from "@/components/practice-log/MusicAI";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -53,6 +54,11 @@ export default function StudentLogView() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Music AI — floating top-right */}
+      <div className="fixed top-20 right-4 z-50 w-80 hidden md:block">
+        <MusicAI />
+      </div>
+
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
         {/* Header */}
         <div className="flex items-center">
@@ -82,6 +88,11 @@ export default function StudentLogView() {
           studentUserId={studentId}
           currentDate={today}
         />
+
+        {/* Music AI — inline on mobile */}
+        <div className="md:hidden">
+          <MusicAI />
+        </div>
       </div>
     </div>
   );
