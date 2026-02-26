@@ -40,7 +40,7 @@ export function StudentStatusCard({ student, badges, badgesLoading }: Props) {
   return (
     <div className="space-y-4">
       {/* Student info + stats */}
-      <div className="bg-accent rounded-lg p-4 md:p-6 shadow-sm border border-border">
+      <div className="bg-[hsl(var(--time-section-bg))] rounded-lg p-4 md:p-6 shadow-sm border border-border">
         <div className="flex items-center gap-4 mb-4">
           {/* Avatar */}
           {student.avatar_url ? (

@@ -279,7 +279,7 @@ export function WeeklyAssignmentPanel({ studioId, studentUserId, currentDate }: 
         </div>
 
         {/* Media Uploads (Audio, Video, Photo) */}
-        <div className="space-y-2 bg-accent rounded-lg p-3">
+        <div className="space-y-2 bg-[hsl(var(--time-section-bg))] rounded-lg p-3">
           <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
             <Upload className="w-3 h-3" /> Media Files
             <span className="text-[10px] text-muted-foreground ml-1">({mediaCount}/{mediaMax})</span>
