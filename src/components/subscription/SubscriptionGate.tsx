@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
 import { PlanToggle } from "./PlanToggle";
 import { useToast } from "@/hooks/use-toast";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useOnboardingSurvey } from "@/hooks/useOnboardingSurvey";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -30,6 +31,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   );
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { completed: surveyCompleted } = useOnboardingSurvey();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
 
@@ -41,8 +44,17 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       !autoCheckoutTriggered.current &&
       !loading &&
       !processingCheckout &&
+      surveyCompleted !== null &&
       sessionStorage.getItem("fresh_auth") === "true"
     ) {
+      // Survey not completed yet — redirect to onboarding first
+      if (surveyCompleted === false) {
+        autoCheckoutTriggered.current = true;
+        sessionStorage.removeItem("fresh_auth");
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+
       autoCheckoutTriggered.current = true;
       sessionStorage.removeItem("fresh_auth");
 
@@ -61,7 +73,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         }
       })();
     }
-  }, [subscription.status, loading, processingCheckout]);
+  }, [subscription.status, loading, processingCheckout, surveyCompleted, navigate]);
 
   // Handle post-checkout return: detect ?checkout=success and poll for active subscription
   useEffect(() => {
