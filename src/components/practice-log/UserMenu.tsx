@@ -10,13 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, LogOut, Camera, Loader2, Pencil, Check, X, GraduationCap } from "lucide-react";
+import { User, LogOut, Camera, Loader2, Pencil, Check, X, GraduationCap, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { useStudentStudio } from "@/hooks/useStudentStudio";
 import { JoinStudioDialog } from "@/components/studio/JoinStudioDialog";
+import { isStudentTier } from "@/lib/subscriptionTiers";
 
 function getInitials(name: string | null | undefined, email: string | undefined): string {
   if (name) {
@@ -33,7 +34,7 @@ function getInitials(name: string | null | undefined, email: string | undefined)
 }
 
 export function UserMenu() {
-  const { user, session, signOut } = useAuth();
+  const { user, session, signOut, subscription } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,6 +44,7 @@ export function UserMenu() {
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [showJoinStudio, setShowJoinStudio] = useState(false);
+  const [upgradingToTeacher, setUpgradingToTeacher] = useState(false);
   const { studioInfo, joinStudio, leaveStudio } = useStudentStudio();
 
   const fetchProfile = useCallback(async () => {
@@ -161,6 +163,51 @@ export function UserMenu() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+  const handleUpgradeToTeacher = async () => {
+    setUpgradingToTeacher(true);
+    try {
+      const currentSession = (await supabase.auth.getSession()).data.session;
+      if (!currentSession) throw new Error("Not authenticated");
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({ plan: "monthly", tier: "teacher" }),
+        }
+      );
+      const body = await resp.json();
+      if (!resp.ok) throw new Error(body?.error || `HTTP ${resp.status}`);
+      if (body?.url) {
+        window.location.href = body.url;
+      } else {
+        throw new Error("No checkout URL received");
+      }
+    } catch (error: any) {
+      const msg = error?.message || "";
+      if (msg.includes("already have an active subscription")) {
+        toast({
+          title: "You already have a Teacher Studio subscription!",
+          description: "Try refreshing the page.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: msg || "Failed to start checkout",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setUpgradingToTeacher(false);
+    }
+  };
+
+  const showUpgradeOption = isStudentTier(subscription.productId);
 
   return (
     <>
@@ -290,6 +337,25 @@ export function UserMenu() {
               <GraduationCap className="w-4 h-4 mr-2" />
               Join a Studio
             </DropdownMenuItem>
+          )}
+          {showUpgradeOption && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={async (e) => {
+                  e.preventDefault();
+                  await handleUpgradeToTeacher();
+                }}
+                disabled={upgradingToTeacher}
+              >
+                {upgradingToTeacher ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {upgradingToTeacher ? "Loading…" : "Upgrade to Teacher Studio"}
+              </DropdownMenuItem>
+            </>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">

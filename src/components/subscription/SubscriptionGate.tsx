@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Music2, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
+import { Music2, GraduationCap, Sparkles, Check, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
 import { PlanToggle } from "./PlanToggle";
@@ -20,6 +20,23 @@ interface SubscriptionGateProps {
   children: React.ReactNode;
 }
 
+const studentFeatures = [
+  "Daily practice logging",
+  "Track scales, warmups & repertoire",
+  "Built-in metronome, tuner & drone",
+  "Music AI assistant",
+  "Dashboard, streaks & badges",
+  "Secure cloud storage",
+];
+
+const teacherFeatures = [
+  "Everything in Student plan",
+  "Create a private teaching studio",
+  "Monitor student practice & streaks",
+  "Set weekly assignments & comments",
+  "Upload lesson PDFs for students",
+];
+
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { subscription, refreshSubscription, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -30,14 +47,15 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     () => searchParams.get("checkout") === "success"
   );
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
+  const [selectedTier, setSelectedTier] = useState<"student" | "teacher">("student");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { completed: surveyCompleted } = useOnboardingSurvey();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
 
-  // Auto-redirect fresh sign-ups / sign-ins straight to Stripe checkout
-  // so the flow is: Auth → Stripe → Dashboard with zero extra clicks.
+  // Fresh sign-ups: redirect to onboarding survey first, then show plan picker.
+  // No auto-checkout — users choose their tier on the paywall.
   useEffect(() => {
     if (
       subscription.status === 'inactive' &&
@@ -47,31 +65,14 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       surveyCompleted !== null &&
       sessionStorage.getItem("fresh_auth") === "true"
     ) {
-      // Survey not completed yet — redirect to onboarding first
-      if (surveyCompleted === false) {
-        autoCheckoutTriggered.current = true;
-        sessionStorage.removeItem("fresh_auth");
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-
       autoCheckoutTriggered.current = true;
       sessionStorage.removeItem("fresh_auth");
 
-      (async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke("create-checkout", {
-            body: { plan: "monthly" },
-          });
-          if (error) throw error;
-          if (data?.url) {
-            window.location.href = data.url;
-          }
-        } catch (err: any) {
-          // Auto-redirect failed — the user will see the manual paywall below
-          console.warn("Auto-checkout redirect failed:", err);
-        }
-      })();
+      // Survey not completed yet — redirect to onboarding first
+      if (surveyCompleted === false) {
+        navigate("/onboarding", { replace: true });
+      }
+      // Otherwise, fall through to show the plan picker paywall
     }
   }, [subscription.status, loading, processingCheckout, surveyCompleted, navigate]);
 
@@ -159,10 +160,10 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   }
 
   // Show paywall for inactive subscription
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (tier: "student" | "teacher") => {
     setLoading(true);
+    setSelectedTier(tier);
     try {
-      // Use fetch directly so we can read the response body on error
       const session = (await supabase.auth.getSession()).data.session;
       if (!session) throw new Error("Not authenticated");
       const resp = await fetch(
@@ -174,7 +175,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ plan: selectedPlan }),
+          body: JSON.stringify({ plan: selectedPlan, tier }),
         }
       );
       const body = await resp.json();
@@ -229,93 +230,171 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     await signOut();
   };
 
+  const studentPrice = selectedPlan === "monthly" ? "$3.99" : "$39.99";
+  const studentPeriod = selectedPlan === "monthly" ? "/mo" : "/yr";
+  const teacherPrice = selectedPlan === "monthly" ? "$15.99" : "$159.99";
+  const teacherPeriod = selectedPlan === "monthly" ? "/mo" : "/yr";
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-elegant border-primary/20">
-        <CardHeader className="text-center space-y-4">
+      <div className="w-full max-w-3xl space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-3">
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
             <Music2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="font-display text-2xl">Unlock Your Practice Journal</CardTitle>
-          <CardDescription>
-            Start your 7-day free trial and track your musical journey
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
+          <h1 className="font-display text-2xl md:text-3xl font-bold">Choose Your Plan</h1>
+          <p className="text-muted-foreground">Start your 7-day free trial and track your musical journey</p>
+        </div>
+
+        {/* Plan Toggle */}
+        <div className="flex justify-center">
           <PlanToggle selectedPlan={selectedPlan} onPlanChange={setSelectedPlan} />
-          
-          <div className="text-center">
-            <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-bold">
-                {selectedPlan === "monthly" ? "$3.99" : "$39.99"}
-              </span>
-              <span className="text-muted-foreground">
-                {selectedPlan === "monthly" ? "/month" : "/year"}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              <Sparkles className="w-4 h-4 inline mr-1" />
-              7 days free, cancel anytime
-            </p>
-          </div>
+        </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-primary" />
-              <span className="text-sm">Daily practice logging</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-primary" />
-              <span className="text-sm">Track scales, warmups & repertoire</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-primary" />
-              <span className="text-sm">Set goals and monitor progress</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Check className="w-5 h-5 text-primary" />
-              <span className="text-sm">Secure cloud storage</span>
-            </div>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-4">
-          <Button 
-            className="w-full" 
-            size="lg" 
-            onClick={handleSubscribe}
-            disabled={loading}
+        {/* Plan Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Student Plan */}
+          <Card
+            className={`relative cursor-pointer transition-all shadow-elegant ${
+              selectedTier === "student"
+                ? "border-primary ring-2 ring-primary/20"
+                : "border-border hover:border-primary/40"
+            }`}
+            onClick={() => setSelectedTier("student")}
           >
-            {loading ? (
-              "Loading..."
-            ) : (
-              <>
-                <CreditCard className="w-4 h-4 mr-2" />
-                Start Free Trial
-              </>
-            )}
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Music2 className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle className="font-display text-xl mt-2">Student</CardTitle>
+              <CardDescription>For musicians who practice</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-bold">{studentPrice}</span>
+                  <span className="text-muted-foreground text-sm">{studentPeriod}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <Sparkles className="w-3 h-3 inline mr-1" />
+                  7 days free, cancel anytime
+                </p>
+              </div>
+              <div className="space-y-2.5">
+                {studentFeatures.map((f) => (
+                  <div key={f} className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                size="lg"
+                variant={selectedTier === "student" ? "default" : "outline"}
+                onClick={(e) => { e.stopPropagation(); handleSubscribe("student"); }}
+                disabled={loading}
+              >
+                {loading && selectedTier === "student" ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Start Free Trial
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Teacher Studio Plan */}
+          <Card
+            className={`relative cursor-pointer transition-all shadow-elegant ${
+              selectedTier === "teacher"
+                ? "border-primary ring-2 ring-primary/20"
+                : "border-border hover:border-primary/40"
+            }`}
+            onClick={() => setSelectedTier("teacher")}
+          >
+            {/* Badge */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-accent text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                FOR TEACHERS
+              </span>
+            </div>
+            <CardHeader className="text-center pb-2 pt-8">
+              <div className="mx-auto w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-accent" />
+              </div>
+              <CardTitle className="font-display text-xl mt-2">Teacher Studio</CardTitle>
+              <CardDescription>For teachers who lead studios</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-bold">{teacherPrice}</span>
+                  <span className="text-muted-foreground text-sm">{teacherPeriod}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <Sparkles className="w-3 h-3 inline mr-1" />
+                  7 days free, cancel anytime
+                </p>
+              </div>
+              <div className="space-y-2.5">
+                {teacherFeatures.map((f) => (
+                  <div key={f} className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-accent shrink-0" />
+                    <span className="text-sm">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full bg-accent hover:bg-accent/90"
+                size="lg"
+                variant={selectedTier === "teacher" ? "default" : "outline"}
+                onClick={(e) => { e.stopPropagation(); handleSubscribe("teacher"); }}
+                disabled={loading}
+              >
+                {loading && selectedTier === "teacher" ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Start Free Trial
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
             className="text-muted-foreground"
           >
             {refreshing ? "Checking..." : "Already subscribed? Refresh status"}
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSignOut}
             className="text-muted-foreground"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign out / switch account
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
