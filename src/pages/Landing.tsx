@@ -71,14 +71,9 @@ const studioFeatures = [
     desc: "Set up your teaching studio in seconds. Invite students with a simple join code — no extra accounts needed."
   },
   {
-    icon: BookOpen,
-    title: "View Student Practice Logs",
-    desc: "See exactly what your students practiced each day. Review their goals, time logs, and recordings before lessons."
-  },
-  {
-    icon: MessageSquare,
-    title: "Comments & Chat",
-    desc: "Leave feedback directly on student practice logs. Use the studio chat for quick messages between lessons."
+    icon: Send,
+    title: "Send Assignments to Logs",
+    desc: "Send weekly practice assignments directly to your students' logs. They see what to work on and you track who's on pace."
   },
   {
     icon: FileText,
@@ -86,12 +81,17 @@ const studioFeatures = [
     desc: "Upload sheet music, exercises, and lesson materials. Students access them right inside their practice log."
   },
   {
-    icon: CalendarCheck,
-    title: "Weekly Assignments",
-    desc: "Send weekly practice assignments to your studio. Students see what to work on and you track who's on pace."
+    icon: MessageSquare,
+    title: "Studio Chat",
+    desc: "Use the studio chat for quick messages between lessons. Keep all communication in one place."
   },
   {
-    icon: Send,
+    icon: CalendarCheck,
+    title: "Track Assignment Progress",
+    desc: "See which students have completed their assignments and who needs a nudge — all from your studio dashboard."
+  },
+  {
+    icon: BookOpen,
     title: "Everything in Student, Plus More",
     desc: "Teachers get the full practice journal — metronome, tuner, drone, AI, dashboard — plus all studio tools."
   },
@@ -117,10 +117,9 @@ const teacherPricingFeatures = [
   "Everything in Student plan",
   "Create & manage teaching studios",
   "Invite students with join codes",
-  "View all student practice logs",
-  "Leave comments & feedback on logs",
+  "Send assignments directly to student logs",
   "Upload lesson PDFs for students",
-  "Send weekly assignments",
+  "Track student assignment progress",
   "Studio chat with students",
 ];
 
@@ -128,9 +127,9 @@ const faqs = [
   { q: "Does it work on my phone or tablet?", a: "Yes! Practice Daily is a fully responsive web app that works beautifully on phones, tablets, and desktops — no app store download needed." },
   { q: "Can I cancel anytime?", a: "Absolutely. You can cancel your subscription at any time with no questions asked. You'll keep access until the end of your billing period." },
   { q: "What happens after my free trial?", a: "After your 7-day free trial, your subscription begins automatically. If you cancel before the trial ends, you won't be charged." },
-  { q: "What's the difference between Student and Teacher plans?", a: "The Student plan gives you the full practice journal with built-in tools, AI coaching, dashboard, and community. The Teacher plan includes everything in Student plus the Teacher Studio — create studios, view student logs, leave comments, upload lesson PDFs, send weekly assignments, and chat with students." },
-  { q: "What is a Teacher Studio?", a: "A Teacher Studio is your private teaching hub inside Practice Daily. Create a studio, invite students with a join code, and you can see their practice logs, leave feedback, upload materials, and send weekly assignments — all without switching apps." },
-  { q: "Can my teacher see my practice logs?", a: "Yes! On the Student plan, you can generate a share link for any day's practice log. If your teacher has the Teacher plan, they can also view your logs directly through their studio." },
+  { q: "What's the difference between Student and Teacher plans?", a: "The Student plan gives you the full practice journal with built-in tools, AI coaching, dashboard, and community. The Teacher plan includes everything in Student plus the Teacher Studio — create studios, invite students, send assignments directly to their logs, upload lesson PDFs, and chat with students." },
+  { q: "What is a Teacher Studio?", a: "A Teacher Studio is your private teaching hub inside Practice Daily. Create a studio, invite students with a join code, send assignments directly to their practice logs, upload lesson materials, and communicate via studio chat — all without switching apps." },
+  { q: "Can my teacher see my practice logs?", a: "Your practice logs are private by default. You can share any day's log with your teacher by generating a share link. Teachers with a studio can also send assignments and materials directly to your log." },
   { q: "Is my data private and secure?", a: "Your practice logs are private by default. Only you can see them unless you explicitly share a link or join a teacher's studio. All data is encrypted and stored securely in the cloud." },
 ];
 
