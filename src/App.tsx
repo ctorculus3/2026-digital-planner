@@ -16,6 +16,7 @@ import StudentLogView from "./pages/StudentLogView";
 import JoinStudio from "./pages/JoinStudio";
 import SharedPracticeLog from "./pages/SharedPracticeLog";
 import ResetPassword from "./pages/ResetPassword";
+import Onboarding from "./pages/Onboarding";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 
@@ -134,6 +135,14 @@ const App = () => (
                   <SubscriptionGate>
                     <StudentLogView />
                   </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
                 </ProtectedRoute>
               }
             />

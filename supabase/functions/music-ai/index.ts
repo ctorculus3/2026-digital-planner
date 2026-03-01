@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,8 +17,48 @@ serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
+    // Fetch user profile and survey data for personalized coaching
+    let userContext = "";
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const [{ data: profile }, { data: survey }] = await Promise.all([
+            supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+            supabase.from("onboarding_surveys").select("instruments, genres, birthday, skill_level, practice_frequency, practice_goal").eq("user_id", user.id).maybeSingle(),
+          ]);
+
+          const parts: string[] = [];
+          if (profile?.display_name) parts.push(`Name: ${profile.display_name}`);
+          if (survey) {
+            if (survey.instruments?.length) parts.push(`Instruments: ${survey.instruments.join(", ")}`);
+            if (survey.genres?.length) parts.push(`Genres: ${survey.genres.join(", ")}`);
+            if (survey.birthday) {
+              const age = Math.floor((Date.now() - new Date(survey.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+              if (age > 0 && age < 120) parts.push(`Age: ${age}`);
+            }
+            if (survey.skill_level) parts.push(`Skill level: ${survey.skill_level}`);
+            if (survey.practice_frequency) parts.push(`Practice frequency: ${survey.practice_frequency.replace(/_/g, " ")}`);
+            if (survey.practice_goal) parts.push(`Main goal: ${survey.practice_goal.replace(/_/g, " ")}`);
+          }
+          if (parts.length > 0) {
+            userContext = `\n\nAbout this student:\n${parts.join("\n")}\nPersonalize your coaching based on their instrument(s), genres, age, skill level, practice habits, and goals. Address them by name when natural.`;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch user context:", e);
+        // Continue without personalization — non-blocking
+      }
+    }
+
     let systemPrompt =
-      "You are a knowledgeable music theory tutor and practice coach. Answer questions about music theory, scales, chords, ear training, technique, and practice strategies. Keep answers clear and practical. Use markdown formatting for readability.";
+      "You are a knowledgeable music theory tutor and practice coach. Answer questions about music theory, scales, chords, ear training, technique, and practice strategies. Keep answers clear and practical. Use markdown formatting for readability." + userContext;
 
     if (journalContext) {
       const parts: string[] = [];
