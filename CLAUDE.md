@@ -99,7 +99,7 @@ Teachers create "Studios" and invite students via codes. They can view student p
 - The app is called "Practice Daily" — tagline is "See your practice come to life"
 - Source lives in the `2026-digital-planner` folder (the folder name doesn't match the app name)
 - **Lovable is fully removed** — no remaining dependencies, integrations, or cloud auth calls
-- **Auth is Google-only** — Apple is NOT configured in Supabase. Don't add Apple sign-in UI without confirming backend setup.
+- **Auth supports email/password + Google OAuth** — Users can sign up with any email address or use Google. Apple is NOT configured in Supabase.
 - **AI goes through OpenRouter** — music-ai and elevenlabs-tts Edge Functions use OpenRouter → Gemini. Not direct Anthropic or OpenAI calls.
 - Supabase project ref: cyiglozkytiadzpuqflh
 - Stripe account: Torculus LLC (acct_1SwzqVLSlNM2EUMk)
