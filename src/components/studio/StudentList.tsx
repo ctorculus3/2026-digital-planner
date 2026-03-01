@@ -1,5 +1,16 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { UserMinus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { StudioStudent } from "@/hooks/useStudioData";
@@ -34,6 +45,8 @@ function formatWeeklyTime(minutes: number): string {
 
 export function StudentList({ students, onRemove }: Props) {
   const navigate = useNavigate();
+  const [removeTarget, setRemoveTarget] = useState<StudioStudent | null>(null);
+
   if (students.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -44,54 +57,85 @@ export function StudentList({ students, onRemove }: Props) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Student</TableHead>
-          <TableHead className="text-center">Status</TableHead>
-          <TableHead className="text-center">Streak</TableHead>
-          <TableHead className="text-center">This Week</TableHead>
-          <TableHead className="w-12" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {students.map((s) => {
-          const status = getStatusColor(s.last_practice_date);
-          return (
-            <TableRow key={s.student_user_id}>
-              <TableCell
-                className="font-medium cursor-pointer hover:text-primary transition-colors"
-                onClick={() => navigate(`/studio/student/${s.student_user_id}`)}
-              >
-                {s.display_name || "Unnamed Student"}
-              </TableCell>
-              <TableCell className="text-center">
-                <span className="inline-flex items-center gap-1.5 text-xs">
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${status.color}`} />
-                  {status.label}
-                </span>
-              </TableCell>
-              <TableCell className="text-center font-mono">
-                {s.streak > 0 ? `🔥 ${s.streak}` : "0"}
-              </TableCell>
-              <TableCell className="text-center">
-                {formatWeeklyTime(s.weekly_minutes)}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => onRemove(s.student_user_id)}
-                  title="Remove student"
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Student</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">Streak</TableHead>
+            <TableHead className="text-center">This Week</TableHead>
+            <TableHead className="w-12" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {students.map((s) => {
+            const status = getStatusColor(s.last_practice_date);
+            return (
+              <TableRow key={s.student_user_id}>
+                <TableCell
+                  className="font-medium cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => navigate(`/studio/student/${s.student_user_id}`)}
                 >
-                  <UserMinus className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                  {s.display_name || "Unnamed Student"}
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="inline-flex items-center gap-1.5 text-xs">
+                    <span className={`inline-block h-2.5 w-2.5 rounded-full ${status.color}`} />
+                    {status.label}
+                  </span>
+                </TableCell>
+                <TableCell className="text-center font-mono">
+                  {s.streak > 0 ? `🔥 ${s.streak}` : "0"}
+                </TableCell>
+                <TableCell className="text-center">
+                  {formatWeeklyTime(s.weekly_minutes)}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => setRemoveTarget(s)}
+                    title="Remove student"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove student?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-foreground">
+                {removeTarget?.display_name || "this student"}
+              </span>{" "}
+              from your studio? They will need to rejoin with your invite code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (removeTarget) {
+                  onRemove(removeTarget.student_user_id);
+                  setRemoveTarget(null);
+                }
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
