@@ -3,6 +3,8 @@ create table if not exists onboarding_surveys (
   id                  uuid        default gen_random_uuid() primary key,
   user_id             uuid        not null references auth.users(id) on delete cascade unique,
   instruments         text[]      not null,
+  genres              text[]      not null default '{}',
+  birthday            date,
   skill_level         text        not null check (skill_level in ('beginner', 'intermediate', 'advanced', 'professional')),
   practice_frequency  text        not null check (practice_frequency in ('daily', 'few_times_week', 'weekly', 'rarely', 'just_starting')),
   practice_goal       text        not null check (practice_goal in ('build_habit', 'prepare_performance', 'learn_instrument', 'improve_technique', 'have_fun')),

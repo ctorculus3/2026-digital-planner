@@ -31,19 +31,24 @@ serve(async (req) => {
         if (user) {
           const [{ data: profile }, { data: survey }] = await Promise.all([
             supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
-            supabase.from("onboarding_surveys").select("instruments, skill_level, practice_frequency, practice_goal").eq("user_id", user.id).maybeSingle(),
+            supabase.from("onboarding_surveys").select("instruments, genres, birthday, skill_level, practice_frequency, practice_goal").eq("user_id", user.id).maybeSingle(),
           ]);
 
           const parts: string[] = [];
           if (profile?.display_name) parts.push(`Name: ${profile.display_name}`);
           if (survey) {
             if (survey.instruments?.length) parts.push(`Instruments: ${survey.instruments.join(", ")}`);
+            if (survey.genres?.length) parts.push(`Genres: ${survey.genres.join(", ")}`);
+            if (survey.birthday) {
+              const age = Math.floor((Date.now() - new Date(survey.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+              if (age > 0 && age < 120) parts.push(`Age: ${age}`);
+            }
             if (survey.skill_level) parts.push(`Skill level: ${survey.skill_level}`);
             if (survey.practice_frequency) parts.push(`Practice frequency: ${survey.practice_frequency.replace(/_/g, " ")}`);
             if (survey.practice_goal) parts.push(`Main goal: ${survey.practice_goal.replace(/_/g, " ")}`);
           }
           if (parts.length > 0) {
-            userContext = `\n\nAbout this student:\n${parts.join("\n")}\nPersonalize your coaching based on their instrument(s), skill level, practice habits, and goals. Address them by name when natural.`;
+            userContext = `\n\nAbout this student:\n${parts.join("\n")}\nPersonalize your coaching based on their instrument(s), genres, age, skill level, practice habits, and goals. Address them by name when natural.`;
           }
         }
       } catch (e) {
