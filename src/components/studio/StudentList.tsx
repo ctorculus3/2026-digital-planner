@@ -1,7 +1,18 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { UserMinus, FileText, Send, Minus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { StudioStudent } from "@/hooks/useStudioData";
@@ -60,6 +71,7 @@ export function StudentList({
 }: Props) {
   const navigate = useNavigate();
   const selectable = !!selectedIds && !!onSelectionChange;
+  const [confirmRemove, setConfirmRemove] = useState<StudioStudent | null>(null);
 
   if (students.length === 0) {
     return (
@@ -178,7 +190,7 @@ export function StudentList({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => onRemove(s.student_user_id)}
+                    onClick={() => setConfirmRemove(s)}
                     title="Remove student"
                   >
                     <UserMinus className="h-4 w-4" />
@@ -210,6 +222,30 @@ export function StudentList({
           </div>
         </div>
       )}
+
+      {/* Remove student confirmation */}
+      <AlertDialog open={!!confirmRemove} onOpenChange={(open) => !open && setConfirmRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Student</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>{confirmRemove?.display_name || "this student"}</strong> from your studio? They will lose access to assignments and comments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmRemove) onRemove(confirmRemove.student_user_id);
+                setConfirmRemove(null);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
