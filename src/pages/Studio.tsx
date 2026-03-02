@@ -6,6 +6,7 @@ import { CreateStudioDialog } from "@/components/studio/CreateStudioDialog";
 import { InviteCodeCard } from "@/components/studio/InviteCodeCard";
 import { StudentList } from "@/components/studio/StudentList";
 import { TeacherUpgradeCard } from "@/components/studio/TeacherUpgradeCard";
+import { StudioHowTo } from "@/components/studio/StudioHowTo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, GraduationCap, RefreshCw } from "lucide-react";
@@ -46,7 +47,10 @@ export default function Studio() {
           <GraduationCap className="h-5 w-5 text-primary" />
           <span className="font-bold text-foreground">Studio</span>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-1">
+          <StudioHowTo />
+          <UserMenu />
+        </div>
       </div>
       <DashboardNav />
 
