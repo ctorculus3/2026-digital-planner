@@ -144,6 +144,16 @@ export function useStudioData() {
     return result;
   };
 
+  const updateStudioName = async (newName: string) => {
+    if (!studio) return;
+    const { error } = await supabase
+      .from("teacher_studios")
+      .update({ studio_name: newName })
+      .eq("id", studio.id);
+    if (error) throw error;
+    setStudio({ ...studio, studio_name: newName });
+  };
+
   const removeStudent = async (studentUserId: string) => {
     if (!studio) return;
     const { error } = await supabase
@@ -155,5 +165,5 @@ export function useStudioData() {
     await fetchStudio();
   };
 
-  return { studio, students, loading, createStudio, removeStudent, refetch: fetchStudio };
+  return { studio, students, loading, createStudio, updateStudioName, removeStudent, refetch: fetchStudio };
 }

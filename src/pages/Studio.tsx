@@ -27,7 +27,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Studio() {
-  const { studio, students, loading, createStudio, removeStudent, refetch } = useStudioData();
+  const { studio, students, loading, createStudio, updateStudioName, removeStudent, refetch } = useStudioData();
   const { statuses: assignmentStatuses, weekStart } = useAssignmentStatuses(studio?.id);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
@@ -45,6 +45,15 @@ export default function Studio() {
     } catch (err: any) {
       toast({ title: err.message || "Could not create studio", variant: "destructive" });
       throw err;
+    }
+  };
+
+  const handleRename = async (newName: string) => {
+    try {
+      await updateStudioName(newName);
+      toast({ title: "Studio renamed" });
+    } catch {
+      toast({ title: "Could not rename studio", variant: "destructive" });
     }
   };
 
@@ -142,6 +151,7 @@ export default function Studio() {
               inviteCode={studio.invite_code}
               studentCount={students.length}
               maxStudents={studio.max_students}
+              onRename={handleRename}
             />
 
             <Card>
