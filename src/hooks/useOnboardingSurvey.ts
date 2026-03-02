@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface SurveyData {
   instruments: string[];
+  genres: string[];
+  birthday: string;
   skill_level: string;
   practice_frequency: string;
   practice_goal: string;
