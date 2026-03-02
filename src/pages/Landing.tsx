@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Activity, Mic, Users, BarChart3, Sparkles, Copy, ChevronDown } from "lucide-react";
+import { Music2, Clock, ListMusic, Headphones, Share2, Target, FolderOpen, TrendingUp, Check, Quote, Activity, Mic, Users, BarChart3, Sparkles, Copy, ChevronDown, GraduationCap, MessageSquare, FileText, CalendarCheck, Send, BookOpen } from "lucide-react";
 import { PlanToggle } from "@/components/subscription/PlanToggle";
 import { ContactDialog } from "@/components/ContactDialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -64,7 +64,40 @@ const testimonials = [
   { quote: "The share feature is a game-changer. My students send me their logs before lessons and we hit the ground running every time.", name: "Dr. Elena R.", role: "Piano Instructor", initials: "ER", color: "bg-tab-friday" },
 ];
 
-const pricingFeatures = [
+const studioFeatures = [
+  {
+    icon: GraduationCap,
+    title: "Create & Manage Studios",
+    desc: "Set up your teaching studio in seconds. Invite students with a simple join code — no extra accounts needed."
+  },
+  {
+    icon: Send,
+    title: "Send Assignments to Logs",
+    desc: "Send weekly practice assignments directly to your students' logs. They see what to work on and you track who's on pace."
+  },
+  {
+    icon: FileText,
+    title: "Lesson PDF Uploads",
+    desc: "Upload sheet music, exercises, and lesson materials. Students access them right inside their practice log."
+  },
+  {
+    icon: MessageSquare,
+    title: "Studio Chat",
+    desc: "Use the studio chat for quick messages between lessons. Keep all communication in one place."
+  },
+  {
+    icon: CalendarCheck,
+    title: "Track Assignment Progress",
+    desc: "See which students have completed their assignments and who needs a nudge — all from your studio dashboard."
+  },
+  {
+    icon: BookOpen,
+    title: "Everything in Student, Plus More",
+    desc: "Teachers get the full practice journal — metronome, tuner, drone, AI, dashboard — plus all studio tools."
+  },
+];
+
+const studentPricingFeatures = [
   "Daily practice logging with goals & time tracking",
   "Scales, warmups & repertoire checklists",
   "Media tools — audio, YouTube, recordings",
@@ -80,12 +113,24 @@ const pricingFeatures = [
   "Music AI assistant with voice playback for theory & coaching",
 ];
 
+const teacherPricingFeatures = [
+  "Everything in Student plan",
+  "Create & manage teaching studios",
+  "Invite students with join codes",
+  "Send assignments directly to student logs",
+  "Upload lesson PDFs for students",
+  "Track student assignment progress",
+  "Studio chat with students",
+];
+
 const faqs = [
   { q: "Does it work on my phone or tablet?", a: "Yes! Practice Daily is a fully responsive web app that works beautifully on phones, tablets, and desktops — no app store download needed." },
   { q: "Can I cancel anytime?", a: "Absolutely. You can cancel your subscription at any time with no questions asked. You'll keep access until the end of your billing period." },
   { q: "What happens after my free trial?", a: "After your 7-day free trial, your subscription begins automatically. If you cancel before the trial ends, you won't be charged." },
-  { q: "Can my teacher see my practice logs?", a: "Yes! You can generate a share link for any day's practice log and send it to your teacher, who can view it without needing an account." },
-  { q: "Is my data private and secure?", a: "Your practice logs are private by default. Only you can see them unless you explicitly share a link. All data is encrypted and stored securely in the cloud." },
+  { q: "What's the difference between Student and Teacher plans?", a: "The Student plan gives you the full practice journal with built-in tools, AI coaching, dashboard, and community. The Teacher plan includes everything in Student plus the Teacher Studio — create studios, invite students, send assignments directly to their logs, upload lesson PDFs, and chat with students." },
+  { q: "What is a Teacher Studio?", a: "A Teacher Studio is your private teaching hub inside Practice Daily. Create a studio, invite students with a join code, send assignments directly to their practice logs, upload lesson materials, and communicate via studio chat — all without switching apps." },
+  { q: "Can my teacher see my practice logs?", a: "Your practice logs are private by default. You can share any day's log with your teacher by generating a share link. Teachers with a studio can also send assignments and materials directly to your log." },
+  { q: "Is my data private and secure?", a: "Your practice logs are private by default. Only you can see them unless you explicitly share a link or join a teacher's studio. All data is encrypted and stored securely in the cloud." },
 ];
 
 /* ─────────── helpers ─────────── */
@@ -137,8 +182,10 @@ export default function Landing() {
       "url": "https://practicedaily.app",
       "description": "A daily practice journal for musicians. Track sessions, log progress, share with teachers, and grow with a community of serious musicians.",
       "offers": [
-        { "@type": "Offer", "price": "3.99", "priceCurrency": "USD", "name": "Monthly", "billingIncrement": "P1M" },
-        { "@type": "Offer", "price": "39.99", "priceCurrency": "USD", "name": "Yearly", "billingIncrement": "P1Y" }
+        { "@type": "Offer", "price": "3.99", "priceCurrency": "USD", "name": "Student Monthly", "billingIncrement": "P1M" },
+        { "@type": "Offer", "price": "39.99", "priceCurrency": "USD", "name": "Student Yearly", "billingIncrement": "P1Y" },
+        { "@type": "Offer", "price": "15.99", "priceCurrency": "USD", "name": "Teacher Monthly", "billingIncrement": "P1M" },
+        { "@type": "Offer", "price": "159.99", "priceCurrency": "USD", "name": "Teacher Yearly", "billingIncrement": "P1Y" }
       ],
       "aggregateRating": undefined
     });
@@ -219,6 +266,8 @@ export default function Landing() {
             <span className="font-display text-lg font-bold tracking-tight">Practice Daily</span>
           </button>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => scrollTo("teacher-studio")}>Teacher Studio</Button>
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => scrollTo("pricing")}>Pricing</Button>
             <Button variant="ghost" size="sm" onClick={() => { setIsLogin(true); scrollToAuth(); }}>Sign In</Button>
             <Button size="sm" onClick={() => { setIsLogin(false); scrollToAuth(); }}>Start Free Trial</Button>
           </div>
@@ -386,8 +435,47 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ───── Teacher Studio ───── */}
+      <section id="teacher-studio" className="bg-header-bg/5 border-y border-border">
+        <div className="container mx-auto px-4 py-20 md:py-28">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-header-bg/10 text-header-bg text-sm font-medium mb-6">
+              <GraduationCap className="h-4 w-4" />
+              For Music Teachers
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold">
+              Teacher Studio
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+              Everything you need to run your teaching studio. Track student progress, share materials, and communicate — all in one place.
+            </p>
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+            {studioFeatures.map(f => (
+              <div key={f.title} className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-header-bg/10">
+                  <f.icon className="h-5 w-5 text-header-bg" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold">{f.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Button size="lg" className="font-semibold text-base px-8" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+              Start Your Teacher Studio
+            </Button>
+            <p className="mt-3 text-sm text-muted-foreground">7-day free trial included</p>
+          </div>
+        </div>
+      </section>
+
       {/* ───── Testimonials ───── */}
-      <section id="testimonials" className="bg-header-bg/5 border-y border-border">
+      <section id="testimonials" className="border-b border-border">
         <div className="container mx-auto px-4 py-20 md:py-28">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-center">What Musicians Are Saying</h2>
           <div className="mt-14 grid gap-8 md:grid-cols-3">
@@ -415,43 +503,94 @@ export default function Landing() {
       {/* ───── Pricing ───── */}
       <section id="pricing" className="container mx-auto px-4 py-20 md:py-28 text-center">
         <h2 className="font-display text-3xl md:text-4xl font-bold">Simple, Honest Pricing</h2>
-        <p className="mt-4 text-muted-foreground">One plan. Everything included. Cancel anytime.</p>
-        <p className="mt-2 text-sm font-medium text-header-bg">Less than a cup of coffee per month ☕</p>
+        <p className="mt-4 text-muted-foreground">Whether you're a student or a teacher — we've got you covered. Cancel anytime.</p>
 
         <div className="mt-6">
           <PlanToggle selectedPlan={selectedPlan} onPlanChange={setSelectedPlan} />
         </div>
 
-        <Card className="mx-auto mt-8 max-w-md border-header-bg/30 shadow-lg">
-          <CardHeader className="text-center pb-2">
-            <CardDescription className="text-xs uppercase tracking-widest text-header-bg font-semibold">
-              {selectedPlan === "monthly" ? "Monthly" : "Yearly"}
-            </CardDescription>
-            <CardTitle className="text-5xl font-bold mt-2">
-              {selectedPlan === "monthly" ? "$3.99" : "$39.99"}
-              <span className="text-lg font-normal text-muted-foreground">
-                {selectedPlan === "monthly" ? "/mo" : "/yr"}
+        <div className="mt-10 grid gap-8 md:grid-cols-2 max-w-4xl mx-auto items-start">
+          {/* Student Plan */}
+          <Card className="border-border shadow-md relative">
+            <CardHeader className="text-center pb-2">
+              <CardDescription className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                Student
+              </CardDescription>
+              <CardTitle className="text-5xl font-bold mt-2">
+                {selectedPlan === "monthly" ? "$3.99" : "$39.99"}
+                <span className="text-lg font-normal text-muted-foreground">
+                  {selectedPlan === "monthly" ? "/mo" : "/yr"}
+                </span>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">7-day free trial included</p>
+              {selectedPlan === "yearly" && (
+                <p className="text-xs font-medium text-header-bg mt-1">Save 17% vs monthly</p>
+              )}
+            </CardHeader>
+            <CardContent className="pt-4">
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Your complete practice journal with built-in tools.
+              </p>
+              <ul className="space-y-2.5 text-left">
+                {studentPricingFeatures.map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm">
+                    <Check className="h-4 w-4 mt-0.5 text-header-bg shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex-col gap-2">
+              <Button className="w-full" size="lg" variant="outline" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+                Start Free Trial
+              </Button>
+              <span className="text-xs text-muted-foreground">Cancel anytime — no questions asked.</span>
+            </CardFooter>
+          </Card>
+
+          {/* Teacher Plan */}
+          <Card className="border-header-bg/40 shadow-lg relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-header-bg text-primary-foreground text-xs font-semibold px-4 py-1 rounded-full shadow-sm">
+                BEST FOR TEACHERS
               </span>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">7-day free trial included</p>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <ul className="space-y-3 text-left">
-              {pricingFeatures.map(f => (
-                <li key={f} className="flex items-start gap-2 text-sm">
-                  <Check className="h-4 w-4 mt-0.5 text-header-bg shrink-0" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-          <CardFooter className="flex-col gap-2">
-            <Button className="w-full" size="lg" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
-              Start Free Trial
-            </Button>
-            <span className="text-xs text-muted-foreground">Cancel anytime — no questions asked.</span>
-          </CardFooter>
-        </Card>
+            </div>
+            <CardHeader className="text-center pb-2 pt-8">
+              <CardDescription className="text-xs uppercase tracking-widest text-header-bg font-semibold">
+                Teacher Studio
+              </CardDescription>
+              <CardTitle className="text-5xl font-bold mt-2">
+                {selectedPlan === "monthly" ? "$15.99" : "$159.99"}
+                <span className="text-lg font-normal text-muted-foreground">
+                  {selectedPlan === "monthly" ? "/mo" : "/yr"}
+                </span>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">7-day free trial included</p>
+              {selectedPlan === "yearly" && (
+                <p className="text-xs font-medium text-header-bg mt-1">Save 17% vs monthly</p>
+              )}
+            </CardHeader>
+            <CardContent className="pt-4">
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Everything in Student, plus tools to manage your studio.
+              </p>
+              <ul className="space-y-2.5 text-left">
+                {teacherPricingFeatures.map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm">
+                    <Check className="h-4 w-4 mt-0.5 text-header-bg shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex-col gap-2">
+              <Button className="w-full" size="lg" onClick={() => { setIsLogin(false); scrollToAuth(); }}>
+                Start Free Trial
+              </Button>
+              <span className="text-xs text-muted-foreground">Cancel anytime — no questions asked.</span>
+            </CardFooter>
+          </Card>
+        </div>
       </section>
 
       {/* ───── FAQ ───── */}
