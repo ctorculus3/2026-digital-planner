@@ -76,9 +76,12 @@ export function useStudentTeacherComment(logDate: string) {
   const { data, isLoading } = useQuery({
     queryKey: ["student-teacher-comment", logDate],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
       const { data, error } = await (supabase as any)
         .from("teacher_comments")
         .select("comment, studio_id, created_at")
+        .eq("student_user_id", user.id)
         .eq("log_date", logDate);
       if (error) throw error;
       if (!data || (data as any[]).length === 0) return null;
