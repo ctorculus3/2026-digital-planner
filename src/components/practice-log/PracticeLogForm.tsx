@@ -23,6 +23,7 @@ import { MusicAI } from "./MusicAI";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import { TeacherCommentCard } from "./TeacherCommentCard";
 import { AssignmentBanner } from "./AssignmentBanner";
+import { StudioMemberBanner } from "./StudioMemberBanner";
 import { useStudentAssignment } from "@/hooks/useWeeklyAssignment";
 interface PracticeLogFormProps {
   date: Date;
@@ -495,6 +496,9 @@ export function PracticeLogForm({
       </div>;
   }
   return <div className="flex-1 space-y-4 overflow-auto">
+      {/* Studio Membership Banner */}
+      <StudioMemberBanner />
+
       {/* Assignment Banner (if student has a weekly assignment) */}
       <AssignmentBanner date={date} onLoadAssignment={loadAssignmentIntoForm} />
 
