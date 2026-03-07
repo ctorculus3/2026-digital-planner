@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { notifySubscriberEventUnauthenticated } from "@/lib/notifySubscriberEvent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,16 +167,6 @@ export default function Landing() {
         const { error } = await signUp(email, password, displayName);
         if (error) throw error;
         toast({ title: "Check your email", description: "We've sent you a confirmation link to verify your account." });
-        const now = new Date();
-        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        notifySubscriberEventUnauthenticated({
-          event: "signup",
-          email,
-          name: displayName || undefined,
-          trial_start: now.toISOString(),
-          trial_end: trialEnd.toISOString(),
-          marketing_opt_in: false,
-        });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
