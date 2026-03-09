@@ -549,6 +549,7 @@ export function PracticeLogForm({
         existingStartTime={startTime}
         existingStopTime={stopTime}
         existingTotalTime={totalTime}
+        currentDate={dateString}
         onSessionComplete={(start, stop, duration) => {
           setStartTime(start);
           setStopTime(stop);

@@ -35,6 +35,10 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { completed: surveyCompleted } = useOnboardingSurvey();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
+  // Track whether subscription was ever active in this session.
+  // Once true, background re-checks (e.g. token refresh) keep rendering
+  // children instead of unmounting the entire UI for a spinner.
+  const wasEverActiveRef = useRef(subscription.status === 'active');
 
   // Auto-redirect fresh sign-ups / sign-ins straight to Stripe checkout
   // so the flow is: Auth → Stripe → Dashboard with zero extra clicks.
@@ -122,6 +126,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   }, [searchParams, setSearchParams, refreshSubscription, toast]);
 
+  // Track when subscription becomes active (for background re-check handling)
+  useEffect(() => {
+    if (subscription.status === 'active') {
+      wasEverActiveRef.current = true;
+    }
+  }, [subscription.status]);
+
   // Stop polling when subscription becomes active
   useEffect(() => {
     if (subscription.status === 'active' && processingCheckout) {
@@ -144,8 +155,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     );
   }
 
-  // Show loading spinner while checking subscription
+  // Show loading spinner while checking subscription — but only on initial load.
+  // If subscription was previously active, keep rendering children during
+  // background re-checks (e.g. token refresh) to avoid destroying UI state.
   if (subscription.status === 'loading') {
+    if (wasEverActiveRef.current) {
+      return <>{children}</>;
+    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

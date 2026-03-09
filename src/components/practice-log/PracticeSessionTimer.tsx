@@ -11,8 +11,57 @@ interface PracticeSessionTimerProps {
   existingStartTime: string;
   existingStopTime: string;
   existingTotalTime: string;
+  currentDate: string; // YYYY-MM-DD — scopes persisted timer state to this date
   onSessionComplete: (startTime: string, stopTime: string, totalTime: string) => void;
 }
+
+// --- sessionStorage persistence helpers ---
+
+const TIMER_STORAGE_KEY = "pd_timer_state";
+
+interface PersistedTimerState {
+  sessionState: "running" | "paused";
+  startTimestamp: string; // ISO string
+  elapsedSeconds: number;
+  accumulatedSeconds: number;
+  forDate: string; // YYYY-MM-DD
+  persistedAt: number; // Date.now() when state was saved
+}
+
+function persistTimerState(state: PersistedTimerState): void {
+  try {
+    sessionStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // sessionStorage full or unavailable — silently fail
+  }
+}
+
+function restoreTimerState(): PersistedTimerState | null {
+  try {
+    const raw = sessionStorage.getItem(TIMER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedTimerState;
+    if (
+      (parsed.sessionState === "running" || parsed.sessionState === "paused") &&
+      typeof parsed.startTimestamp === "string" &&
+      typeof parsed.elapsedSeconds === "number" &&
+      typeof parsed.accumulatedSeconds === "number" &&
+      typeof parsed.forDate === "string" &&
+      typeof parsed.persistedAt === "number"
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function clearTimerState(): void {
+  sessionStorage.removeItem(TIMER_STORAGE_KEY);
+}
+
+// --- Formatting helpers ---
 
 function formatElapsed(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -85,6 +134,7 @@ export function PracticeSessionTimer({
   existingStartTime,
   existingStopTime,
   existingTotalTime,
+  currentDate,
   onSessionComplete,
 }: PracticeSessionTimerProps) {
   const { streak, refetch: refetchStreak } = useUserStreak();
@@ -92,18 +142,75 @@ export function PracticeSessionTimer({
   // Determine initial state based on existing data
   const hasExistingSession = !!(existingStartTime && existingStopTime);
 
-  const [sessionState, setSessionState] = useState<SessionState>(
-    hasExistingSession ? "completed" : "idle"
-  );
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [startTimestamp, setStartTimestamp] = useState<Date | null>(null);
+  // Check for persisted timer state (survives unmount / page refresh)
+  const persisted = restoreTimerState();
+  const isRestorable = !!(persisted && persisted.forDate === currentDate && !hasExistingSession);
+
+  const [sessionState, setSessionState] = useState<SessionState>(() => {
+    if (hasExistingSession) return "completed";
+    if (isRestorable) return persisted!.sessionState;
+    return "idle";
+  });
+  const [elapsedSeconds, setElapsedSeconds] = useState(() => {
+    if (isRestorable) {
+      if (persisted!.sessionState === "running") {
+        // Add wall-clock time that passed while component was unmounted
+        const msSincePersisted = Date.now() - persisted!.persistedAt;
+        return persisted!.elapsedSeconds + Math.floor(msSincePersisted / 1000);
+      }
+      return persisted!.elapsedSeconds; // paused — exact value
+    }
+    return 0;
+  });
+  const [startTimestamp, setStartTimestamp] = useState<Date | null>(() => {
+    if (isRestorable) return new Date(persisted!.startTimestamp);
+    return null;
+  });
   const [completedStartTime, setCompletedStartTime] = useState(existingStartTime);
   const [completedTotalTime, setCompletedTotalTime] = useState(
     existingTotalTime ? formatDuration(parseDurationToSeconds(existingTotalTime)) : ""
   );
-  const accumulatedRef = useRef(0);
+  const accumulatedRef = useRef(isRestorable ? persisted!.accumulatedSeconds : 0);
   const intervalRef = useRef<number | null>(null);
   const justCompletedRef = useRef(false);
+
+  // On mount: if restored into a running state, restart the interval
+  useEffect(() => {
+    if (sessionState === "running" && !intervalRef.current) {
+      intervalRef.current = window.setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist timer state for recovery after unmount (e.g. token refresh, page reload)
+  useEffect(() => {
+    if (sessionState === "running" || sessionState === "paused") {
+      persistTimerState({
+        sessionState,
+        startTimestamp: startTimestamp?.toISOString() || new Date().toISOString(),
+        elapsedSeconds,
+        accumulatedSeconds: accumulatedRef.current,
+        forDate: currentDate,
+        persistedAt: Date.now(),
+      });
+    } else {
+      // idle or completed — clear persisted state
+      clearTimerState();
+    }
+  }, [sessionState, elapsedSeconds, currentDate, startTimestamp]);
+
+  // Warn user before closing tab if timer is running
+  useEffect(() => {
+    if (sessionState === "running" || sessionState === "paused") {
+      const handler = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+      };
+      window.addEventListener("beforeunload", handler);
+      return () => window.removeEventListener("beforeunload", handler);
+    }
+  }, [sessionState]);
 
   // Sync with external data changes (e.g. date navigation)
   useEffect(() => {
@@ -117,11 +224,13 @@ export function PracticeSessionTimer({
       setCompletedTotalTime(
         existingTotalTime ? formatDuration(parseDurationToSeconds(existingTotalTime)) : ""
       );
+      clearTimerState();
     } else {
       setSessionState("idle");
       setElapsedSeconds(0);
       accumulatedRef.current = 0;
       setStartTimestamp(null);
+      clearTimerState();
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -181,6 +290,7 @@ export function PracticeSessionTimer({
     setCompletedStartTime(displayStart);
     setCompletedTotalTime(displayDuration);
     setSessionState("completed");
+    clearTimerState();
 
     // Send DB-format duration to parent for proper interval storage
     onSessionComplete(startDb, stopDb, dbDuration);
@@ -193,6 +303,7 @@ export function PracticeSessionTimer({
     setElapsedSeconds(0);
     accumulatedRef.current = 0;
     setStartTimestamp(null);
+    clearTimerState();
   }, [clearTimer]);
 
   // Cleanup on unmount
