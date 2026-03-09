@@ -32,11 +32,11 @@ interface PracticeTimeGraphProps {
   loading?: boolean;
 }
 
-function parseIntervalToMinutes(interval: unknown): number {
+function parseIntervalToSeconds(interval: unknown): number {
   if (!interval || typeof interval !== "string") return 0;
   const match = interval.match(/^(\d+):(\d+):(\d+)$/);
   if (!match) return 0;
-  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  return parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseInt(match[3], 10);
 }
 
 function formatTooltipValue(decimalHours: number): string {
@@ -57,10 +57,10 @@ function buildWeeklyData(logs: PracticeLog[]) {
 
   return days.map((day) => {
     const dateStr = format(day, "yyyy-MM-dd");
-    const mins = logs
+    const secs = logs
       .filter((l) => l.log_date === dateStr)
-      .reduce((sum, l) => sum + parseIntervalToMinutes(l.total_time), 0);
-    return { label: format(day, "EEE"), hours: +(mins / 60).toFixed(2) };
+      .reduce((sum, l) => sum + parseIntervalToSeconds(l.total_time), 0);
+    return { label: format(day, "EEE"), hours: +(secs / 3600).toFixed(4) };
   });
 }
 
@@ -75,13 +75,13 @@ function buildMonthlyData(logs: PracticeLog[]) {
 
   return weeks.map((weekStart, i) => {
     const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    const mins = logs
+    const secs = logs
       .filter((l) => {
         const d = parseISO(l.log_date);
         return isWithinInterval(d, { start: weekStart, end: wEnd });
       })
-      .reduce((sum, l) => sum + parseIntervalToMinutes(l.total_time), 0);
-    return { label: `Wk ${i + 1}`, hours: +(mins / 60).toFixed(2) };
+      .reduce((sum, l) => sum + parseIntervalToSeconds(l.total_time), 0);
+    return { label: `Wk ${i + 1}`, hours: +(secs / 3600).toFixed(4) };
   });
 }
 
@@ -90,12 +90,12 @@ function buildYearlyData(logs: PracticeLog[]) {
   return Array.from({ length: 12 }, (_, i) => {
     const monthStr = String(i + 1).padStart(2, "0");
     const prefix = `${year}-${monthStr}`;
-    const mins = logs
+    const secs = logs
       .filter((l) => l.log_date.startsWith(prefix))
-      .reduce((sum, l) => sum + parseIntervalToMinutes(l.total_time), 0);
+      .reduce((sum, l) => sum + parseIntervalToSeconds(l.total_time), 0);
     return {
       label: format(new Date(year, i, 1), "MMM"),
-      hours: +(mins / 60).toFixed(2),
+      hours: +(secs / 3600).toFixed(4),
     };
   });
 }
