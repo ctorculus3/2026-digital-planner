@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { isTeacherTier } from "@/lib/subscriptionTiers";
 import { useAssignmentStatuses } from "@/hooks/useAssignmentStatuses";
+import { ContactDialog } from "@/components/ContactDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,6 +119,7 @@ export default function Studio() {
         </div>
         <div className="flex items-center gap-1">
           <StudioHowTo />
+          <ContactDialog />
           <UserMenu />
         </div>
       </div>
