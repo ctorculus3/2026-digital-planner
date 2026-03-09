@@ -5,15 +5,23 @@ interface PracticeTimeSummaryProps {
   loading?: boolean;
 }
 
-function formatTime(minutes: number): { value: string; unit: string } {
-  if (minutes === 0) return { value: "0", unit: "mins" };
+function formatTime(totalSeconds: number): { value: string; unit: string } {
+  if (totalSeconds === 0) return { value: "0", unit: "mins" };
 
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
 
-  if (h === 0) {
-    return { value: `${m}`, unit: m === 1 ? "min" : "mins" };
+  // Under 1 minute — show seconds
+  if (h === 0 && m === 0) {
+    return { value: `${s}`, unit: s === 1 ? "sec" : "secs" };
   }
+  // Under 1 hour — show minutes and seconds
+  if (h === 0) {
+    if (s === 0) return { value: `${m}`, unit: m === 1 ? "min" : "mins" };
+    return { value: `${m} min ${s}`, unit: "sec" };
+  }
+  // 1+ hours — show hours and minutes (drop seconds for readability)
   if (m === 0) {
     return { value: `${h}`, unit: h === 1 ? "hr" : "hrs" };
   }
