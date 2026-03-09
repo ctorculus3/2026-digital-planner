@@ -157,6 +157,7 @@ export function Metronome({ onStart }: MetronomeProps) {
 
   const startMetronome = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
 
     isPlayingRef.current = true;
     beatIndexRef.current = 0;
@@ -187,11 +188,11 @@ export function Metronome({ onStart }: MetronomeProps) {
       onStart?.();
     }
 
-    playClick(); // Immediate first beat
-    const ms = 60000 / bpm;
-    intervalRef.current = window.setInterval(playClick, ms);
+    playClick(); // Immediate first beat (advances beatIndex to 1)
+    // Let the BPM effect handle interval creation via setIsPlaying(true)
+    // — don't create an interval here to avoid a double-start race
     setIsPlaying(true);
-  }, [bpm, playClick, onStart, loadSamples, getAudioContext]);
+  }, [playClick, onStart, loadSamples, getAudioContext]);
 
   const stopMetronome = useCallback(() => {
     isPlayingRef.current = false;
@@ -202,11 +203,14 @@ export function Metronome({ onStart }: MetronomeProps) {
     setIsPlaying(false);
   }, []);
 
-  // Restart interval when BPM changes while playing
+  // Create / restart interval when playing state or BPM changes.
+  // startMetronome plays the first beat and sets isPlaying=true;
+  // this effect picks up from there and creates the repeating interval.
+  // Beat index is NOT reset here — startMetronome and the timeSig/pattern
+  // effect handle that, so the accent beat doesn't double-fire.
   useEffect(() => {
     if (isPlaying) {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      beatIndexRef.current = 0;
       const ms = 60000 / bpm;
       intervalRef.current = window.setInterval(playClick, ms);
     }
