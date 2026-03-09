@@ -73,6 +73,7 @@ export function Metronome({ onStart }: MetronomeProps) {
   const hiClaveBufferRef = useRef<AudioBuffer | null>(null);
   const isPlayingRef = useRef(false);
   const beatIndexRef = useRef(0);
+  const needsFirstBeatRef = useRef(false);
 
   // Keep refs in sync for use inside setInterval callbacks
   const accentOnRef = useRef(accentOn);
@@ -188,11 +189,12 @@ export function Metronome({ onStart }: MetronomeProps) {
       onStart?.();
     }
 
-    playClick(); // Immediate first beat (advances beatIndex to 1)
-    // Let the BPM effect handle interval creation via setIsPlaying(true)
-    // — don't create an interval here to avoid a double-start race
+    // Signal that the BPM effect should play beat 0 immediately.
+    // ALL playClick() calls go through the BPM effect — never call it
+    // directly here — so there's exactly one scheduling source.
+    needsFirstBeatRef.current = true;
     setIsPlaying(true);
-  }, [playClick, onStart, loadSamples, getAudioContext]);
+  }, [onStart, loadSamples, getAudioContext]);
 
   const stopMetronome = useCallback(() => {
     isPlayingRef.current = false;
@@ -203,14 +205,16 @@ export function Metronome({ onStart }: MetronomeProps) {
     setIsPlaying(false);
   }, []);
 
-  // Create / restart interval when playing state or BPM changes.
-  // startMetronome plays the first beat and sets isPlaying=true;
-  // this effect picks up from there and creates the repeating interval.
-  // Beat index is NOT reset here — startMetronome and the timeSig/pattern
-  // effect handle that, so the accent beat doesn't double-fire.
+  // Single scheduling source for ALL playClick() calls.
+  // On start: needsFirstBeatRef is true → play beat 0 immediately, then interval.
+  // On BPM change while playing: needsFirstBeatRef is false → just restart interval.
   useEffect(() => {
     if (isPlaying) {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (needsFirstBeatRef.current) {
+        needsFirstBeatRef.current = false;
+        playClick();
+      }
       const ms = 60000 / bpm;
       intervalRef.current = window.setInterval(playClick, ms);
     }
