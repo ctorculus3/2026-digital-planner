@@ -39,6 +39,16 @@ function parseIntervalToMinutes(interval: unknown): number {
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
 
+function formatTooltipValue(decimalHours: number): string {
+  const totalMins = Math.round(decimalHours * 60);
+  if (totalMins === 0) return "0 min";
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+}
+
 function buildWeeklyData(logs: PracticeLog[]) {
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -143,7 +153,7 @@ export function PracticeTimeGraph({ practiceLogs, loading }: PracticeTimeGraphPr
               unit="h"
             />
             <Tooltip
-              formatter={(value: number) => [`${value} hrs`, "Practice"]}
+              formatter={(value: number) => [formatTooltipValue(value), "Practice"]}
               contentStyle={{
                 backgroundColor: "hsl(var(--card))",
                 borderColor: "hsl(var(--border))",
