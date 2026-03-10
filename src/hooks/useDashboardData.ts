@@ -16,8 +16,8 @@ export interface PracticeTime {
 }
 
 const BADGE_THRESHOLDS = [
-  { type: "streak_10", threshold: 10 },
-  { type: "streak_30", threshold: 30 },
+  { type: "streak_7", threshold: 7 },
+  { type: "streak_25", threshold: 25 },
   { type: "streak_50", threshold: 50 },
   { type: "streak_100", threshold: 100 },
 ] as const;
