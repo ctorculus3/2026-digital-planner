@@ -193,9 +193,9 @@ serve(async (req) => {
     }
 
     const streak = streakData as number;
-    if (streak < 10) {
+    if (streak < 7) {
       return reject(
-        `You need a 10-day practice streak to post. Current streak: ${streak}`
+        `You need a 7-day practice streak to post. Current streak: ${streak}`
       );
     }
 

@@ -6,8 +6,8 @@ interface StreakGateBannerProps {
 }
 
 export function StreakGateBanner({ streak }: StreakGateBannerProps) {
-  const progress = Math.min((streak / 10) * 100, 100);
-  const daysLeft = Math.max(10 - streak, 0);
+  const progress = Math.min((streak / 7) * 100, 100);
+  const daysLeft = Math.max(7 - streak, 0);
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -18,7 +18,7 @@ export function StreakGateBanner({ streak }: StreakGateBannerProps) {
         </h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Reach a <strong>10-day practice streak</strong> to share with the
+        Reach a <strong>7-day practice streak</strong> to share with the
         community!{" "}
         {daysLeft > 0
           ? `${daysLeft} more day${daysLeft === 1 ? "" : "s"} to go.`
@@ -27,7 +27,7 @@ export function StreakGateBanner({ streak }: StreakGateBannerProps) {
       <div className="space-y-1">
         <Progress value={progress} className="h-2" />
         <p className="text-xs text-muted-foreground text-right">
-          {streak}/10 days
+          {streak}/7 days
         </p>
       </div>
     </div>
