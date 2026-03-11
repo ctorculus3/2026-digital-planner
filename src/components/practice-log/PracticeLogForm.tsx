@@ -160,8 +160,10 @@ export function PracticeLogForm({
     }
 
     // Detect external updates (e.g. copy operation) by tracking updated_at
-    if (practiceLog && lastUpdatedAtRef.current &&
-        practiceLog.updated_at !== lastUpdatedAtRef.current) {
+    if (practiceLog && (
+        (lastUpdatedAtRef.current && practiceLog.updated_at !== lastUpdatedAtRef.current) ||
+        (!lastUpdatedAtRef.current && isInitializedRef.current)
+    )) {
       isInitializedRef.current = false;
     }
     if (practiceLog) {
