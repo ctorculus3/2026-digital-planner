@@ -16,17 +16,17 @@ export interface PracticeTime {
 }
 
 const BADGE_THRESHOLDS = [
-  { type: "streak_10", threshold: 10 },
-  { type: "streak_30", threshold: 30 },
+  { type: "streak_7", threshold: 7 },
+  { type: "streak_25", threshold: 25 },
   { type: "streak_50", threshold: 50 },
   { type: "streak_100", threshold: 100 },
 ] as const;
 
-function parseIntervalToMinutes(interval: unknown): number {
+function parseIntervalToSeconds(interval: unknown): number {
   if (!interval || typeof interval !== "string") return 0;
   const match = interval.match(/^(\d+):(\d+):(\d+)$/);
   if (!match) return 0;
-  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  return parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseInt(match[3], 10);
 }
 
 function getStartOfWeek(date: Date): Date {
@@ -113,13 +113,13 @@ export function useDashboardData(viewYear: number, viewMonth: number) {
 
         let today = 0, thisWeek = 0, thisMonth = 0, total = 0;
         for (const log of timeRes.data) {
-          const mins = parseIntervalToMinutes(log.total_time);
-          if (mins === 0) continue;
-          total += mins;
+          const secs = parseIntervalToSeconds(log.total_time);
+          if (secs === 0) continue;
+          total += secs;
           const logDate = new Date(log.log_date + "T00:00:00");
-          if (log.log_date === todayStr) today += mins;
-          if (logDate >= weekStart) thisWeek += mins;
-          if (logDate >= monthStart) thisMonth += mins;
+          if (log.log_date === todayStr) today += secs;
+          if (logDate >= weekStart) thisWeek += secs;
+          if (logDate >= monthStart) thisMonth += secs;
         }
         setPracticeTime({ today, thisWeek, thisMonth, total });
       }
