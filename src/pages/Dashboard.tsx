@@ -7,6 +7,7 @@ import { StreakCounter } from "@/components/dashboard/StreakCounter";
 import { PracticeTimeSummary } from "@/components/dashboard/PracticeTimeSummary";
 import { BadgeShelf } from "@/components/dashboard/BadgeShelf";
 import { PracticeTimeGraph } from "@/components/dashboard/PracticeTimeGraph";
+import { WeeklyReportSection } from "@/components/dashboard/WeeklyReportSection";
 import { UserMenu } from "@/components/practice-log/UserMenu";
 import { ManageSubscription } from "@/components/subscription/ManageSubscription";
 import { HowToManual } from "@/components/HowToManual";
@@ -83,6 +84,9 @@ export default function Dashboard() {
 
         {/* Practice Time Graph */}
         <PracticeTimeGraph practiceLogs={practiceLogs} loading={loading} />
+
+        {/* Weekly Practice Report */}
+        <WeeklyReportSection />
 
         {/* Badge Shelf */}
         <BadgeShelf badges={badges} loading={loading} streak={streak} />
