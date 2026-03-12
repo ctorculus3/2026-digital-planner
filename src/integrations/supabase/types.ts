@@ -435,6 +435,60 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_reports: {
+        Row: {
+          id: string
+          user_id: string
+          week_start: string
+          week_end: string
+          total_minutes: number
+          session_count: number
+          streak_at_generation: number
+          category_breakdown: Json
+          pieces_practiced: string[]
+          ai_insight: string | null
+          ai_next_week_focus: string | null
+          badges_earned: string[]
+          share_image_path: string | null
+          community_post_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          week_start: string
+          week_end: string
+          total_minutes?: number
+          session_count?: number
+          streak_at_generation?: number
+          category_breakdown?: Json
+          pieces_practiced?: string[]
+          ai_insight?: string | null
+          ai_next_week_focus?: string | null
+          badges_earned?: string[]
+          share_image_path?: string | null
+          community_post_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          week_start?: string
+          week_end?: string
+          total_minutes?: number
+          session_count?: number
+          streak_at_generation?: number
+          category_breakdown?: Json
+          pieces_practiced?: string[]
+          ai_insight?: string | null
+          ai_next_week_focus?: string | null
+          badges_earned?: string[]
+          share_image_path?: string | null
+          community_post_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
