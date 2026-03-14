@@ -186,7 +186,6 @@ export default function Landing() {
         { "@type": "Offer", "price": "15.99", "priceCurrency": "USD", "name": "Teacher Monthly", "billingIncrement": "P1M" },
         { "@type": "Offer", "price": "159.99", "priceCurrency": "USD", "name": "Teacher Yearly", "billingIncrement": "P1Y" }
       ],
-      "aggregateRating": undefined
     });
     script.id = "ld-json-app";
     document.head.appendChild(script);
