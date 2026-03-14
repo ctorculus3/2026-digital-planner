@@ -140,7 +140,6 @@ export default function Landing() {
         { "@type": "Offer", "price": "3.99", "priceCurrency": "USD", "name": "Monthly", "billingIncrement": "P1M" },
         { "@type": "Offer", "price": "39.99", "priceCurrency": "USD", "name": "Yearly", "billingIncrement": "P1Y" }
       ],
-      "aggregateRating": undefined
     });
     script.id = "ld-json-app";
     document.head.appendChild(script);
