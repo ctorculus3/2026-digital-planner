@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { notifySubscriberEvent } from "@/lib/notifySubscriberEvent";
 
 type SubscriptionStatus = 'loading' | 'active' | 'inactive';
 
@@ -40,10 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initialSessionLoaded = useRef(false);
   // Generation counter to prevent stale subscription results from racing calls
   const fetchIdRef = useRef(0);
-  // Track previous subscription status to detect cancellation
-  const prevSubStatusRef = useRef<SubscriptionStatus>('loading');
-  // Track previous trialing state to detect upgrade (trial -> paid)
-  const prevIsTrialingRef = useRef(false);
   // Track the last session token to skip redundant subscription fetches
   // (e.g. when onAuthStateChange fires on token refresh with the same session)
   const lastSessionTokenRef = useRef<string | null>(null);
@@ -78,37 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const newStatus: SubscriptionStatus = data?.subscribed ? 'active' : 'inactive';
-
-        // Detect cancellation: active -> inactive
-        if (prevSubStatusRef.current === 'active' && newStatus === 'inactive') {
-          const userEmail = currentSession.user?.email;
-          if (userEmail) {
-            notifySubscriberEvent(currentSession, {
-              event: "cancel",
-              email: userEmail,
-            });
-          }
-        }
-
-        // Detect upgrade: active+trialing -> active+not trialing
-        const newIsTrialing = data?.is_trialing || false;
-        if (
-          prevSubStatusRef.current === 'active' &&
-          prevIsTrialingRef.current === true &&
-          newStatus === 'active' &&
-          newIsTrialing === false
-        ) {
-          const userEmail = currentSession.user?.email;
-          if (userEmail) {
-            notifySubscriberEvent(currentSession, {
-              event: "upgrade",
-              email: userEmail,
-            });
-          }
-        }
-
-        prevSubStatusRef.current = newStatus;
-        prevIsTrialingRef.current = newIsTrialing;
 
         setSubscription({
           status: newStatus,

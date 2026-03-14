@@ -6,6 +6,7 @@ import { useStudentBadges } from "@/hooks/useStudentBadges";
 import { StudentStatusCard } from "@/components/studio/StudentStatusCard";
 import { TeacherCommentPanel } from "@/components/studio/TeacherCommentPanel";
 import { WeeklyAssignmentPanel } from "@/components/studio/WeeklyAssignmentPanel";
+import { MusicAI } from "@/components/practice-log/MusicAI";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -61,6 +62,9 @@ export default function StudentLogView() {
             Studio
           </Button>
         </div>
+
+        {/* Music AI */}
+        <MusicAI />
 
         {/* Student Status Card */}
         <StudentStatusCard

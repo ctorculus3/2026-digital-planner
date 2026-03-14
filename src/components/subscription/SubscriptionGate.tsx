@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
 import { PlanToggle } from "./PlanToggle";
 import { useToast } from "@/hooks/use-toast";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useOnboardingSurvey } from "@/hooks/useOnboardingSurvey";
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -30,8 +31,14 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   );
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { completed: surveyCompleted } = useOnboardingSurvey();
   const pollingRef = useRef(false);
   const autoCheckoutTriggered = useRef(false);
+  // Track whether subscription was ever active in this session.
+  // Once true, background re-checks (e.g. token refresh) keep rendering
+  // children instead of unmounting the entire UI for a spinner.
+  const wasEverActiveRef = useRef(subscription.status === 'active');
 
   // Auto-redirect fresh sign-ups / sign-ins straight to Stripe checkout
   // so the flow is: Auth → Stripe → Dashboard with zero extra clicks.
@@ -41,8 +48,17 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       !autoCheckoutTriggered.current &&
       !loading &&
       !processingCheckout &&
+      surveyCompleted !== null &&
       sessionStorage.getItem("fresh_auth") === "true"
     ) {
+      // Survey not completed yet — redirect to onboarding first
+      if (surveyCompleted === false) {
+        autoCheckoutTriggered.current = true;
+        sessionStorage.removeItem("fresh_auth");
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+
       autoCheckoutTriggered.current = true;
       sessionStorage.removeItem("fresh_auth");
 
@@ -61,7 +77,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         }
       })();
     }
-  }, [subscription.status, loading, processingCheckout]);
+  }, [subscription.status, loading, processingCheckout, surveyCompleted, navigate]);
 
   // Handle post-checkout return: detect ?checkout=success and poll for active subscription
   useEffect(() => {
@@ -110,6 +126,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   }, [searchParams, setSearchParams, refreshSubscription, toast]);
 
+  // Track when subscription becomes active (for background re-check handling)
+  useEffect(() => {
+    if (subscription.status === 'active') {
+      wasEverActiveRef.current = true;
+    }
+  }, [subscription.status]);
+
   // Stop polling when subscription becomes active
   useEffect(() => {
     if (subscription.status === 'active' && processingCheckout) {
@@ -132,8 +155,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     );
   }
 
-  // Show loading spinner while checking subscription
+  // Show loading spinner while checking subscription — but only on initial load.
+  // If subscription was previously active, keep rendering children during
+  // background re-checks (e.g. token refresh) to avoid destroying UI state.
   if (subscription.status === 'loading') {
+    if (wasEverActiveRef.current) {
+      return <>{children}</>;
+    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

@@ -89,16 +89,24 @@ serve(async (req) => {
 
     if (hasActiveSub && activeOrTrialingSub) {
       // Handle subscription end date safely
-      if (activeOrTrialingSub.current_period_end) {
-        subscriptionEnd = new Date(activeOrTrialingSub.current_period_end * 1000).toISOString();
+      // Stripe SDK v18+ (API 2025-03-31.basil) moved current_period_end
+      // from the subscription level to the item level
+      const itemPeriodEnd = activeOrTrialingSub.items?.data?.[0]?.current_period_end;
+      const subPeriodEnd = (activeOrTrialingSub as any).current_period_end;
+      const periodEnd = itemPeriodEnd ?? subPeriodEnd;
+
+      if (periodEnd) {
+        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
       } else if (activeOrTrialingSub.trial_end) {
         subscriptionEnd = new Date(activeOrTrialingSub.trial_end * 1000).toISOString();
       }
       isTrialing = activeOrTrialingSub.status === "trialing";
-      logStep("Active/trialing subscription found", { 
-        subscriptionId: activeOrTrialingSub.id, 
+      logStep("Active/trialing subscription found", {
+        subscriptionId: activeOrTrialingSub.id,
         endDate: subscriptionEnd,
-        isTrialing 
+        isTrialing,
+        itemPeriodEnd,
+        subPeriodEnd,
       });
       productId = activeOrTrialingSub.items?.data?.[0]?.price?.product || null;
       logStep("Determined subscription product", { productId });
