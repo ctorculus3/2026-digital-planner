@@ -19,20 +19,20 @@ interface BadgeShelfProps {
 
 export const BADGE_CONFIG = [
   {
-    type: "streak_10",
-    number: 10,
-    label: "10 Days",
+    type: "streak_7",
+    number: 7,
+    label: "7 Days",
     icon: Music,
-    description: "First 10-day streak",
+    description: "First 7-day streak",
     gradient: "linear-gradient(135deg, hsl(168 60% 45%), hsl(160 70% 40%), hsl(145 65% 38%))",
     glowColor: "hsl(160 70% 45% / 0.4)",
   },
   {
-    type: "streak_30",
-    number: 30,
-    label: "30 Days",
+    type: "streak_25",
+    number: 25,
+    label: "25 Days",
     icon: Star,
-    description: "30-day streak",
+    description: "25-day streak",
     gradient: "linear-gradient(135deg, hsl(350 75% 55%), hsl(15 85% 55%), hsl(25 90% 55%))",
     glowColor: "hsl(15 85% 55% / 0.4)",
   },

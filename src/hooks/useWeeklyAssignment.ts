@@ -140,9 +140,12 @@ export function useStudentAssignment(logDate: Date) {
   const { data: assignment, isLoading } = useQuery({
     queryKey: ["my-weekly-assignment", weekStart],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
       const { data, error } = await supabase
         .from("weekly_assignments")
         .select("*")
+        .eq("student_user_id", user.id)
         .eq("week_start", weekStart)
         .eq("status", "sent")
         .maybeSingle();

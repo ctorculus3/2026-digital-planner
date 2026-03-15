@@ -32,5 +32,5 @@ export function useAssignmentStatuses(studioId: string | undefined) {
     enabled: !!studioId,
   });
 
-  return { statuses, isLoading };
+  return { statuses, isLoading, weekStart };
 }
